@@ -1,0 +1,19 @@
+{
+  "name": "public-quiz-device",
+  "version": "1.0.0",
+  "description": "Access TV Quiz PhD",
+  "main": "index.js",
+  "scripts": {
+    "hello": "node index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tvquizphd/public-quiz-device.git"
+  },
+  "author": "tvquizphd",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/tvquizphd/public-quiz-device/issues"
+  },
+  "homepage": "https://github.com/tvquizphd/public-quiz-device#readme"
+}
