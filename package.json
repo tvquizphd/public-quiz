@@ -4,7 +4,7 @@
   "description": "Access TV Quiz PhD",
   "main": "index.js",
   "scripts": {
-    "hello": "node --experimental-fetch index.js"
+    "code": "node --experimental-fetch index.js"
   },
   "repository": {
     "type": "git",

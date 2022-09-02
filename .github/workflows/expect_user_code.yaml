@@ -1,10 +1,8 @@
-name: pulse
+name: expect_user_code 
 on:
-  schedule:
-    - cron: '3,18,33,48 * * * *'
   workflow_dispatch:
 jobs:
-  build:
+  expect_user_code:
     environment:
         name: secret-tv-access
     runs-on: ubuntu-latest
@@ -22,4 +20,4 @@ jobs:
           run_install: true
       - name: Run with pnpm
         run: |
-          pnpm run hello {{ secret.GIT_TOKEN }}
+          pnpm run code {{ secret.CLIENT_ID }}
