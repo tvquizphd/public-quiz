@@ -1,3 +1,7 @@
+const { encryptSecrets } = require("./encrypt.js");
+const { decryptSecrets } = require("./decrypt.js");
+const { toNewPassword } = require("./password.js");
+
 class PollingFails extends Error {
   constructor(error) {
     const message = error.error_description;
@@ -123,34 +127,64 @@ const askUser = async (inputs) => {
   }
 }
 
-const handleToken = async () => {
-  const {scope, token_type} = verdict;
+const handleToken = async (inputs) => {
+  const {scope, token_type} = inputs;
   if (scope != 'repo') {
     throw new Error(`Need repo scope, not '${scope}'`);
   }
   if (token_type != 'bearer') {
     throw new Error(`Need bearer token, not '${token_type}'`);
   }
-  const { access_token } = verdict;
   console.log('Authorized by User');
-  return 'ok'
+  const to_encrypt = {
+    password: inputs.password,
+    secret_text: inputs.access_token
+  }
+  return await encryptSecrets(to_encrypt);
 }
 
 const main = () => {
   const args = process.argv.slice(2);
   if (args.length < 1) {
-    console.error('Missing first argument: CLIENT_ID');
+    console.error('Missing 1st arg: CLIENT_ID');
     return;
   }
-  const inputs = {
-    client_id: args[0]
+  if (args.length < 2) {
+    console.error('Missing 2nd arg: MASTER_PASS');
+    return;
+  }
+  const config_in = {
+    client_id: args[0],
+    master_pass: args[1]
   };
-  configureDevice(inputs).then((outputs) => {
+  const master_password = toNewPassword(10);
+  const to_encrypt = {
+    password: master_password,
+    secret_text: 'hello',
+  }
+  const todo = async () => {
+    const out_1 = await encryptSecrets(to_encrypt); //TODO
+    const to_decrypt = {
+      ...out_1, 
+      password: master_password
+    }
+    const out_2 = await decryptSecrets(to_decrypt); //TODO
+    console.log(out_1);
+    console.log(out_2);
+  };
+  todo();
+  return null //TODO
+
+  configureDevice(config_in).then((outputs) => {
     const { device_code, user_code } = outputs;
     console.log('Device Configured');
     askUser(outputs).then((verdict) => {
-      handleToken(verdict).then((winner) => {
-        console.log(winner);
+      const token_in = {
+        ...verdict,
+        password: master_password
+      }
+      handleToken(token_in).then((secrets) => {
+        console.log(secrets);
       }).catch((error) => {
         console.error('Incorrect scope or token type.');
         console.error(error.message)
@@ -160,7 +194,7 @@ const main = () => {
       console.error(error.message)
     });
   }).catch((error) => {
-    console.error('Device Not Configured');
+    console.error('Device is Not Configured');
     console.error(error.message)
   });
 }

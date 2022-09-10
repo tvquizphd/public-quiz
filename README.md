@@ -11,15 +11,22 @@ You'll see your secret device in [your connected applications](https://github.co
 
 ## Local Testing
 
-Install `pnpm` and `node 17`
+Install `pnpm` and `node 18`
 
 ```
 wget -qO- https://get.pnpm.io/install.sh | sh -
-pnpm env use --global 17
+pnpm env use --global 18
+```
+
+Install dependencies
+
+```
+pnpm gyp
+CXX=gcc pnpm install
 ```
 
 Replace values in `{{ }}` to run this:
 
 ```
-pnpm run code {{ secret.CLIENT_ID }}
+pnpm run code {{ secret.CLIENT_ID }} {{ secret.MASTER_PASS }}
 ```
