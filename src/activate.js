@@ -17,6 +17,9 @@ class PollingFails extends Error {
 const needKeys = (obj, keys) => {
   const obj_keys = Object.keys(obj).join(' ');
   for (key of keys) {
+    if ('error' in obj) {
+      throw new Error(obj.error);
+    }
     if (!(key in obj)) {
       throw new Error(`${key} not in [${obj_keys}]`);
     }
@@ -25,9 +28,9 @@ const needKeys = (obj, keys) => {
 
 const getConfigurable = (inputs) => {
   const { client_id } = inputs;
-	const scope = [
-		'public_repo', 'project'
-	].join(' ');
+  const scope = [
+    'public_repo', 'project'
+  ].join(',');
   const keys = { client_id, scope }
   const authPath = 'github.com/login/device/code';
   const deviceParameters = new URLSearchParams(keys);
@@ -168,14 +171,14 @@ const sodiumize = async (o, id, env, value) => {
     environment_name: env
   })
   const { key, key_id } = get_r.data;
-	const buff_key = Buffer.from(key, 'base64');
-	const buff_in = Buffer.from(value);
+  const buff_key = Buffer.from(key, 'base64');
+  const buff_in = Buffer.from(value);
   await _sodium.ready;
   const seal = _sodium.crypto_box_seal;
-	const encryptedBytes = seal(buff_in, buff_key);
+  const encryptedBytes = seal(buff_in, buff_key);
   const buff_out = Buffer.from(encryptedBytes);
   const ev = buff_out.toString('base64');
-	return { key_id, ev };
+  return { key_id, ev };
 }
 
 const addLoginSecret = async (inputs, git) => {
@@ -227,8 +230,8 @@ const updateRepos = (inputs) => {
 
 const handleToken = async (inputs) => {
   const {scope, token_type} = inputs;
-	const scope_set = new Set(scope.split(','));
-	const scope_needs = ['public_repo', 'project'];
+  const scope_set = new Set(scope.split(','));
+  const scope_needs = ['public_repo', 'project'];
   if (!scope_needs.every(x => scope_set.has(x))) {
     throw new Error(`Need project scope, not '${scope}'`);
   }

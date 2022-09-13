@@ -16,16 +16,22 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.10"
+      - name: Add PNPM to Path
+        run: echo $PNPM_HOME >> $GITHUB_PATH
+        env:
+          PNPM_HOME: "/home/runner/.local/share/pnpm"
       - uses: pnpm/action-setup@v2.0.1
         name: Install pnpm
         id: pnpm-install
         with:
           version: 7
-          run_install: true
-      - name: Install dependencies
-        run: |
-          pnpm gyp
-          CXX=gcc pnpm install
+          run_install: |
+            - args: [--global, node-gyp]
+              cwd: "." 
+            - cwd: "." 
+        env:
+          CXX: gcc
+          PNPM_HOME: "/home/runner/.local/share/pnpm"
       - name: Run with pnpm
         run: |
-          pnpm activate {{ secret.MY_TOKEN }} {{ secret.CLIENT_ID }} {{ secret.MASTER_PASS }}
+          pnpm activate {{secret.MY_TOKEN}} {{secret.CLIENT_ID}} {{secret.MASTER_PASS}}
