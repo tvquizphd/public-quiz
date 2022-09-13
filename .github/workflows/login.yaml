@@ -1,0 +1,32 @@
+name: verify 
+on:
+  watch:
+    types: [started]
+jobs:
+  verify:
+    environment:
+        name: secret-tv-access
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Use Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - uses: pnpm/action-setup@v2.0.1
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+          run_install: true
+      - name: Install dependencies
+        run: |
+          pnpm gyp
+          CXX=gcc pnpm install
+      - name: Run with pnpm
+        run: |
+          pnpm verify {{ secret.MY_TOKEN }}

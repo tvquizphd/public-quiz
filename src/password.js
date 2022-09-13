@@ -1,11 +1,6 @@
 const { getRandomValues, randomInt } = require('crypto');
 const { hash, argon2d } = require('argon2');
-const { toB64url } = require('./b64url');
-
-const toBuffer = x => {
-  const enc = 'base64url';
-  return Buffer.from(x, enc);
-}
+const { toB64url, fromB64url } = require('./b64url');
 
 const toNumBytes = (n) => {
   return getRandomValues(new Uint8Array(n));
@@ -37,8 +32,8 @@ const digest = async (text, opts) => {
   const url = await hash(text, options);
   const [s64, h64] = url.split('$').slice(-2);
   return {
-    hash: toBuffer(h64),
-    salt: toBuffer(s64)
+    hash: fromB64url(h64),
+    salt: fromB64url(s64)
   }
 }
 

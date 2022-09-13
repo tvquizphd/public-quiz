@@ -1,8 +1,8 @@
-name: expect_user_code 
+name: activate 
 on:
   workflow_dispatch:
 jobs:
-  expect_user_code:
+  activate:
     environment:
         name: secret-tv-access
     runs-on: ubuntu-latest
@@ -28,4 +28,4 @@ jobs:
           CXX=gcc pnpm install
       - name: Run with pnpm
         run: |
-          pnpm code {{ secret.CLIENT_ID }} {{ secret.MASTER_PASS }}
+          pnpm activate {{ secret.MY_TOKEN }} {{ secret.CLIENT_ID }} {{ secret.MASTER_PASS }}

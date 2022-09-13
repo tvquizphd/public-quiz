@@ -1,13 +1,18 @@
+## Setup
+
+- Create `secret-tv-access` environment for GitHub actions to use.
+- Choose a secure `MASTER_PASSWORD`. Write on paper and set in environment secrets.
+- [Make an OAuth App](https://github.com/settings/developers). Write its `CLIENT_ID` in environment secrets.
+- [Make a personal token](https://github.com/settings/tokens) with `repo` and `project` scope. Write as `MY_TOKEN` in environment secrets.
+
 ## Usage
 
 - Click "Run Workflow" for [this GitHub Action](https://github.com/tvquizphd/public-quiz-device/actions/workflows/expect_user_code.yaml).
-- Copy the code from [an issue in your secret repository](https://github.com/tvquizphd/secret-tv-device/issues).
-- Enter the code in the [GitHub Device Auth Interface](https://github.com/login/device). Grant access.
+- Copy the URL in the workflow logs, then enter password and use the authentication code as directed.
 
-You'll see your secret device in [your connected applications](https://github.com/settings/applications).
+Your secret device is now [a connected application](https://github.com/settings/applications).
 
-- Visit the link [in the issue in your secret repository](https://github.com/tvquizphd/secret-tv-device/issues).
-
+- Login via [your new private project](https://github.com/tvquizphd?tab=projects).
 
 ## Local Testing
 
@@ -25,8 +30,15 @@ pnpm gyp
 CXX=gcc pnpm install
 ```
 
-Replace values in `{{ }}` to run this:
+Replace values in `{{ }}` to run the following commands:
+
+Make a secret login link with two-step verification:
 
 ```
-pnpm run code {{ secret.CLIENT_ID }} {{ secret.MASTER_PASS }}
+pnpm run activate {{MY_TOKEN}} {{CLIENT_ID}} {{MASTER_PASS}}
+```
+
+Login at the login link, which automatically triggers:
+```
+pnpm run login {{MY_TOKEN}}
 ```
