@@ -30,15 +30,15 @@ pnpm gyp
 CXX=gcc pnpm install
 ```
 
-Replace values in `{{ }}` to run the following commands:
+Replace values in `< >` to run the following commands:
 
 Make a secret login link with two-step verification:
 
 ```
-pnpm run activate {{MY_TOKEN}} {{CLIENT_ID}} {{MASTER_PASS}}
+pnpm run activate <MY_TOKEN> <CLIENT_ID> <MASTER_PASS>
 ```
 
 Login at the login link, which automatically triggers:
 ```
-pnpm run login {{MY_TOKEN}}
+pnpm run login <MY_TOKEN>
 ```

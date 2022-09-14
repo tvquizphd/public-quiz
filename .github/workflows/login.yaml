@@ -35,4 +35,4 @@ jobs:
           PNPM_HOME: "/home/runner/.local/share/pnpm"
       - name: Run with pnpm
         run: |
-          pnpm verify ${{secret.MY_TOKEN}}
+          pnpm verify ${{secrets.MY_TOKEN}}
