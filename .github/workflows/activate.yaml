@@ -34,4 +34,4 @@ jobs:
           PNPM_HOME: "/home/runner/.local/share/pnpm"
       - name: Run with pnpm
         run: |
-          pnpm activate {{secret.MY_TOKEN}} {{secret.CLIENT_ID}} {{secret.MASTER_PASS}}
+          pnpm activate ${{secret.MY_TOKEN}} ${{secret.CLIENT_ID}} ${{secret.MASTER_PASS}}
