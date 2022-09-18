@@ -106,3 +106,5 @@ dist
 # Vim
 *.swp
 *.swo
+
+secret.txt

@@ -42,7 +42,33 @@ const fromB64val = (v, isBuffer) => {
   if (typeof v === "object") {
     return fromB64urlObj(v, isBuffer);
   }
+  if (v == "true") {
+    return true;
+  }
+  if (v == "false") {
+    return false;
+  }
   return v;
+}
+
+const nester = (params) => {
+  const keyLists = Object.keys(params).map(k => {
+    const l = k.split('__');
+    return {k, l, len: l.length};
+  });
+  const keys = keyLists.sort((a, b) => a.len - b.len);
+  return keys.reduce((o, {k, l, len}) => {
+    let node = o;
+    for (let i = 0; i < len - 1; i++) {
+      if (!(l[i] in node)) {
+        node[l[i]] = {};
+      }
+      node = node[l[i]];
+    }
+    const last = l.slice(-1);
+    node[last] = params[k];
+    return o;
+  }, {});
 }
 
 const fromB64urlObj = (o, isBuffer = false) => {
@@ -52,15 +78,11 @@ const fromB64urlObj = (o, isBuffer = false) => {
   }, {});
 }
 
-const toB64urlText = o => {
-  return JSON.stringify(toB64urlObj(o));
-}
-
 const _toB64urlQuery = (o, pre=[]) => {
   const entries = Object.entries(toB64urlObj(o));
   return entries.reduce((out, [k, v]) => {
     const keys = [...pre, k];
-    const key = keys.join('_');
+    const key = keys.join('__');
     if (typeof v === "object") {
       const value = _toB64urlQuery(v, keys);
       return `${out}${value}`;
@@ -73,9 +95,16 @@ const toB64urlQuery = o => {
   return _toB64urlQuery(o).replace('&', '?')
 }
 
+const fromB64urlQuery = search => {
+  const searchParams = new URLSearchParams(search);
+  const params = Object.fromEntries(searchParams.entries());
+  return fromB64urlObj(nester(params));
+}
+
+exports.nester = nester;
 exports.toB64url = toB64url;
 exports.fromB64url = fromB64url;
 exports.toB64urlObj = toB64urlObj;
-exports.toB64urlText = toB64urlText;
 exports.toB64urlQuery = toB64urlQuery;
+exports.fromB64urlQuery = fromB64urlQuery;
 exports.fromB64urlObj = fromB64urlObj;

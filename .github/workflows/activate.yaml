@@ -1,4 +1,7 @@
 name: activate 
+concurrency: 
+  group: secret-tv-access
+  cancel-in-progress: true
 on:
   workflow_dispatch:
 jobs:

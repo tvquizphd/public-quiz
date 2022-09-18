@@ -1,9 +1,10 @@
 const _sodium = require('libsodium-wrappers');
-const { graphql } = require("@octokit/graphql");
-const { encryptSecrets } = require("./encrypt.js");
-const { toB64urlQuery } = require("./b64url.js");
-const { toB64urlText } = require("./b64url.js");
-const { toPepper } = require("./opaque.js");
+const { needKeys } = require("./util/keys");
+const { toProject } = require("./sock/toProject");
+const { scaleInterval } = require("./util/time");
+const { printSeconds } = require("./util/time");
+const { encryptSecrets } = require("./encrypt");
+const { toB64urlQuery } = require("./b64url");
 const { Octokit } = require("octokit");
 
 class PollingFails extends Error {
@@ -11,18 +12,6 @@ class PollingFails extends Error {
     const message = error.error_description;
     super(message);
     this.name = "PollingFails";
-  }
-}
-
-const needKeys = (obj, keys) => {
-  const obj_keys = Object.keys(obj).join(' ');
-  for (key of keys) {
-    if ('error' in obj) {
-      throw new Error(obj.error);
-    }
-    if (!(key in obj)) {
-      throw new Error(`${key} not in [${obj_keys}]`);
-    }
   }
 }
 
@@ -62,21 +51,6 @@ const getAskable = (inputs) => {
   const askable = `https://${authPath}?${deviceParameters}`;
   const headers = { 'Accept': 'application/json' };
   return { askable, headers };
-}
-
-const scaleInterval = (interval) => {
-  const scale = 1000 + 100;
-  return scale * interval;
-}
-
-const printSeconds = (secs) => {
-  const dt = scaleInterval(secs);
-  const date = new Date(dt);
-  const iso = date.toISOString();
-  const mm_ss = iso.substring(14, 19);
-  const m = parseInt(mm_ss.slice(0, 2));
-  const s = parseInt(mm_ss.slice(3));
-  return `PT${m}M${s}S`
 }
 
 const askUserOnce = (inputs, timestamp) => {
@@ -137,30 +111,46 @@ const askUser = async (inputs) => {
   }
 }
 
-const addLoginProject = async (inputs, git) => {
-  const octokit = new Octokit({
-    auth: inputs.MY_TOKEN
+const toProjectUrl = ({ owner }, { number }) => {
+  const git_str = `${owner}/projects/${number}`;
+  return `https://github.com/users/${git_str}`;
+}
+
+const addCodeProject = async (inputs) => {
+  const { git } = inputs;
+  const inputs_1 = ({
+    owner: git.owner,
+    title: inputs.title,
+    token: inputs.MY_TOKEN
   })
-  const octograph = graphql.defaults({
-    headers: {
-      authorization: `token ${inputs.MY_TOKEN}`,
-    },
-  });
-  const e_token_txt = inputs.ENCRYPTED_TOKEN;
-  const e_token_obj = JSON.parse(e_token_txt);
-  const e_token_query = toB64urlQuery(e_token_obj);
+  const e_code = inputs.ENCRYPTED_CODE;
+  const project = await toProject(inputs_1);
+  const e_code_query = toB64urlQuery(e_code);
+  const client_root = "https://www.tvquizphd.com/activate";
+  const client_activate = client_root + e_code_query;
+  const body = `# [Get 2FA Code](${client_activate})`;
+  const title = 'Activate with GitHub Code';
+  await project.clear();
+	await project.addItem(title, body);
+  return project;
+}
+
+const addLoginProject = async (inputs) => {
+  const { git } = inputs;
+  const inputs_1 = ({
+    owner: git.owner,
+    title: inputs.title,
+    token: inputs.MY_TOKEN
+  })
+  const project = await toProject(inputs_1);
+  const e_token_query = inputs.ENCRYPTED_TOKEN;
   const client_root = "https://www.tvquizphd.com/login";
-  const client_login = `${client_root}${e_token_query}`;
-  const api_url = `/repos/${git.owner}/${git.repo}/issues`;
-  await octokit.request(`POST ${api_url}`, {
-    owner: git.owner, 
-    repo: git.repo,
-    title: 'Password Manager Login',
-    body: `[Login here](${client_login})`,
-    milestone: null,
-    assignees: [],
-    labels: []
-  })
+  const client_login = client_root + e_token_query;
+  const body = `# [Log in](${client_login})`;
+  const title = 'Password Manager Login';
+  await project.clear();
+	await project.addItem(title, body);
+  return project;
 }
 
 const sodiumize = async (o, id, env, value) => {
@@ -181,7 +171,8 @@ const sodiumize = async (o, id, env, value) => {
   return { key_id, ev };
 }
 
-const addLoginSecret = async (inputs, git) => {
+const addLoginSecret = async (inputs) => {
+  const { git } = inputs;
   const octokit = new Octokit({
     auth: inputs.MY_TOKEN
   })
@@ -189,7 +180,7 @@ const addLoginSecret = async (inputs, git) => {
   const get_api = `/repos/${git.owner}/${git.repo}`;
   const get_r = await octokit.request(`GET ${get_api}`, git);
   const { id } = get_r.data;
-  const pepper = inputs.OPAQUE_PEPPER;
+  const pepper = "TODO PEPPER SECRET TODO"; //TODO
   const e_pepper = await sodiumize(octokit, id, env, pepper);
   const api_root = `/repositories/${id}/environments/${env}`;
   const api_url = `${api_root}/secrets/PEPPER`;
@@ -203,20 +194,17 @@ const addLoginSecret = async (inputs, git) => {
 }
 
 const updateRepos = (inputs) => {
-  const git = {
-    owner: "tvquizphd",
-    repo: "secret-tv-device"
-  }
+  const title = "Login";
   const to_public = "on GitHub Public Repo";
   return new Promise((resolve, reject) => {
-    addLoginProject(inputs, git).then(() => {
-      const repo = "public-quiz-device";
+    const login_inputs = { ...inputs, title};
+    addLoginProject(login_inputs).then((proj) => {
       console.log("Added Login Project");
-      addLoginSecret(inputs, {...git, repo}).then(() => {
+      addLoginSecret(inputs).then(() => {
         console.log(`Added PEPPER Secret ${to_public}`);
-        const git_str = `${git.owner}?tab=projects`;
-        const end_url = `https://github.com/${git_str}`;
-        resolve(`\n${end_url}\n`);
+        const info = `Log in with '${title}' project:`
+        const end_url = toProjectUrl(inputs.git, proj);
+        resolve(`${info}\n${end_url}\n`);
       }).catch((e) => {
         console.error(`Unable to add PEPPER Secret ${to_public}`);
         reject(e.message);
@@ -244,20 +232,12 @@ const handleToken = async (inputs) => {
     secret_text: inputs.access_token
   }
   const encrypted = await encryptSecrets(to_encrypt);
-  const gtxt = toB64urlText(encrypted); 
+  const gtxt = toB64urlQuery(encrypted); 
   console.log('Encrypted GitHub access token');
-  const to_verify = {
-    password: inputs.password,
-    user: 'root'
-  }
-  const pepper = await toPepper(to_verify);
-  const ptxt = toB64urlText(pepper);
-  console.log('Encrypted verifier');
   return {
     TOKEN: inputs.access_token,
     MY_TOKEN: inputs.my_token,
     ENCRYPTED_TOKEN: gtxt,
-    OPAQUE_PEPPER: ptxt
   };
 }
 
@@ -280,8 +260,11 @@ const main = () => {
     client_id: args[1],
     master_pass: args[2]
   };
+  const git = {
+    owner: "tvquizphd",
+    repo: "public-quiz-device"
+  }
   const { master_pass, my_token } = config_in;
-  const client_root = "https://www.tvquizphd.com/activate";
   configureDevice(config_in).then(async (outputs) => {
     console.log('Device Configured');
     const { user_code } = outputs;
@@ -289,16 +272,28 @@ const main = () => {
       password: master_pass,
       secret_text: user_code 
     })
-    const e_code_query = toB64urlQuery(e_code);
-    console.log(`\n${client_root}${e_code_query}\n`);
+    // Create activation link
+    const code_title = "Activate";
+    const code_proj = await addCodeProject({ 
+      ENCRYPTED_CODE: e_code,
+      MY_TOKEN: my_token,
+      title: code_title,
+      git
+    });
+    const proj_url = toProjectUrl(git, code_proj);
+    const info = `Open '${code_title}' project:`;
+    console.log(`${info}\n${proj_url}\n`);
+    // Wait for user to visit link
     askUser(outputs).then((verdict) => {
       const token_in = {
         ...verdict,
         my_token: my_token,
         password: master_pass
       }
-      handleToken(token_in).then((to_update) => {
-        updateRepos(to_update).then((done) => {
+      handleToken(token_in).then((token_out) => {
+        const to_update = { ...token_out, git };
+        updateRepos(to_update).then(async (done) => {
+          await code_proj.clear();
           console.log(done);
         }).catch((error) => {
           console.error('Unable to update private repo.');

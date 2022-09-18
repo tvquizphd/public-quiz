@@ -1,30 +1,6 @@
-const { graphql } = require("@octokit/graphql");
-
-const createProject = async (inputs) => {
-  const { octograph, ownerId } = inputs;
-  await octograph(`
-    mutation {
-      createProjectV2(input: {ownerId: "${ownerId}", title: "login"}) {
-        projectV2 {
-          id
-          title
-        }
-      }
-    }
-  `);
-  return "Created Project.";
-}
-
-const seeOwner = async (inputs) => {
-  const { octograph, owner } = inputs;
-  return (await octograph(`
-    query {
-      user(login: "${owner}") {
-        id
-      }
-    }
-  `)).user;
-}
+const { toProjectSock } = require("./sock");
+const { nester, fromB64urlObj } = require("./b64url");
+const OP = require('@nthparty/opaque');
 
 const main = () => {
   const args = process.argv.slice(2);
@@ -33,27 +9,19 @@ const main = () => {
     return;
   }
   const inputs = {
-    my_token: args[0]
+    token: args[0],
+    title: "verify",
+    scope: "verify",
+    owner: "tvquizphd"
   };
-  const octograph = graphql.defaults({
-    headers: {
-      authorization: `token ${inputs.my_token}`,
-    },
-  });
-  const owner = "tvquizphd";
-  const inputs_1 = { owner, octograph };
-  seeOwner(inputs_1).then((user) => {
-    const ownerId = user.id;
-    const inputs_2 = { ownerId, octograph };
-    createProject(inputs_2).then((done) => {
-      console.log(done);
-    }).catch((error) => {
-      console.error(`Unable to create project.`);
-      console.error(error.message);
-    })
-  }).catch((error) => {
-    console.error(`Unable to see owner "${owner}"`);
-    console.error(error.message);
-  });
+  (async () => {
+    const sock = await toProjectSock(inputs);
+    const Opaque = await OP(sock);
+  	const { pepper } = await Opaque.serverRegister(1000, "_");
+    Opaque.serverAuthenticate("root", pepper, "_").then((token) => {
+      console.log(token)
+    });
+    console.log('Waiting');
+  })();
 }
 main();

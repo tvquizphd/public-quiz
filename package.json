@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Access TV Quiz PhD",
   "scripts": {
-    "gyp": "pnpm install -g node-gyp",
     "verify": "node --experimental-fetch src/verify.js",
     "activate": "node --experimental-fetch src/activate.js"
   },

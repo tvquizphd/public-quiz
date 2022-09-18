@@ -1,4 +1,7 @@
 name: verify 
+concurrency: 
+  group: secret-tv-access
+  cancel-in-progress: true
 on:
   watch:
     types: [started]

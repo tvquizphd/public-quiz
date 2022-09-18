@@ -7,12 +7,14 @@
 
 ## Usage
 
-- Click "Run Workflow" for [this GitHub Action](https://github.com/tvquizphd/public-quiz-device/actions/workflows/expect_user_code.yaml).
-- Copy the URL in the workflow logs, then enter password and use the authentication code as directed.
+- Click "Run Workflow" for [this GitHub Action](https://github.com/tvquizphd/public-quiz-device/actions/workflows/activate.yaml).
+- View the "Login" project in [your private projects](https://github.com/tvquizphd?tab=projects).
+- Then enter password and follow instructions to use the GitHub authentication code.
 
 Your secret device is now [a connected application](https://github.com/settings/applications).
 
-- Login via [your new private project](https://github.com/tvquizphd?tab=projects).
+- View the "Login" project in [your private projects](https://github.com/tvquizphd?tab=projects).
+- Then enter password and follow instructions to manage your passwords.
 
 ## Local Testing
 
@@ -26,7 +28,7 @@ pnpm env use --global 18
 Install dependencies
 
 ```
-pnpm gyp
+pnpm install -g node-gyp
 CXX=gcc pnpm install
 ```
 
@@ -38,7 +40,8 @@ Make a secret login link with two-step verification:
 pnpm run activate <MY_TOKEN> <CLIENT_ID> <MASTER_PASS>
 ```
 
-Login at the login link, which automatically triggers:
+Login at the login link, which should trigger:
+
 ```
 pnpm run login <MY_TOKEN>
 ```
