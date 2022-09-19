@@ -1,5 +1,4 @@
-const { toProjectSock } = require("./sock");
-const { nester, fromB64urlObj } = require("./b64url");
+const { toLocalSock } = require("./sock");
 const OP = require('@nthparty/opaque');
 
 const main = () => {
@@ -8,20 +7,28 @@ const main = () => {
     console.error('Missing 1st arg: MY_TOKEN');
     return;
   }
+  const v = "v";
   const inputs = {
     token: args[0],
+    scope: v,
     title: "verify",
-    scope: "verify",
     owner: "tvquizphd"
   };
   (async () => {
-    const sock = await toProjectSock(inputs);
+    const sock = toLocalSock();
     const Opaque = await OP(sock);
-  	const { pepper } = await Opaque.serverRegister(1000, "o");
-    Opaque.serverAuthenticate("root", pepper, "o").then((token) => {
-      sock.project?.finish();
-      console.log(token);
-    });
+    (async () => {
+      const { pepper } = await Opaque.serverRegister(1000, v);
+      Opaque.serverAuthenticate("root", pepper, v).then((token) => {
+        sock.project?.finish();
+        console.log({token});
+      });
+    })();
+    const pass = inputs.token;
+    Opaque.clientRegister(pass, "root", v);
+    Opaque.clientAuthenticate(pass, "root", 1000, v).then((session) => {
+      console.log({session})
+    })
     console.log('Waiting');
   })();
 }
