@@ -1,17 +1,20 @@
-lockfileVersion: 5.3
+lockfileVersion: 5.4
+
+overrides:
+  libsodium-wrappers-sumo: 0.7.8
 
 specifiers:
   '@nthparty/opaque': ^0.3.0
   '@octokit/graphql': ^5.0.1
   argon2: ^0.29.1
-  libsodium-wrappers: ^0.7.10
+  libsodium-wrappers: 0.7.8
   octokit: ^2.0.7
 
 dependencies:
   '@nthparty/opaque': 0.3.0
   '@octokit/graphql': 5.0.1
   argon2: 0.29.1
-  libsodium-wrappers: 0.7.10
+  libsodium-wrappers: 0.7.8
   octokit: 2.0.7
 
 packages:
@@ -37,7 +40,7 @@ packages:
   /@nthparty/opaque/0.3.0:
     resolution: {integrity: sha512-OMZPCHK3Uo0fsr0lb0GixgSu0ljI27tQM6oIcOmMbsqu1hmUBpMBmKsEyqNQWUfKnyaudjueOdfh2UDHexW5eg==}
     dependencies:
-      libsodium-wrappers-sumo: 0.7.10
+      libsodium-wrappers-sumo: 0.7.8
       oprf: 2.0.0
     dev: false
 
@@ -609,20 +612,20 @@ packages:
     resolution: {integrity: sha512-xvYHwrTPvw9EFvX77x6gFiB7vdTv4+9xpM5DCkg9FJwysHoBO7sYXxXjy5L2gQSuWaINbtjBUry9eCg/+nYwCA==}
     dev: false
 
-  /libsodium-wrappers-sumo/0.7.10:
-    resolution: {integrity: sha512-1noz8Mcl/LUzO/iSO/FJzoJyIaPwxl+/+E4CoTIXtsPiEEXQx2sxalmrVWxteLpynqgX0ASo28ChB9NEVRh0Pg==}
+  /libsodium-wrappers-sumo/0.7.8:
+    resolution: {integrity: sha512-a36GRLb59E5Zx8br6Xvwk6QsnYWodkCJFvNQxnhrvL9t9i4v6v3V/cv3h0/pxehf35ljVCWqoi0CawMQ8C1JmA==}
     dependencies:
       libsodium-sumo: 0.7.10
     dev: false
 
-  /libsodium-wrappers/0.7.10:
-    resolution: {integrity: sha512-pO3F1Q9NPLB/MWIhehim42b/Fwb30JNScCNh8TcQ/kIc+qGLQch8ag8wb0keK3EP5kbGakk1H8Wwo7v+36rNQg==}
+  /libsodium-wrappers/0.7.8:
+    resolution: {integrity: sha512-PDhPWXBqd/SaqAFUBgH2Ux7b3VEEJgyD6BQB+VdNFJb9PbExGr/T/myc/MBoSvl8qLzfm0W0IVByOQS5L1MrCg==}
     dependencies:
-      libsodium: 0.7.10
+      libsodium: 0.7.8
     dev: false
 
-  /libsodium/0.7.10:
-    resolution: {integrity: sha512-eY+z7hDrDKxkAK+QKZVNv92A5KYkxfvIshtBJkmg5TSiCnYqZP3i9OO9whE79Pwgm4jGaoHgkM4ao/b9Cyu4zQ==}
+  /libsodium/0.7.8:
+    resolution: {integrity: sha512-/Qc+APf0jbeWSaeEruH0L1/tbbT+sbf884ZL0/zV/0JXaDPBzYkKbyb/wmxMHgAHzm3t6gqe7bOOXAVwfqVikQ==}
     dev: false
 
   /lodash.includes/4.3.0:
@@ -765,7 +768,7 @@ packages:
   /oprf/2.0.0:
     resolution: {integrity: sha512-U478RnpEsyeR7Lt8KDLQ6rFioXAvN6Ei0E6U8XzkWor6JCXu0BnvOfMre5n29Pu7oHmKRI8CipXA1IXrFWIQOw==}
     dependencies:
-      libsodium-wrappers-sumo: 0.7.10
+      libsodium-wrappers-sumo: 0.7.8
     dev: false
 
   /path-is-absolute/1.0.1:

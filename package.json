@@ -20,7 +20,12 @@
     "@nthparty/opaque": "^0.3.0",
     "@octokit/graphql": "^5.0.1",
     "argon2": "^0.29.1",
-    "libsodium-wrappers": "^0.7.10",
+    "libsodium-wrappers": "0.7.8",
     "octokit": "^2.0.7"
+  },
+  "pnpm": {
+    "overrides": {
+      "libsodium-wrappers-sumo": "0.7.8"
+    }
   }
 }
