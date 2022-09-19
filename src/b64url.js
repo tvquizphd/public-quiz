@@ -24,7 +24,7 @@ const toB64val = v => {
 const toB64urlObj = o => {
   const entries = Object.entries(o);
   return entries.reduce((out, [k, v]) => {
-    return {...out, [k]: toB64val(v)}; 
+    return {...out, [k]: toB64val(v)};
   }, {});
 }
 
@@ -74,7 +74,7 @@ const nester = (params) => {
 const fromB64urlObj = (o, isBuffer = false) => {
   const entries = Object.entries(o);
   return entries.reduce((out, [k, v]) => {
-    return {...out, [k]: fromB64val(v, isBuffer)}; 
+    return {...out, [k]: fromB64val(v, isBuffer)};
   }, {});
 }
 

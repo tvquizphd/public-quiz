@@ -1,4 +1,7 @@
-const { scaleInterval } = require("../util/time");
+const scaleInterval = (interval) => {
+  const scale = 1000 + 100;
+  return scale * interval;
+}
 
 const addItem = async (inputs) => {
   const { octograph, title, body, id } = inputs;
@@ -216,4 +219,4 @@ class Project {
   }
 }
 
-exports.Project = Project;
+window.Project = Project;

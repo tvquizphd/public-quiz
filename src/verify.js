@@ -17,9 +17,10 @@ const main = () => {
   (async () => {
     const sock = await toProjectSock(inputs);
     const Opaque = await OP(sock);
-  	const { pepper } = await Opaque.serverRegister(1000, "_");
-    Opaque.serverAuthenticate("root", pepper, "_").then((token) => {
-      console.log(token)
+  	const { pepper } = await Opaque.serverRegister(1000, "o");
+    Opaque.serverAuthenticate("root", pepper, "o").then((token) => {
+      sock.project?.finish();
+      console.log(token);
     });
     console.log('Waiting');
   })();

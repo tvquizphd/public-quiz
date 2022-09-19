@@ -1,0 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=Kreon:wght@400;700&display=swap');
+body {
+    background-color: #eee;
+    font-family: Kreon, Tahoma, Verdana, sans-serif;
+    font-weight: 400px;
+    font-size: 20px;
+    line-height: 1.4em;
+    padding: 0;
+    margin: 0;
+}
+.container {
+    display: grid;
+    max-width: 960px;
+    margin: 2em auto 2em;
+    padding: 2em;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+.container > section {
+    height: 100%;
+    display: inline-block;
+    margin-bottom: 2em;
+}
+h1, h2, h3, h4, h5 {
+    color: #494949;
+    font-family: Kreon, Tahoma, Verdana, sans-serif;
+    font-weight: 700;
+}
+h1 {
+    font-size: 36px;
+    color: #137899;
+}
+h2 {
+    font-size: 29px;
+}
+h3 {
+    font-size: 24px;
+}
+a {
+    color: #0f7096;
+}
+ul {
+    padding-left: 2em;
+}
+img {
+    max-width: 100%;
+}
+

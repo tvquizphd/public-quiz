@@ -204,9 +204,11 @@ const updateRepos = (inputs) => {
         console.log(`Added PEPPER Secret ${to_public}`);
         const info = `Log in with '${title}' project:`
         const end_url = toProjectUrl(inputs.git, proj);
+        proj.finish();
         resolve(`${info}\n${end_url}\n`);
       }).catch((e) => {
         console.error(`Unable to add PEPPER Secret ${to_public}`);
+        proj.finish();
         reject(e.message);
       });
     }).catch((e) => {
@@ -293,19 +295,22 @@ const main = () => {
       handleToken(token_in).then((token_out) => {
         const to_update = { ...token_out, git };
         updateRepos(to_update).then(async (done) => {
-          await code_proj.clear();
+          code_proj.finish();
           console.log(done);
         }).catch((error) => {
           console.error('Unable to update private repo.');
           console.error(error.message)
+          code_proj.finish();
         })
       }).catch((error) => {
         console.error('Error issuing token or verifier.');
         console.error(error.message)
+        code_proj.finish();
       });
     }).catch((error) => {
       console.error('Not Authorized by User');
       console.error(error.message)
+      code_proj.finish();
     });
   }).catch((error) => {
     console.error('Device is Not Configured');

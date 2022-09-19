@@ -1,6 +1,54 @@
-const { graphql } = require("@octokit/graphql");
-const { needKeys } = require("../util/keys");
-const { Project } = require("./project");
+const needKeys = (obj, keys) => {
+  const obj_keys = Object.keys(obj).join(' ');
+  for (key of keys) {
+    if ('error' in obj) {
+      throw new Error(obj.error);
+    }
+    if (!(key in obj)) {
+      throw new Error(`${key} not in [${obj_keys}]`);
+    }
+  }
+}
+
+const serialize = (data) => {
+  return toB64urlQuery({ data });
+}
+
+const deserialize = (str) => {
+  return fromB64urlQuery(str).data;
+}
+
+class ProjectChannel {
+  constructor(inputs) {
+    const { project, scope } = inputs;
+    this.project = project;
+    this.scope = scope;
+  }
+  hasResponse(k) {
+    return this.project.hasResponse(k)
+  }
+  hasRequest(k) {
+    return true;
+  }
+  toKey(op_id, tag) {
+    const names = [this.scope, op_id, tag];
+    return names.join('__');
+  }
+  listenForKey(k, res) {
+    const resolve = (s) => res(deserialize(s));
+    this.project.awaitItem([k, resolve]);
+  }
+  receiveMailKey(k, res) {
+    const resolve = (s) => res(deserialize(s));
+    this.project.resolver([k, resolve]);
+  }
+  cacheMail(k, a) {
+    this.sendMail(k, a);
+  }
+  sendMail(k, a) {
+    this.project.addItem(k, serialize(a));
+  }
+}
 
 const findProject = async (inputs) => {
   const { octograph, owner, title } = inputs;
@@ -93,4 +141,32 @@ const toProject = (inputs) => {
   });
 }
 
-exports.toProject = toProject;
+const socket = (sock) => ({
+  sock,
+  get: (op_id, tag) => {
+    return new Promise(function (resolve) {
+      const k = sock.toKey(op_id, tag);
+      if (!sock.hasResponse(k)) {
+        sock.listenForKey(k, resolve);
+      } else {
+        sock.receiveMailKey(k, resolve);
+      }
+    });
+  },
+  give: (op_id, tag, msg) => {
+    const k = sock.toKey(op_id, tag);
+    if (!sock.hasRequest(k)) {
+      sock.cacheMail(k, msg);
+    } else {
+      sock.sendMail(k, msg);
+    }
+  },
+});
+
+const toProjectSock = async (inputs) => {
+  const project = await toProject(inputs);
+  const inputs_1 = { ...inputs, project };
+  return socket(new ProjectChannel(inputs_1));
+}
+
+window.toProjectSock = toProjectSock;
