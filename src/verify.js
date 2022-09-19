@@ -8,17 +8,20 @@ const main = () => {
     console.error('Missing 1st arg: MY_TOKEN');
     return;
   }
+  const v = "v";
+  const user = "root";
+  const times = 1000;
   const inputs = {
+    scope: v,
     token: args[0],
     title: "verify",
-    scope: "verify",
     owner: "tvquizphd"
   };
   (async () => {
     const sock = await toProjectSock(inputs);
     const Opaque = await OP(sock);
-  	const { pepper } = await Opaque.serverRegister(1000, "o");
-    Opaque.serverAuthenticate("root", pepper, "o").then((token) => {
+  	const { pepper } = await Opaque.serverRegister(times, v);
+    Opaque.serverAuthenticate(user, pepper, v).then((token) => {
       sock.project?.finish();
       console.log(token);
     });
