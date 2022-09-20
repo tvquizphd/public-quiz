@@ -1,11 +1,12 @@
 const _sodium = require('libsodium-wrappers');
 const { needKeys } = require("./util/keys");
-const { toProject } = require("./sock/toProject");
-const { scaleInterval } = require("./util/time");
+const { toProject } = require("project-sock");
 const { printSeconds } = require("./util/time");
 const { encryptSecrets } = require("./encrypt");
 const { toB64urlQuery } = require("./b64url");
 const { Octokit } = require("octokit");
+
+const ROOT = "https://pass.tvquizphd.com";
 
 class PollingFails extends Error {
   constructor(error) {
@@ -57,7 +58,7 @@ const askUserOnce = (inputs, timestamp) => {
   const step0 = getAskable(inputs);
   const { askable, headers } = step0;
   const step1 = { headers, method: 'POST' };
-  const dt = scaleInterval(inputs.interval);
+  const dt = 1000 * inputs.interval + 100;
   return new Promise((resolve) => {
     setTimeout(async () => { 
       const step2 = await fetch(askable, step1); 
@@ -126,7 +127,7 @@ const addCodeProject = async (inputs) => {
   const e_code = inputs.ENCRYPTED_CODE;
   const project = await toProject(inputs_1);
   const e_code_query = toB64urlQuery(e_code);
-  const client_root = "https://www.tvquizphd.com/activate";
+  const client_root = ROOT + "/activate";
   const client_activate = client_root + e_code_query;
   const body = `# [Get 2FA Code](${client_activate})`;
   const title = 'Activate with GitHub Code';
@@ -144,7 +145,7 @@ const addLoginProject = async (inputs) => {
   })
   const project = await toProject(inputs_1);
   const e_token_query = inputs.ENCRYPTED_TOKEN;
-  const client_root = "https://www.tvquizphd.com/login";
+  const client_root = ROOT + "/login";
   const client_login = client_root + e_token_query;
   const body = `# [Log in](${client_login})`;
   const title = 'Password Manager Login';

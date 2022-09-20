@@ -3,7 +3,7 @@
  *
  * reef, fromB64urlQuery, 
  * decryptKey, decryptSecret, argon2
- * Octokit, graphql, toProjectSock, OP
+ * Octokit, toProjectSock, OP
  */
 
 const runReef = (mainId, formId, passFormId) => {
@@ -12,7 +12,12 @@ let {store, component} = reef;
 
 // Create reactive data store
 let DATA = store({
-    loading: false,
+    loaded: {
+      session: false
+    },
+    loading: {
+      session: false
+    },
     secret: null,
     code: null,
     todos: []
@@ -50,6 +55,7 @@ function addTodo (event) {
 async function decryptWithPassword (event) {
     // Prevent default form submission
     event.preventDefault();
+    DATA.loading.session = true;
 
     const passField = document.getElementById('pwd');
     const pass = passField.value;
@@ -96,6 +102,8 @@ async function decryptWithPassword (event) {
     await Opaque.clientRegister(pass, "root", v);
     Opaque.clientAuthenticate(pass, "root", times, v).then((session) => {
       DATA.secret = session;
+      DATA.loading.session = false;
+      DATA.loaded.session = true;
     })
     // Clear the input field and return to focus
     passField.value = '';
@@ -126,7 +134,6 @@ function completeTodo (item) {
 
 function submitTodos () {
     alert('TODO');
-    DATA.loading = true;
 }
 
 /**
@@ -161,14 +168,30 @@ function submitHandler (event) {
 }
 
 function codeTemplate () {
-   const url = "https://github.com/login/device/";
-   const secret = DATA.secret || "############";
-   const code = DATA.code || "*******";
-   return `
-      <p> Session encryption key: ${secret} </p>
-      <p> GitHub API Code: ${code} </p>
-      <p></p>
-   `;
+  const url = "https://github.com/login/device/";
+  const secret = DATA.secret || "############";
+  const code = DATA.code || "*******";
+  const loadingInfo = (({loading, loaded}) => {
+    if (loading.session) {
+      return `<p class="loading"> Loading... </p>`;
+    } 
+    if (loaded.session) {
+      return `<p class="loaded"> Welcome </p>`;
+    }
+    return `
+      <p>Please enter Password</p>
+      <form id="${passFormId}">
+        <label for="pwd">Password:</label>
+        <input type="password" id="pwd" name="pwd">
+        <button>Log in</button>
+      </form>
+    `;
+  })(DATA);
+  return `
+    <div class="loading-wrapper">
+      ${loadingInfo} 
+    </div>
+  `;
 }
 
 function listTemplate () {
@@ -203,11 +226,7 @@ function appTemplate () {
         <div>
         ${codeTemplate()}
         </div>
-        <form id="${passFormId}">
-          <label for="pwd">Password:</label>
-          <input type="password" id="pwd" name="pwd">
-          <button>Decrypt Code</button>
-        </form>
+        <br>
         <form id="${formId}">
             <label for="todo-item">What do you need? </label>
             <input type="text" name="todo-item" id="todo-item">

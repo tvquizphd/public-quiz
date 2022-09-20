@@ -6,6 +6,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <link href="../global.css" rel="stylesheet" type="text/css">
+    <link href="./main.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <div class="container">
@@ -17,18 +18,17 @@
 <script src="https://cdn.jsdelivr.net/npm/reefjs@12/dist/reef.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/argon2-browser@1.18.0/dist/argon2-bundled.min.js"></script>
 <script type="module">
+  import { 
+    toProjectSock, fromB64urlQuery
+  } from "https://cdn.skypack.dev/project-sock";
   import { Octokit } from "https://cdn.skypack.dev/octokit";
-  import { graphql } from "https://cdn.skypack.dev/@octokit/graphql";
-  window.graphql = graphql;
+  window.fromB64urlQuery = fromB64urlQuery;
+  window.toProjectSock = toProjectSock;
   window.Octokit = Octokit;
 </script>
-<script src="../scripts/b64url.js"></script>
-<script src="../scripts/encrypt.js"></script>
-<script src="../scripts/decrypt.js"></script>
 <script src="../scripts/oprf.js"></script>
 <script src="../scripts/opaque.js"></script>
-<script src="../scripts/project.js"></script>
-<script src="../scripts/projectChannel.js"></script>
+<script src="../scripts/decrypt.js"></script>
 <script src="./index.js" async></script>
 </body>
 </html>

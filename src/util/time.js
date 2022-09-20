@@ -1,10 +1,5 @@
-const scaleInterval = (interval) => {
-  const scale = 1000 + 100;
-  return scale * interval;
-}
-
 const printSeconds = (secs) => {
-  const dt = scaleInterval(secs);
+  const dt = 1000 * secs;
   const date = new Date(dt);
   const iso = date.toISOString();
   const mm_ss = iso.substring(14, 19);
@@ -13,5 +8,4 @@ const printSeconds = (secs) => {
   return `PT${m}M${s}S`
 }
 
-exports.scaleInterval = scaleInterval;
 exports.printSeconds = printSeconds;

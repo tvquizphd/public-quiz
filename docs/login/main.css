@@ -1,0 +1,52 @@
+.loading-wrapper {
+  display: grid;
+  grid-template-columns: minmax(30vw, 300px);
+  align-content: space-evenly;
+  grid-template-rows: auto;
+  justify-items: stretch;
+  align-items: center;
+}
+.loading-wrapper > .loading, 
+.loading-wrapper > .loaded {
+  background:
+    linear-gradient(to right, transparent, rgb(140,44,0), transparent),
+    url("noise.svg");
+  filter: contrast(900%) brightness(900%);
+	image-rendering: pixelated;
+  background-size: 100% 50%;
+  pointer-events: none;
+	border-radius: 1em;
+  text-align: center;
+	opacity: 0.666;
+  color: white;
+}
+
+.loading-wrapper > .loading {
+  -webkit-animation: Animation 2s linear infinite;
+  -moz-animation: Animation 2s linear infinite;
+  animation: Animation 2s linear infinite;
+  filter: contrast(300%) brightness(900%);
+  background-size: 400% 100%;
+}
+
+@-webkit-keyframes Animation {
+    0%{background-position:0% 0%; color: black}
+    30%{background-position:30% 0%; color: black}
+    50%{background-position:50% 0%; color: white}
+    70%{background-position:70% 0%; color: black}
+    100%{background-position:100% 0%; color: black}
+}
+@-moz-keyframes Animation {
+    0%{background-position:0% 0%; color: black}
+    30%{background-position:30% 0%; color: black}
+    50%{background-position:50% 0%; color: white}
+    70%{background-position:70% 0%; color: black}
+    100%{background-position:100% 0%; color: black}
+}
+@keyframes Animation { 
+    0%{background-position:0% 0%; color: black}
+    30%{background-position:30% 0%; color: black}
+    50%{background-position:50% 0%; color: white}
+    70%{background-position:70% 0%; color: black}
+    100%{background-position:100% 0%; color: black}
+}

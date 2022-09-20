@@ -1,5 +1,4 @@
-const { toProjectSock } = require("./sock");
-const { nester, fromB64urlObj } = require("./b64url");
+const { toProjectSock } = require("project-sock");
 const OP = require('@nthparty/opaque');
 
 const main = () => {
@@ -22,8 +21,7 @@ const main = () => {
     const Opaque = await OP(sock);
   	const { pepper } = await Opaque.serverRegister(times, v);
     Opaque.serverAuthenticate(user, pepper, v).then((token) => {
-      sock.project?.finish();
-      console.log(token);
+      sock.sock.project?.finish();
     });
     console.log('Waiting');
   })();

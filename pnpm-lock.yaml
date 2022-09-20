@@ -9,6 +9,7 @@ specifiers:
   argon2: ^0.29.1
   libsodium-wrappers: 0.7.8
   octokit: ^2.0.7
+  project-sock: 1.0.0-alpha.2.0
 
 dependencies:
   '@nthparty/opaque': 0.3.0
@@ -16,6 +17,7 @@ dependencies:
   argon2: 0.29.1
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
+  project-sock: 1.0.0-alpha.2.0
 
 packages:
 
@@ -774,6 +776,14 @@ packages:
   /path-is-absolute/1.0.1:
     resolution: {integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==}
     engines: {node: '>=0.10.0'}
+    dev: false
+
+  /project-sock/1.0.0-alpha.2.0:
+    resolution: {integrity: sha512-Ih0JfGdACkjyRTEtlSNmtOJE3zCO61mPd0M9gxcj7ZExh/s7uHTwqdDOX27bMZglWoeOstNl9Aseofygez8SKg==}
+    dependencies:
+      '@octokit/graphql': 5.0.1
+    transitivePeerDependencies:
+      - encoding
     dev: false
 
   /readable-stream/3.6.0:
