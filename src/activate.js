@@ -1,11 +1,10 @@
-const _sodium = require('libsodium-wrappers');
 const { needKeys } = require("./util/keys");
 const { 
   toProject, toB64urlQuery
 } = require("project-sock");
 const { printSeconds } = require("./util/time");
 const { encryptSecrets } = require("./util/encrypt");
-const { Octokit } = require("octokit");
+const { deleteSecret } = require("./util/secrets");
 
 const ROOT = "https://pass.tvquizphd.com";
 
@@ -154,59 +153,9 @@ const addLoginProject = async (inputs) => {
   return project;
 }
 
-const sodiumize = async (o, id, env, value) => {
-  const api_root = `/repositories/${id}/environments/${env}`;
-  const api_url = `${api_root}/secrets/public-key`;
-  const get_r = await o.request(`GET ${api_url}`, {
-    repository_id: id,
-    environment_name: env
-  })
-  const { key, key_id } = get_r.data;
-  const buff_key = Buffer.from(key, 'base64');
-  const buff_in = Buffer.from(value);
-  await _sodium.ready;
-  const seal = _sodium.crypto_box_seal;
-  const encryptedBytes = seal(buff_in, buff_key);
-  const buff_out = Buffer.from(encryptedBytes);
-  const ev = buff_out.toString('base64');
-  return { key_id, ev };
-}
-
-const deleteMasterPass = async (inputs) => {
-  const { git } = inputs;
-  const octokit = new Octokit({
-    auth: git.owner_token
-  })
-  const env = 'secret-tv-access';
+const deleteMasterPass = (inputs) => {
   const secret_name = 'MASTER_PASS';
-  const get_api = `/repos/${git.owner}/${git.repo}`;
-  const get_r = await octokit.request(`GET ${get_api}`, git);
-  const { id } = get_r.data;
-  const api_root = `/repositories/${id}/environments/${env}`;
-  const api_url = `${api_root}/secrets/${secret_name}`;
-  await octokit.request(`DELETE ${api_url}`)
-}
-
-const addLoginSecret = async (inputs) => {
-  const { git } = inputs;
-  const octokit = new Octokit({
-    auth: git.owner_token
-  })
-  const env = 'secret-tv-access';
-  const get_api = `/repos/${git.owner}/${git.repo}`;
-  const get_r = await octokit.request(`GET ${get_api}`, git);
-  const { id } = get_r.data;
-  const pepper = "TODO PEPPER SECRET TODO"; //TODO
-  const e_pepper = await sodiumize(octokit, id, env, pepper);
-  const api_root = `/repositories/${id}/environments/${env}`;
-  const api_url = `${api_root}/secrets/PEPPER`;
-  await octokit.request(`PUT ${api_url}`, {
-    repository_id: id,
-    environment_name: env,
-    secret_name: 'PEPPER',
-    key_id: e_pepper.key_id,
-    encrypted_value: e_pepper.ev,
-  })
+  return deleteSecret({...inputs, secret_name})
 }
 
 const updateRepos = (inputs) => {
@@ -214,20 +163,13 @@ const updateRepos = (inputs) => {
   const to_public = "on GitHub Public Repo";
   return new Promise((resolve, reject) => {
     const login_inputs = { ...inputs, title};
-    addLoginProject(login_inputs).then((proj) => {
+    addLoginProject(login_inputs).then(async (proj) => {
       console.log("Added Login Project");
-      addLoginSecret(inputs).then(async () => {
-        console.log(`Added PEPPER Secret ${to_public}`);
-        const info = `Log in with '${title}' project:`
-        const login_url = toProjectUrl(inputs.git, proj);
-        console.log(`${info}\n${login_url}\n`);
-        await proj.finish();
-        resolve();
-      }).catch(async (e) => {
-        console.error(`Unable to add PEPPER Secret ${to_public}`);
-        await proj.finish();
-        reject(e);
-      });
+      const info = `Log in with '${title}' project:`
+      const login_url = toProjectUrl(inputs.git, proj);
+      console.log(`${info}\n${login_url}\n`);
+      await proj.finish();
+      resolve();
     }).catch((e) => {
       console.error("Unable to add Login Project");
       reject(e);
