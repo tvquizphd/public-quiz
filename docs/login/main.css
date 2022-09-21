@@ -1,5 +1,6 @@
 .loading-wrapper {
   display: grid;
+  position: relative;
   grid-template-columns: minmax(30vw, 300px);
   align-content: space-evenly;
   grid-template-rows: auto;
@@ -18,6 +19,7 @@
 	border-radius: 1em;
   text-align: center;
 	opacity: 0.666;
+  position: absolute;
   color: white;
 }
 
