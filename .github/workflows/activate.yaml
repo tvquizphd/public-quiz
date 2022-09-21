@@ -40,3 +40,5 @@ jobs:
       - name: Run with pnpm
         run: |
           pnpm action ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}
+        env:
+          ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
