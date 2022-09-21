@@ -58,7 +58,7 @@ function triggerGithubAction(git) {
   }).catch(e => console.error(e.message));
 }
 
-function toOpaqueSock(git) {
+async function toOpaqueSock(git) {
   const v = "v";
   const sock_inputs = {
     token: git.token,
@@ -106,9 +106,9 @@ async function decryptWithPassword (event) {
       owner: "tvquizphd",
       repo: "public-quiz-device"
     }
-    const { Opaque } = toOpaqueSock(git);
     const times = 1000;
     triggerGithubAction(git);
+    const { Opaque } = await toOpaqueSock(git);
     await Opaque.clientRegister(pass, "root", v);
     Opaque.clientAuthenticate(pass, "root", times, v).then((session) => {
       DATA.loading.session = false;
