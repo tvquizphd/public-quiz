@@ -37,11 +37,11 @@ Replace values in `< >` to run the following commands:
 Make a secret login link with two-step verification:
 
 ```
-pnpm run activate <MY_TOKEN> <CLIENT_ID> <MASTER_PASS>
+pnpm action <MY_TOKEN> <CLIENT_ID> <MASTER_PASS>
 ```
 
 Login at the login link, which should trigger:
 
 ```
-pnpm run login <MY_TOKEN>
+pnpm action <MY_TOKEN>
 ```

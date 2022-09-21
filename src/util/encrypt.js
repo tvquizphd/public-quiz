@@ -20,7 +20,11 @@ const encrypt = (key, secret) => {
     cipher.final()
   ]);
   const tag = cipher.getAuthTag();
-  return { tag, ev, iv };
+  return { 
+    tag: new Uint8Array(tag), 
+    ev: new Uint8Array(ev),
+    iv: new Uint8Array(iv)
+  };
 }
 
 const encryptKey = (inputs) => {

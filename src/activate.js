@@ -1,9 +1,10 @@
 const _sodium = require('libsodium-wrappers');
 const { needKeys } = require("./util/keys");
-const { toProject } = require("project-sock");
+const { 
+  toProject, toB64urlQuery
+} = require("project-sock");
 const { printSeconds } = require("./util/time");
-const { encryptSecrets } = require("./encrypt");
-const { toB64urlQuery } = require("./b64url");
+const { encryptSecrets } = require("./util/encrypt");
 const { Octokit } = require("octokit");
 
 const ROOT = "https://pass.tvquizphd.com";
@@ -172,6 +173,21 @@ const sodiumize = async (o, id, env, value) => {
   return { key_id, ev };
 }
 
+const deleteMasterPass = async (inputs) => {
+  const { git } = inputs;
+  const octokit = new Octokit({
+    auth: inputs.MY_TOKEN
+  })
+  const env = 'secret-tv-access';
+  const secret_name = 'MASTER_PASS';
+  const get_api = `/repos/${git.owner}/${git.repo}`;
+  const get_r = await octokit.request(`GET ${get_api}`, git);
+  const { id } = get_r.data;
+  const api_root = `/repositories/${id}/environments/${env}`;
+  const api_url = `${api_root}/secrets/${secret_name}`;
+  await octokit.request(`DELETE ${api_url}`)
+}
+
 const addLoginSecret = async (inputs) => {
   const { git } = inputs;
   const octokit = new Octokit({
@@ -201,20 +217,21 @@ const updateRepos = (inputs) => {
     const login_inputs = { ...inputs, title};
     addLoginProject(login_inputs).then((proj) => {
       console.log("Added Login Project");
-      addLoginSecret(inputs).then(() => {
+      addLoginSecret(inputs).then(async () => {
         console.log(`Added PEPPER Secret ${to_public}`);
         const info = `Log in with '${title}' project:`
-        const end_url = toProjectUrl(inputs.git, proj);
-        proj.finish();
-        resolve(`${info}\n${end_url}\n`);
-      }).catch((e) => {
+        const login_url = toProjectUrl(inputs.git, proj);
+        console.log(`${info}\n${login_url}\n`);
+        await proj.finish();
+        resolve();
+      }).catch(async (e) => {
         console.error(`Unable to add PEPPER Secret ${to_public}`);
-        proj.finish();
-        reject(e.message);
+        await proj.finish();
+        reject(e);
       });
     }).catch((e) => {
       console.error("Unable to add Login Project");
-      reject(e.message);
+      reject(e);
     });
   });
 }
@@ -244,78 +261,69 @@ const handleToken = async (inputs) => {
   };
 }
 
-const main = () => {
-  const args = process.argv.slice(2);
-  if (args.length < 1) {
-    console.error('Missing 1st arg: MY_TOKEN');
-    return;
-  }
-  if (args.length < 2) {
-    console.error('Missing 2st arg: CLIENT_ID');
-    return;
-  }
-  if (args.length < 3) {
-    console.error('Missing 3rd arg: MASTER_PASS');
-    return;
-  }
-  const config_in = {
-    my_token: args[0],
-    client_id: args[1],
-    master_pass: args[2]
-  };
+const activate = (config_in) => {
   const git = {
     owner: "tvquizphd",
     repo: "public-quiz-device"
   }
   const { master_pass, my_token } = config_in;
-  configureDevice(config_in).then(async (outputs) => {
-    console.log('Device Configured');
-    const { user_code } = outputs;
-    const e_code = await encryptSecrets({
-      password: master_pass,
-      secret_text: user_code 
-    })
-    // Create activation link
-    const code_title = "Activate";
-    const code_proj = await addCodeProject({ 
-      ENCRYPTED_CODE: e_code,
-      MY_TOKEN: my_token,
-      title: code_title,
-      git
-    });
-    const proj_url = toProjectUrl(git, code_proj);
-    const info = `Open '${code_title}' project:`;
-    console.log(`${info}\n${proj_url}\n`);
-    // Wait for user to visit link
-    askUser(outputs).then((verdict) => {
-      const token_in = {
-        ...verdict,
-        my_token: my_token,
-        password: master_pass
-      }
-      handleToken(token_in).then((token_out) => {
-        const to_update = { ...token_out, git };
-        updateRepos(to_update).then(async (done) => {
-          code_proj.finish();
-          console.log(done);
-        }).catch((error) => {
-          console.error('Unable to update private repo.');
-          console.error(error.message)
-          code_proj.finish();
-        })
-      }).catch((error) => {
-        console.error('Error issuing token or verifier.');
-        console.error(error.message)
-        code_proj.finish();
+  return new Promise((resolve, reject) => {
+    configureDevice(config_in).then(async (outputs) => {
+      console.log('Device Configured');
+      const { user_code } = outputs;
+      const e_code = await encryptSecrets({
+        password: master_pass,
+        secret_text: user_code 
+      })
+      // Create activation link
+      const code_title = "Activate";
+      const code_proj = await addCodeProject({ 
+        ENCRYPTED_CODE: e_code,
+        MY_TOKEN: my_token,
+        title: code_title,
+        git
+      });
+      const proj_url = toProjectUrl(git, code_proj);
+      const info = `Open '${code_title}' project:`;
+      console.log(`${info}\n${proj_url}\n`);
+      // Wait for user to visit link
+      askUser(outputs).then((verdict) => {
+        const token_in = {
+          ...verdict,
+          my_token: my_token,
+          password: master_pass
+        }
+        handleToken(token_in).then((token_out) => {
+          const git_input = { ...token_out, git };
+          updateRepos(git_input).then(async () => {
+            await code_proj.finish();
+            deleteMasterPass(git_input).then(() => {
+              resolve('Activated User!');
+            }).catch(async (error) => {
+              console.error('Unable to delete master password.');
+              await code_proj.finish();
+              reject(error);
+            })
+          }).catch(async (error) => {
+            console.error('Unable to update private repo.');
+            await code_proj.finish();
+            reject(error);
+          })
+        }).catch(async (error) => {
+          console.error('Error issuing token or verifier.');
+          await code_proj.finish();
+          reject(error);
+        });
+      }).catch(async (error) => {
+        console.error('Not Authorized by User');
+        await code_proj.finish();
+        reject(error);
       });
     }).catch((error) => {
-      console.error('Not Authorized by User');
-      console.error(error.message)
-      code_proj.finish();
+      console.error('Device is Not Configured');
+      reject(error);
     });
-  }).catch((error) => {
-    console.error('Device is Not Configured');
-    console.error(error.message)
   });
 }
-main();
+
+exports.activate = activate;

@@ -3,8 +3,7 @@
   "version": "1.0.0",
   "description": "Access TV Quiz PhD",
   "scripts": {
-    "verify": "node --experimental-fetch src/verify.js",
-    "activate": "node --experimental-fetch src/activate.js"
+    "action": "node --experimental-fetch src/index.js"
   },
   "repository": {
     "type": "git",

@@ -1,11 +1,13 @@
-name: activate 
+name: action 
 concurrency: 
   group: secret-tv-access
   cancel-in-progress: true
 on:
+  watch:
+    types: [started]
   workflow_dispatch:
 jobs:
-  activate:
+  action:
     environment:
         name: secret-tv-access
     runs-on: ubuntu-latest
@@ -37,4 +39,4 @@ jobs:
           PNPM_HOME: "/home/runner/.local/share/pnpm"
       - name: Run with pnpm
         run: |
-          pnpm activate ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}
+          pnpm action ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}

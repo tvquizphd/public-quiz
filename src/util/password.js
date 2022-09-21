@@ -1,6 +1,10 @@
 const { getRandomValues, randomInt } = require('crypto');
+const { fromB64urlQuery } = require('project-sock');
 const { hash, argon2d } = require('argon2');
-const { toB64url, fromB64url } = require('./b64url');
+
+const toUniformUrl = (str) => {
+  return str.replaceAll('+','-').replaceAll('/','_');
+}
 
 const toNumBytes = (n) => {
   return getRandomValues(new Uint8Array(n));
@@ -14,32 +18,13 @@ const toNumPaddedBytes = (n) => {
   return vals;
 }
 
-const toNewPassword = (n) => {
-  const K = 3;
-  const n_bytes = K * n;
-  const bytes = toNumPaddedBytes(n_bytes);
-  const idx = [...new Array(n).keys()];
-  // Generate n * 3 bytes of base64url text
-  return idx.reduce((o, i) => {
-    const range = [i, i + 1].map(_ => _ * K);
-    const three_bytes = bytes.slice(...range);
-    return o + toB64url(three_bytes);
-  }, '')
-}
-
 const digest = async (text, opts) => {
   const options = {...opts, type: argon2d };
   const url = await hash(text, options);
   const [s64, h64] = url.split('$').slice(-2);
-  return {
-    hash: fromB64url(h64),
-    salt: fromB64url(s64)
-  }
-}
-
-const digestPass = async ({ pass, salt }) => {
-  const text = pass.normalize('NFC');
-  return await digest(text, { salt });
+  const coded = `?salt=:${s64}&hash=:${h64}`;
+  const coded_url = toUniformUrl(coded);
+  return fromB64urlQuery(coded_url);
 }
 
 const digestNewPass = async ({ pass }) => {
@@ -47,6 +32,4 @@ const digestNewPass = async ({ pass }) => {
   return await digest(text, {});
 }
 
-exports.toNewPassword = toNewPassword;
 exports.digestNewPass = digestNewPass;
-exports.digestPass = digestPass;
