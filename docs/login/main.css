@@ -12,43 +12,43 @@
   background:
     linear-gradient(to right, transparent, rgb(140,44,0), transparent),
     url("noise.svg");
-  filter: contrast(900%) brightness(900%);
+  filter: contrast(200%) brightness(400%);
+  background-size: 200% auto;
 	image-rendering: pixelated;
-  background-size: 100% 50%;
   pointer-events: none;
 	border-radius: 1em;
   text-align: center;
 	opacity: 0.666;
-  position: absolute;
-  color: white;
 }
 
+.loading-wrapper > .loaded {
+  background-position: 50% 0%;
+  color: white;
+}
 .loading-wrapper > .loading {
-  -webkit-animation: Animation 2s linear infinite;
-  -moz-animation: Animation 2s linear infinite;
-  animation: Animation 2s linear infinite;
-  filter: contrast(300%) brightness(900%);
-  background-size: 400% 100%;
+  -webkit-animation: Animation 4s linear infinite;
+  -moz-animation: Animation 4s linear infinite;
+  animation: Animation 4s linear infinite;
 }
 
 @-webkit-keyframes Animation {
     0%{background-position:0% 0%; color: black}
-    30%{background-position:30% 0%; color: black}
-    50%{background-position:50% 0%; color: white}
-    70%{background-position:70% 0%; color: black}
-    100%{background-position:100% 0%; color: black}
+    30%{background-position:60% 0%; color: white}
+    50%{background-position:100% 0%; color: black}
+    70%{background-position:140% 0%; color: black}
+    100%{background-position:200% 0%; color: black}
 }
 @-moz-keyframes Animation {
     0%{background-position:0% 0%; color: black}
-    30%{background-position:30% 0%; color: black}
-    50%{background-position:50% 0%; color: white}
-    70%{background-position:70% 0%; color: black}
-    100%{background-position:100% 0%; color: black}
+    30%{background-position:60% 0%; color: white}
+    50%{background-position:100% 0%; color: black}
+    70%{background-position:140% 0%; color: black}
+    100%{background-position:200% 0%; color: black}
 }
 @keyframes Animation { 
     0%{background-position:0% 0%; color: black}
-    30%{background-position:30% 0%; color: black}
-    50%{background-position:50% 0%; color: white}
-    70%{background-position:70% 0%; color: black}
-    100%{background-position:100% 0%; color: black}
+    30%{background-position:60% 0%; color: white}
+    50%{background-position:100% 0%; color: black}
+    70%{background-position:140% 0%; color: black}
+    100%{background-position:200% 0%; color: black}
 }
