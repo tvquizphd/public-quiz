@@ -123,7 +123,7 @@ const addCodeProject = async (inputs) => {
   const inputs_1 = ({
     owner: git.owner,
     title: inputs.title,
-    token: inputs.MY_TOKEN
+    token: git.owner_token
   })
   const e_code = inputs.ENCRYPTED_CODE;
   const project = await toProject(inputs_1);
@@ -138,14 +138,13 @@ const addCodeProject = async (inputs) => {
 }
 
 const addLoginProject = async (inputs) => {
-  const { git } = inputs;
+  const { e_token_query, git } = inputs;
   const inputs_1 = ({
     owner: git.owner,
     title: inputs.title,
-    token: inputs.MY_TOKEN
+    token: git.owner_token
   })
   const project = await toProject(inputs_1);
-  const e_token_query = inputs.ENCRYPTED_TOKEN;
   const client_root = ROOT + "/login";
   const client_login = client_root + e_token_query;
   const body = `# [Log in](${client_login})`;
@@ -176,7 +175,7 @@ const sodiumize = async (o, id, env, value) => {
 const deleteMasterPass = async (inputs) => {
   const { git } = inputs;
   const octokit = new Octokit({
-    auth: inputs.MY_TOKEN
+    auth: git.owner_token
   })
   const env = 'secret-tv-access';
   const secret_name = 'MASTER_PASS';
@@ -191,7 +190,7 @@ const deleteMasterPass = async (inputs) => {
 const addLoginSecret = async (inputs) => {
   const { git } = inputs;
   const octokit = new Octokit({
-    auth: inputs.MY_TOKEN
+    auth: git.owner_token
   })
   const env = 'secret-tv-access';
   const get_api = `/repos/${git.owner}/${git.repo}`;
@@ -252,21 +251,16 @@ const handleToken = async (inputs) => {
     secret_text: inputs.access_token
   }
   const encrypted = await encryptSecrets(to_encrypt);
-  const gtxt = toB64urlQuery(encrypted); 
+  const e_token_query = toB64urlQuery(encrypted); 
   console.log('Encrypted GitHub access token');
   return {
-    TOKEN: inputs.access_token,
-    MY_TOKEN: inputs.my_token,
-    ENCRYPTED_TOKEN: gtxt,
+    e_token_query,
   };
 }
 
 const activate = (config_in) => {
-  const git = {
-    owner: "tvquizphd",
-    repo: "public-quiz-device"
-  }
-  const { master_pass, my_token } = config_in;
+  const { git } = config_in;
+  const { master_pass } = config_in;
   return new Promise((resolve, reject) => {
     configureDevice(config_in).then(async (outputs) => {
       console.log('Device Configured');
@@ -279,7 +273,6 @@ const activate = (config_in) => {
       const code_title = "Activate";
       const code_proj = await addCodeProject({ 
         ENCRYPTED_CODE: e_code,
-        MY_TOKEN: my_token,
         title: code_title,
         git
       });
@@ -289,20 +282,22 @@ const activate = (config_in) => {
       // Wait for user to visit link
       askUser(outputs).then((verdict) => {
         const token_in = {
+          git,
           ...verdict,
-          my_token: my_token,
           password: master_pass
         }
         handleToken(token_in).then((token_out) => {
           const git_input = { ...token_out, git };
           updateRepos(git_input).then(async () => {
             await code_proj.finish();
-            deleteMasterPass(git_input).then(() => {
+            deleteMasterPass(git_input).then(async () => {
+              await code_proj.finish();
+              console.error('Deleted master password.');
               resolve('Activated User!');
             }).catch(async (error) => {
-              console.error('Unable to delete master password.');
+              // TODO -- assume Master Password already deleted?
               await code_proj.finish();
-              reject(error);
+              resolve('Activated User!');
             })
           }).catch(async (error) => {
             console.error('Unable to update private repo.');

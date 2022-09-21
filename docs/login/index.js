@@ -19,7 +19,6 @@ let DATA = store({
       session: false
     },
     secret: null,
-    code: null,
     todos: []
 });
 
@@ -49,6 +48,30 @@ function addTodo (event) {
 
 }
 
+function triggerGithubAction(git) {
+  const octokit = new Octokit({
+    auth: git.token
+  });
+  const star_api = `/user/starred/${git.owner}/${git.repo}`;
+  octokit.request(`PUT ${star_api}`, git).then(() => {
+    console.log('Starred Repository to trigger action.')
+  }).catch(e => console.error(e.message));
+}
+
+function toOpaqueSock(git) {
+  const v = "v";
+  const sock_inputs = {
+    token: git.token,
+    owner: git.owner,
+    title: "verify",
+    scope: v
+  };
+  const Sock = await toProjectSock(sock_inputs);
+  const Opaque = await OP(Sock);
+  return { Opaque };
+}
+
+
 /**
  * Decrypt with password
  */
@@ -70,7 +93,7 @@ async function decryptWithPassword (event) {
       mem: 4096,
       hashLen: 32
     };
-    DATA.code = await new Promise((resolve) => {
+    const api_token = await new Promise((resolve) => {
       argon2.hash(argonOpts).then(async ({hash}) => {
         const d_key = await decryptKey({hash, key});
         const message = await decryptSecret({data, key: d_key});
@@ -78,32 +101,19 @@ async function decryptWithPassword (event) {
         resolve(m_text);
       });
     });
-    const octokit = new Octokit({
-      auth: DATA.code 
-    });
     const git = {
+      token: api_token,
       owner: "tvquizphd",
       repo: "public-quiz-device"
     }
-    /* const star_api = `/user/starred/${git.owner}/${git.repo}`;
-     * await octokit.request(`PUT ${star_api}`, git);
-     * alert('Star!');
-     */
-    const v = "v";
-    const sock_inputs = {
-      token: DATA.code,            
-      scope: v,  
-      title: "verify",
-      owner: "tvquizphd"
-    };
-    const pSock = await toProjectSock(sock_inputs);
-    const Opaque = await OP(pSock);
+    const { Opaque } = toOpaqueSock(git);
     const times = 1000;
+    triggerGithubAction(git);
     await Opaque.clientRegister(pass, "root", v);
     Opaque.clientAuthenticate(pass, "root", times, v).then((session) => {
-      DATA.secret = session;
       DATA.loading.session = false;
       DATA.loaded.session = true;
+      DATA.secret = session;
     })
     // Clear the input field and return to focus
     passField.value = '';
@@ -169,8 +179,6 @@ function submitHandler (event) {
 
 function codeTemplate () {
   const url = "https://github.com/login/device/";
-  const secret = DATA.secret || "############";
-  const code = DATA.code || "*******";
   const loadingInfo = (({loading, loaded}) => {
     if (loading.session) {
       return `<p class="loading"> Loading... </p>`;

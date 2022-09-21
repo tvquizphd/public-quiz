@@ -2,14 +2,15 @@ const { toProjectSock } = require("project-sock");
 const OP = require('@nthparty/opaque');
 
 const verify = (config_in) => {
-  const v = "v";
+  const { git } = config_in;
   const user = "root";
   const times = 1000;
+  const v = "v";
   const inputs = {
     scope: v,
     title: "verify",
-    owner: "tvquizphd",
-    token: config_in.my_token
+    owner: git.owner,
+    token: git.owner_token
   };
   return new Promise(async (resolve) => {
     const sock = await toProjectSock(inputs);
