@@ -28,7 +28,7 @@ const toPepper = async (inputs) => {
   }
   console.log('Loaded pepper from secrets.');
   const v_id = v + ':pake_init';
-  Sock.give('registered', v_id, true);
+  Sock.give(v_id, 'registered', true);
   return { pepper };
 }
 
