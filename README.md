@@ -7,14 +7,16 @@
 
 ## Usage
 
-- Click "Run Workflow" for [this GitHub Action](https://github.com/tvquizphd/public-quiz-device/actions/workflows/activate.yaml).
-- View the "Login" project in [your private projects](https://github.com/tvquizphd?tab=projects).
+- Star this repo (unstar first if needed).
+- View the "Activate" project in [your private projects](https://github.com/tvquizphd?tab=projects).
 - Then enter password and follow instructions to use the GitHub authentication code.
 
 Your secret device is now [a connected application](https://github.com/settings/applications).
 
 - View the "Login" project in [your private projects](https://github.com/tvquizphd?tab=projects).
 - Then enter password and follow instructions to manage your passwords.
+
+Reuse the login link whenever you return.
 
 ## Local Testing
 
