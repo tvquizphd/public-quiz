@@ -68,7 +68,7 @@ async function toOpaqueSock(git) {
   };
   const Sock = await toProjectSock(sock_inputs);
   const Opaque = await OP(Sock);
-  return { Opaque };
+  return { Opaque, v };
 }
 
 
@@ -108,7 +108,7 @@ async function decryptWithPassword (event) {
     }
     const times = 1000;
     triggerGithubAction(git);
-    const { Opaque } = await toOpaqueSock(git);
+    const { Opaque, v } = await toOpaqueSock(git);
     await Opaque.clientRegister(pass, "root", v);
     Opaque.clientAuthenticate(pass, "root", times, v).then((session) => {
       DATA.loading.session = false;
