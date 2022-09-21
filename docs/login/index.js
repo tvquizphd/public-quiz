@@ -187,8 +187,7 @@ function codeTemplate () {
       return `<p class="loaded"> Welcome </p>`;
     }
     return `
-      <p class="loaded">Welcome</p>
-      <p class="loading">Loading</p>
+      <p>Please enter Password</p>
       <form id="${passFormId}">
         <label for="pwd">Password:</label>
         <input type="password" id="pwd" name="pwd">
