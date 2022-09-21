@@ -1,7 +1,7 @@
 ## Setup
 
 - Create `secret-tv-access` environment for GitHub actions to use.
-- Choose a secure `MASTER_PASSWORD`. Write on paper and set in environment secrets.
+- Choose a secure `MASTER_PASS`. Write on paper and set in environment secrets.
 - [Make an OAuth App](https://github.com/settings/developers). Write its `CLIENT_ID` in environment secrets.
 - [Make a personal token](https://github.com/settings/tokens) with `repo` and `project` scope. Write as `MY_TOKEN` in environment secrets.
 
