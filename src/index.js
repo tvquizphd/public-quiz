@@ -23,12 +23,14 @@ function unStar(git) {
     owner_token: args[0],
     repo: "public-quiz-device"
   }
+  const delay = 0.5;
   const msg_a = "Activating with Master Password!";
   if (args.length >= 3) {
     console.log(msg_a);
     try {
       await activate({
         git,
+        delay,
         client_id: args[1],
         master_pass: args[2]
       });
@@ -39,10 +41,12 @@ function unStar(git) {
       return { git };
     }
   }
-  const msg_v = "Verifying that you can Log in!";
-  console.log(msg_v);
   try {
-    await verify({ git });
+    let done = false;
+    while (!done) {
+      console.log("\nVerifying your credentials:");
+      done = await verify({ git, delay });
+    }
     return { git };
   }
   catch (e) {

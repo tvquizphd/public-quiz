@@ -1,11 +1,3 @@
-const toKey = async (key, usage) => {
-  const fmt = "raw";
-  const alg = 'AES-GCM';
-  const usages = [ usage ];
-  const k_i = [fmt, key, alg, false, usages];
-  return await window.crypto.subtle.importKey(...k_i);
-}
-
 const decrypt = (key, ev, iv, tag) => {
   const alg = 'AES-GCM';
   const tagLength = tag.length * 8;
@@ -14,14 +6,39 @@ const decrypt = (key, ev, iv, tag) => {
   return window.crypto.subtle.decrypt(opts, key, coded);
 }
 
-window.decryptKey = async ({ hash, key }) => {
+const decryptKey = async ({ hash, key }) => {
   const buffers = [key.ev, key.iv, key.tag];
-  const d_key = await toKey(hash, "decrypt");
-  return decrypt(d_key, ...buffers);
+  const master = await toKey(hash, "decrypt");
+  return decrypt(master, ...buffers);
 }
 
-window.decryptSecret = async ({ key, data }) => {
+const decryptSecret = async ({ key, data }) => {
   const buffers = [data.ev, data.iv, data.tag];
-  const d_key = await toKey(key, "decrypt");
-  return decrypt(d_key, ...buffers);
+  const master = await toKey(key, "decrypt");
+  return decrypt(master, ...buffers);
+}
+
+window.decryptQueryMaster = async (inputs) => {
+  const { master_key: key, search } = inputs;
+  const { data } = fromB64urlQuery(search);
+  const out = await decryptSecret({data, key });
+  return {
+    master_key: new Uint8Array(key),
+    plain_text: new TextDecoder().decode(out)
+  }
+}
+
+window.decryptQuery = async (search, pass) => {
+  const inputs = fromB64urlQuery(search);
+  const { salt, key } = inputs;
+  const argonOpts = {
+    pass,
+    salt,
+    time: 3,
+    mem: 4096,
+    hashLen: 32,
+  };
+  const { hash } = await argon2.hash(argonOpts);
+  const master_key = await decryptKey({ hash, key });
+  return decryptQueryMaster({ search, master_key });
 }

@@ -108,3 +108,4 @@ dist
 *.swo
 
 secret.txt
+.DS_Store

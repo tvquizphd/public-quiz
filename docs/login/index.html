@@ -19,16 +19,21 @@
 <script src="https://cdn.jsdelivr.net/npm/argon2-browser@1.18.0/dist/argon2-bundled.min.js"></script>
 <script type="module">
   import { 
-    toProjectSock, fromB64urlQuery
+    toProjectSock, fromB64urlQuery, toB64urlQuery, toNamespace
   } from "https://cdn.skypack.dev/project-sock";
   import { Octokit } from "https://cdn.skypack.dev/octokit";
   window.fromB64urlQuery = fromB64urlQuery;
+  window.toB64urlQuery = toB64urlQuery;
   window.toProjectSock = toProjectSock;
+  window.toNamespace = toNamespace;
   window.Octokit = Octokit;
 </script>
+<script src="../config/sock.js"></script>
 <script src="../scripts/oprf.js"></script>
 <script src="../scripts/opaque.js"></script>
+<script src="../scripts/toKey.js"></script>
 <script src="../scripts/decrypt.js"></script>
+<script src="../scripts/encrypt.js"></script>
 <script src="./index.js" async></script>
 </body>
 </html>

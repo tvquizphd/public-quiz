@@ -1,8 +1,7 @@
 /*
  * Globals needed on window object:
  *
- * reef, fromB64urlQuery, 
- * decryptKey, decryptSecret, argon2
+ * reef, decryptQuery
  */
 
 const runReef = (mainId, formId, passFormId) => {
@@ -25,20 +24,8 @@ function decryptWithPassword (event) {
     const pass = passField.value;
 
     const { search } = window.location;
-    const inputs = fromB64urlQuery(search);
-    const { salt, key, data } = inputs;
-    const argonOpts = {
-      pass,
-      salt,
-      time: 3,
-      mem: 4096,
-      hashLen: 32
-    };
-    argon2.hash(argonOpts).then(async ({hash}) => {
-      const d_key = await decryptKey({hash, key});
-      const message = await decryptSecret({data, key: d_key});
-      const m_text = new TextDecoder().decode(message);
-      DATA.code = m_text;
+    decryptQuery(search, pass).then(({ plain_text }) => {
+      DATA.code = plain_text;
     });
     // Clear the input field and return to focus
     passField.value = '';

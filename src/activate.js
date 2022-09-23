@@ -118,8 +118,9 @@ const toProjectUrl = ({ owner }, { number }) => {
 }
 
 const addCodeProject = async (inputs) => {
-  const { git } = inputs;
+  const { git, delay } = inputs;
   const inputs_1 = ({
+    delay: delay,
     owner: git.owner,
     title: inputs.title,
     token: git.owner_token
@@ -201,7 +202,7 @@ const handleToken = async (inputs) => {
 }
 
 const activate = (config_in) => {
-  const { git } = config_in;
+  const { git, delay } = config_in;
   const { master_pass } = config_in;
   return new Promise((resolve, reject) => {
     configureDevice(config_in).then(async (outputs) => {
@@ -216,6 +217,7 @@ const activate = (config_in) => {
       const code_proj = await addCodeProject({ 
         ENCRYPTED_CODE: e_code,
         title: code_title,
+        delay,
         git
       });
       const proj_url = toProjectUrl(git, code_proj);
@@ -237,7 +239,7 @@ const activate = (config_in) => {
               console.error('Deleted master password.');
               resolve('Activated User!');
             }).catch(async (error) => {
-              // TODO -- assume Master Password already deleted?
+              // TODO -- confirm Master Password already deleted?
               await code_proj.finish();
               resolve('Activated User!');
             })
