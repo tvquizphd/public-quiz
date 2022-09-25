@@ -1,22 +1,109 @@
-const { needKeys } = require("./util/keys");
-const { 
-  toProject, toB64urlQuery
-} = require("project-sock");
-const { printSeconds } = require("./util/time");
-const { encryptSecrets } = require("./util/encrypt");
-const { deleteSecret } = require("./util/secrets");
+import { needKeys } from "./util/keys";
+import { printSeconds } from "./util/time";
+import { Project, toProject, toB64urlQuery } from "project-sock";
+import { encryptSecrets } from "./util/encrypt";
+import { deleteSecret } from "./util/secrets";
 
+import type { Git } from "./util/types";
+import type { Secrets } from "./util/encrypt";
+
+interface ToProjectUrl {
+  (o: { owner: string }, n: { number: number }): string
+}
+
+type ConfigureInputs = {
+  git: Git,
+  delay: number,
+  client_id: string,
+  master_pass: string
+}
+type HasInterval = {
+  interval: number
+}
+type AskInputs = ConfigureInputs & HasInterval & {
+  user_code: string,
+  device_code: string
+}; 
+type AuthError = {
+  error: string;
+  error_description: string;
+}
+type GoodAuthError = AuthError & HasInterval; 
+type AuthSuccess = {
+  access_token: string,
+  token_type: string,
+  scope: string
+}
+type AuthVerdict = AuthError | AuthSuccess;
+type AskOutputs = HasInterval | AuthSuccess;
+
+interface Configure {
+  (i: ConfigureInputs): Promise<AskInputs>;
+}
+interface AskUser {
+  (i: AskInputs): Promise<AuthSuccess>;
+}
+interface AskUserOnce {
+  (i: AskInputs, ts: string): Promise<AskOutputs>;
+}
+type CodeInputs = { 
+  ENCRYPTED_CODE: Secrets,
+  title: string,
+  delay: number,
+  git: Git
+}
+type TokenInputs = AuthSuccess & {
+  password: string
+}
+type TokenQuery = {
+  e_token_query: string
+}
+type GitTokenInput = TokenQuery & {
+  git: Git
+}
+type GitLoginInputs = GitTokenInput & {
+  title: string
+}
+interface HandleToken {
+  (i: TokenInputs): Promise<TokenQuery>
+}
 const ROOT = "https://pass.tvquizphd.com";
 
+function isBadAuthError(a: AuthError): boolean {
+  const good_errors = [
+    'authorization_pending', 'slow_down'
+  ];
+  return !good_errors.includes(a.error);
+}
+
+function isGoodAuthError(a: AuthVerdict): a is GoodAuthError {
+  return 'interval' in (a as GoodAuthError);
+}
+
+function isAuthError(a: AuthVerdict): a is AuthError {
+  return 'error_description' in (a as AuthError);
+}
+
+function isAuthSuccess(a: AskOutputs): a is AuthSuccess {
+  const keys = 'access_token token_type scope' 
+  try {
+    needKeys((a as AuthSuccess), keys.split(' '));
+  }
+  catch (e: any) {
+    return false;
+  }
+  return true;
+}
+
 class PollingFails extends Error {
-  constructor(error) {
+  constructor(error: AuthError) {
     const message = error.error_description;
     super(message);
     this.name = "PollingFails";
   }
 }
 
-const getConfigurable = (inputs) => {
+const getConfigurable = (inputs: ConfigureInputs) => {
   const { client_id } = inputs;
   const scope = [
     'public_repo', 'project'
@@ -29,7 +116,7 @@ const getConfigurable = (inputs) => {
   return { configurable, headers };
 }
 
-const configureDevice = async (inputs) => {
+const configureDevice: Configure = async (inputs) => {
   const step0 = getConfigurable(inputs);
   const { configurable, headers } = step0;
   const step1 = { headers, method: 'POST' };
@@ -40,7 +127,7 @@ const configureDevice = async (inputs) => {
   return {...inputs, ...result};
 };
 
-const getAskable = (inputs) => {
+const getAskable = (inputs: AskInputs) => {
   const { client_id, device_code } = inputs;
   const grant_type = [
     'urn:ietf:params:oauth',
@@ -54,7 +141,7 @@ const getAskable = (inputs) => {
   return { askable, headers };
 }
 
-const askUserOnce = (inputs, timestamp) => {
+const askUserOnce: AskUserOnce = (inputs, timestamp) => {
   const step0 = getAskable(inputs);
   const { askable, headers } = step0;
   const step1 = { headers, method: 'POST' };
@@ -62,18 +149,14 @@ const askUserOnce = (inputs, timestamp) => {
   return new Promise((resolve) => {
     setTimeout(async () => { 
       const step2 = await fetch(askable, step1); 
-      const result = await step2.json();
-      if ('error_description' in result) {
-        const good_errors = [
-          'authorization_pending', 'slow_down'
-        ];
-        const is_ok = good_errors.includes(result.error);
-        if (!is_ok) {
+      const result: AuthVerdict = await step2.json();
+      if (isAuthError(result)) {
+        if (isBadAuthError(result)) {
           throw new PollingFails(result);
         }
         const message = result.error_description;
         console.warn(`${timestamp}: ${message}`);
-        if ('interval' in result) {
+        if (isGoodAuthError(result)) {
           const { interval } = result;
           resolve({...inputs, interval});
         }
@@ -86,38 +169,30 @@ const askUserOnce = (inputs, timestamp) => {
   });
 }
 
-const askUser = async (inputs) => {
+const askUser: AskUser = async (inputs) => {
   let total_time = 0;
   let interval = inputs.interval;
   console.log(`Polling interval ${interval}+ s`);
-  const keys = 'access_token token_type scope' 
   while (true) {
     total_time += interval;
-    const params = {...inputs, interval}
     const timestamp = printSeconds(total_time);
-    const result = await askUserOnce(params, timestamp);
-    if ('interval' in result) {
-      if (interval != result.interval) {
-        console.log(`Polling interval now ${interval}+ s`);
-      }
-      interval = result.interval;
-    }
-    try {
-      needKeys(result, keys.split(' '));
+    const result = await askUserOnce(inputs, timestamp);
+    if (isAuthSuccess(result)) {
       return result;
     }
-    catch (error) {
-      continue;
+    if (interval != result.interval) {
+      console.log(`Polling interval now ${interval}+ s`);
     }
+    interval = result.interval;
   }
 }
 
-const toProjectUrl = ({ owner }, { number }) => {
+const toProjectUrl: ToProjectUrl = ({ owner }, { number }) => {
   const git_str = `${owner}/projects/${number}`;
   return `https://github.com/users/${git_str}`;
 }
 
-const addCodeProject = async (inputs) => {
+const addCodeProject = async (inputs: CodeInputs): Promise<Project> => {
   const { git, delay } = inputs;
   const inputs_1 = ({
     delay: delay,
@@ -127,6 +202,9 @@ const addCodeProject = async (inputs) => {
   })
   const e_code = inputs.ENCRYPTED_CODE;
   const project = await toProject(inputs_1);
+  if (!project) {
+    throw new Error("Unable to find Activation Project");
+  }
   const e_code_query = toB64urlQuery(e_code);
   const client_root = ROOT + "/activate";
   const client_activate = client_root + e_code_query;
@@ -137,7 +215,7 @@ const addCodeProject = async (inputs) => {
   return project;
 }
 
-const addLoginProject = async (inputs) => {
+const addLoginProject = async (inputs: GitLoginInputs) => {
   const { e_token_query, git } = inputs;
   const inputs_1 = ({
     owner: git.owner,
@@ -145,6 +223,9 @@ const addLoginProject = async (inputs) => {
     token: git.owner_token
   })
   const project = await toProject(inputs_1);
+  if (!project) {
+    throw new Error("Unable to find Login Project");
+  }
   const client_root = ROOT + "/login";
   const client_login = client_root + e_token_query;
   const body = `# [Log in](${client_login})`;
@@ -154,12 +235,12 @@ const addLoginProject = async (inputs) => {
   return project;
 }
 
-const deleteMasterPass = (inputs) => {
+const deleteMasterPass = (inputs: GitTokenInput) => {
   const secret_name = 'MASTER_PASS';
   return deleteSecret({...inputs, secret_name})
 }
 
-const updateRepos = (inputs) => {
+const updateRepos = (inputs: GitTokenInput) => {
   const title = "Login";
   const to_public = "on GitHub Public Repo";
   return new Promise((resolve, reject) => {
@@ -170,7 +251,7 @@ const updateRepos = (inputs) => {
       const login_url = toProjectUrl(inputs.git, proj);
       console.log(`${info}\n${login_url}\n`);
       await proj.finish();
-      resolve();
+      resolve(null);
     }).catch((e) => {
       console.error("Unable to add Login Project");
       reject(e);
@@ -178,7 +259,7 @@ const updateRepos = (inputs) => {
   });
 }
 
-const handleToken = async (inputs) => {
+const handleToken: HandleToken = async (inputs) => {
   const {scope, token_type} = inputs;
   const scope_set = new Set(scope.split(','));
   const scope_needs = ['public_repo', 'project'];
@@ -201,11 +282,11 @@ const handleToken = async (inputs) => {
   };
 }
 
-const activate = (config_in) => {
+const activate = (config_in: ConfigureInputs) => {
   const { git, delay } = config_in;
   const { master_pass } = config_in;
   return new Promise((resolve, reject) => {
-    configureDevice(config_in).then(async (outputs) => {
+    configureDevice(config_in).then(async (outputs: AskInputs) => {
       console.log('Device Configured');
       const { user_code } = outputs;
       const e_code = await encryptSecrets({
@@ -226,7 +307,6 @@ const activate = (config_in) => {
       // Wait for user to visit link
       askUser(outputs).then((verdict) => {
         const token_in = {
-          git,
           ...verdict,
           password: master_pass
         }
@@ -253,16 +333,18 @@ const activate = (config_in) => {
           await code_proj.finish();
           reject(error);
         });
-      }).catch(async (error) => {
-        console.error('Not Authorized by User');
+      }).catch(async (e: any) => {
+      console.error('Not Authorized by User');
         await code_proj.finish();
-        reject(error);
+        reject(e);
       });
-    }).catch((error) => {
+    }).catch((e: any) => {
       console.error('Device is Not Configured');
-      reject(error);
+      reject(e);
     });
   });
 }
 
-exports.activate = activate;
+export {
+  activate
+}

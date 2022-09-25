@@ -89,7 +89,7 @@ async function triggerGithubAction(git) {
   }
 }
 
-// TODO: package and distribute 3 fns
+// TODO: package and distribute 4 fns
 
 function findSub (inputs, sub) {
   return inputs.commands.filter((c) => {
@@ -135,7 +135,7 @@ async function toOpaqueSock(inputs) {
   const timeout = "timeout";
   const { opaque, delay } = inputs;
   const dt = 1000 * delay + 500;
-  let Sock = await toSock(inputs, "opaque");
+  const Sock = await toSock(inputs, "opaque");
   const start = findSub(opaque, "start");
   await clearOpaqueClient(Sock, opaque);
   // Check for existing start signal
@@ -159,7 +159,7 @@ async function toOpaqueSock(inputs) {
     }
   }
   // Need to reset server
-  await Sock.give(opId(opaque, "reset"), "reset", true);
+  Sock.give(opId(opaque, "reset"), "reset", true);
   await Sock.get(opId(opaque, "start"), "start");
   return Sock;
 }

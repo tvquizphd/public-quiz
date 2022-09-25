@@ -1,7 +1,20 @@
-const { Octokit } = require("octokit");
-const _sodium = require('libsodium-wrappers');
+import { Octokit } from "octokit";
+import _sodium from 'libsodium-wrappers';
+import type { Git } from "./types";
 
-const sodiumize = async (o, id, env, value) => {
+type Inputs = {
+  secret_name: string,
+  git: Git
+}
+type AddInputs = Inputs & {
+  secret: string 
+}
+type Ev = Record<'key_id' | "ev", string>;
+interface Sodiumize {
+  (o: Octokit, id: number, env: string, value: string): Promise<Ev>
+}
+
+const sodiumize: Sodiumize = async (o, id, env, value) => {
   const api_root = `/repositories/${id}/environments/${env}`;
   const api_url = `${api_root}/secrets/public-key`;
   const get_r = await o.request(`GET ${api_url}`, {
@@ -19,7 +32,7 @@ const sodiumize = async (o, id, env, value) => {
   return { key_id, ev };
 }
 
-const deleteSecret = async (inputs) => {
+const deleteSecret = async (inputs: Inputs) => {
   const { git, secret_name } = inputs;
   const octokit = new Octokit({
     auth: git.owner_token
@@ -33,7 +46,7 @@ const deleteSecret = async (inputs) => {
   await octokit.request(`DELETE ${api_url}`)
 }
 
-const addSecret = async (inputs) => {
+const addSecret = async (inputs: AddInputs) => {
   const { git, secret, secret_name } = inputs;
   const octokit = new Octokit({
     auth: git.owner_token
@@ -54,5 +67,6 @@ const addSecret = async (inputs) => {
   })
 }
 
-exports.deleteSecret = deleteSecret;
-exports.addSecret = addSecret;
+export {
+  deleteSecret, addSecret
+}

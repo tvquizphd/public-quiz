@@ -1,4 +1,4 @@
-const printSeconds = (secs) => {
+const printSeconds = (secs: number): string => {
   const dt = 1000 * secs;
   const date = new Date(dt);
   const iso = date.toISOString();
@@ -8,4 +8,6 @@ const printSeconds = (secs) => {
   return `PT${m}M${s}S`
 }
 
-exports.printSeconds = printSeconds;
+export {
+  printSeconds
+}

@@ -1,6 +1,27 @@
 const { toNamespace } = require("project-sock");
 
-const configureNamespace = () => {
+export type Project = {
+  title: string,
+  prefix: string
+}
+export type Socket = {
+  text: string,
+  prefix: string,
+  suffix: string
+}
+export type Command = Socket & {
+  subcommand: string,
+  command: string
+}
+export interface NameInterface {
+  commands: Command[];
+  sockets: Socket[];
+  project: Project;
+}
+type Obj<T> = Record<string, T>
+export type Namespace = Obj<NameInterface>
+
+const configureNamespace = (): Namespace => {
   const sep = ["__", "", "__"];
 
   return toNamespace({
@@ -44,4 +65,6 @@ const configureNamespace = () => {
   })
 }
 
-exports.configureNamespace = configureNamespace;
+export {
+  configureNamespace
+}
