@@ -1,5 +1,6 @@
 import { fromB64urlQuery } from "project-sock";
 import { createDecipheriv } from 'crypto';
+import { needKeys } from "./keys";
 
 import type { Encrypted } from "./encrypt";
 
@@ -18,6 +19,17 @@ type QM = {
 interface Decrypt {
   (k: Uint8Array, ev: Uint8Array, iv: Uint8Array, tag: Uint8Array): Buffer;
 }
+
+const hasEncryptionKeys = (v: any): v is Encrypted => {
+  try {
+    needKeys(v, ["ev", "iv", "tag"]);
+  }
+  catch {
+    return false;
+  }
+  return true;
+}
+
 const decrypt: Decrypt = (key, ev, iv, tag) => {
   const alg = 'AES-256-gcm';
   const decipher = createDecipheriv(alg, key, iv);
@@ -35,11 +47,14 @@ const decryptSecret = ({ key, data }: DSI) => {
 const decryptQueryMaster = (inputs: QMI): QM => {
   const { master_key: key, search } = inputs;
   const { data } = fromB64urlQuery(search);
-  const out = decryptSecret({ data, key });
-  return {
-    master_key: new Uint8Array(key),
-    plain_text: new TextDecoder().decode(out)
+  if (hasEncryptionKeys(data)) {
+    const out = decryptSecret({ data, key });
+    return {
+      master_key: new Uint8Array(key),
+      plain_text: new TextDecoder().decode(out)
+    }
   }
+  throw new Error("Could not decrypt query");
 }
 
 export {

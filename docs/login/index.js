@@ -231,6 +231,7 @@ async function decryptWithPassword (event) {
     const op = findOp(namespace.opaque, "registered");
     await Opaque.clientRegister(pass, "root", op);
     Opaque.clientAuthenticate(pass, "root", times, op).then((session) => {
+      Sock.sock.project.done = true;
       const bytes = session.match(/../g).map(h=>parseInt(h,16));
       const session_key = new Uint8Array(bytes);
       toSock(sock_inputs, "mailbox").then((mbs) => {

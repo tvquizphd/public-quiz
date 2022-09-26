@@ -33,7 +33,7 @@ function unStar(git: Git) {
     owner_token: args[0],
     repo: "public-quiz-device"
   }
-  const delay = 0.5;
+  const delay = 2;
   const msg_a = "Activating with Master Password!";
   if (args.length >= 3) {
     console.log(msg_a);
@@ -57,6 +57,9 @@ function unStar(git: Git) {
     const imported = await inbox({ git, sec, delay, session });
     if (imported) {
       console.log("\nImported your secrets.");
+    }
+    else {
+      console.log("\nNo new secrets.");
     }
     const creds: Creds = {
       session: undefined

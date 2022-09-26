@@ -31,6 +31,9 @@ const write_database: WriteDB = ({ sec, plain_text }) => {
     throw new Error('SECRET must be 3 lines');
   }
   const pairs = sec.map((k, i) => [k, trio[i]]);
+  pairs.forEach(([k, v]) => {
+    process.env[k] = v;
+  })
   return Object.fromEntries(pairs);
 }
 
@@ -78,22 +81,36 @@ const inbox = async (inputs: Inputs) => {
   const load = findSub(namespace.mailbox, "to_secret");
   const sock_inputs = { git, delay, namespace };
   const Sock = await toSock(sock_inputs, "mailbox");
+  const { project } = Sock.sock;
+  const clean_up = () => {
+    project.done = true;
+    console.log('Closed inbox.')
+  };
   const promise = new Promise((resolve, reject) => {
     const { text, subcommand: sub } = load;
-    const { project } = Sock.sock;
     setTimeout(() => {
       project.waitMap.delete(text);
       reject(new Error(timeout));
     }, dt);
     const op_id = opId(namespace.mailbox, sub);
-    Sock.get(op_id, sub).then(resolve).catch(reject);
+    const on_end = (out: any) => {
+      clean_up();
+      return resolve(out);
+    }
+    const on_err = (e: any) => {
+      clean_up();
+      return reject(e);
+    }
+    Sock.get(op_id, sub).then(on_end).catch(on_err);
   });
   try {
-    const { plain_text } = decryptQueryMaster((await promise) as QMI);
+    const query_input = (await promise) as QMI;
+    const { plain_text } = decryptQueryMaster(query_input);
     const secrets = write_database({ sec, plain_text });
     return await saveSecrets({ git, sec, secrets });
   }
   catch (e: any) {
+    clean_up();
     if (e?.message != timeout) {
       console.error(e?.message);
     }

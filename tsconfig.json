@@ -1,5 +1,4 @@
 {
-  "extends": "ts-node/node16/tsconfig.json",
   "ts-node": {
     "files": true,
     "compilerOptions": {
@@ -10,9 +9,11 @@
     "lib": ["esnext","dom"],
     "types": ["node"],
 		"outDir": "dist",
+    "strict": true,
     "target": "ES2019",
     "declaration": true,
     "module": "commonjs",
+    "esModuleInterop": true,
     "isolatedModules": true,
     "moduleResolution": "node",
 		"declarationDir": "./types",

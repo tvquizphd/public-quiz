@@ -6,11 +6,13 @@ import { needKeys } from "./util/keys";
 import { toSock } from "./util/socket";
 import OP from '@nthparty/opaque';
 
-import type { Git, Op } from "./util/types";
+import type { Git } from "./util/types";
+import type { TreeAny } from 'project-sock';
 import type { Socket } from "./util/socket";
 import type { Namespace } from "./config/sock";
 import type { SockInputs } from "./util/socket";
 import type { NameInterface } from "./config/sock";
+import type { Op, Pepper } from '@nthparty/opaque';
 
 export type Creds = Record<"session", string | void>;
 interface Resolver {
@@ -29,34 +31,47 @@ type PepperInputs = NameInterface & {
   times: number,
   git: Git
 }
+type HasPepper = Record<"pepper", Pepper>
+interface ToPepper {
+  (i: PepperInputs): Promise<HasPepper> 
+}
+const isPepper = (t: TreeAny): t is Pepper => {
+  const pepperKeys = 'ks ps Ps Pu c'.split(' '); 
+  try {
+    needKeys(t, pepperKeys);
+  }
+  catch {
+    return false;
+  }
+  return true
+}
 
-const toPepper = async (inputs: PepperInputs) => {
+const toPepper: ToPepper = async (inputs) => {
   const { git, times } = inputs;
   const { Opaque, Sock } = inputs;
   const secret_name = "ROOT_PEPPER";
-  const secret_str = process.env[secret_name];
+  const secret_str = process.env[secret_name] || '';
   const pepper = fromB64urlQuery(secret_str);
-  const peps = "ks ps Ps Pu c".split(" ");
   const op = findOp(inputs, "registered");
-  try {
-    needKeys(pepper, peps);
+  if (isPepper(pepper)) {
+    console.log('Loaded pepper from secrets.');
+    const op_id = opId(inputs, "registered");
+    Sock.give(op_id, "registered", true);
+    return { pepper };
   }
-  catch {
-    Sock.give(opId(inputs, "start"), "start", true);
-    const reg = await Opaque.serverRegister(times, op);
-    const secret = toB64urlQuery(reg.pepper);
-    addSecret({git, secret, secret_name}).then(() => {
-      console.log('Saved pepper to secrets.');
-    }).catch((e: any) => {
-      console.error('Can\'t save pepper to secrets.');
-      console.error(e.message);
-    })
-    return { pepper: reg.pepper };
+  Sock.give(opId(inputs, "start"), "start", true);
+  const reg = await Opaque.serverRegister(times, op);
+  if (!isPepper(reg.pepper)) {
+    throw new Error('Unable to register Opaque client');
   }
-  console.log('Loaded pepper from secrets.');
-  const op_id = opId(inputs, "registered");
-  Sock.give(op_id, "registered", true);
-  return { pepper };
+  const secret = toB64urlQuery(reg.pepper);
+  addSecret({git, secret, secret_name}).then(() => {
+    console.log('Saved pepper to secrets.');
+  }).catch((e: any) => {
+    console.error('Can\'t save pepper to secrets.');
+    console.error(e.message);
+  })
+  return { pepper: reg.pepper };
 }
 
 const clearOpaqueServer: COS = (Sock, inputs) => {
@@ -93,7 +108,7 @@ const verify = (config_in: ConfigIn): Promise<Creds> => {
       // Always listen for reset signal
       Sock.get(opId(opaque, "reset"), "reset").then(() => {
         const reset = () => resolve({ session: undefined });
-        Sock.sock.project.finish().then(reset);
+        Sock.sock.project.finish().finally(reset);
       });
       // Authenticate server with opaque sequence
       const op = findOp(opaque, "registered");
@@ -101,7 +116,7 @@ const verify = (config_in: ConfigIn): Promise<Creds> => {
         const auth = Opaque.serverAuthenticate(user, pepper, op);
         auth.then((session: string) => {
           const finish = () => resolve({ session });
-          Sock.sock.project.finish().then(finish);
+          Sock.sock.project.finish().finally(finish);
         });
         console.log('Waiting');
       });

@@ -36,6 +36,7 @@ const outbox = async (inputs: Inputs) => {
   const subcommand = "from_secret";
   const namespace = configureNamespace();
   const { session: secret } = inputs.creds;
+  const master_key = to_bytes(secret);
   const { git, sec, delay } = inputs;
   const sock_inputs = { git, delay, namespace };
   const Sock = await toSock(sock_inputs, "mailbox");
@@ -47,12 +48,15 @@ const outbox = async (inputs: Inputs) => {
     console.error(e?.message);
     return false;
   }
-  const master_key = to_bytes(secret);
   const plain_text = read_database({ sec });
   const to_encrypt = { plain_text, master_key };
   const encrypted = encryptQueryMaster(to_encrypt);
   const op_id = opId(namespace.mailbox, subcommand);
   Sock.give(op_id, subcommand, encrypted);
+  Sock.sock.project.call_fifo.push(async () => {
+    Sock.sock.project.done = true;
+    console.log('Closed outbox.')
+  })
   return true;
 }
 
