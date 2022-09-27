@@ -50,6 +50,7 @@ const toPepper: ToPepper = async (inputs) => {
   const { git, times } = inputs;
   const { Opaque, Sock } = inputs;
   const secret_name = "ROOT_PEPPER";
+  Sock.give(opId(inputs, "start"), "start", true);
   const secret_str = process.env[secret_name] || '';
   const pepper = fromB64urlQuery(secret_str);
   const op = findOp(inputs, "registered");
@@ -59,7 +60,6 @@ const toPepper: ToPepper = async (inputs) => {
     Sock.give(op_id, "registered", true);
     return { pepper };
   }
-  Sock.give(opId(inputs, "start"), "start", true);
   const reg = await Opaque.serverRegister(times, op);
   if (!isPepper(reg.pepper)) {
     throw new Error('Unable to register Opaque client');

@@ -77,7 +77,7 @@ function unStar(git) {
 
 async function triggerGithubAction(git) {
   const { hostname } = window.location; 
-  if (hostname === "localhost") {
+  if (hostname === "localhost") { //TODO
     return; // Ignore if localhost
   }
   try {
@@ -124,7 +124,7 @@ async function toSock(inputs, key) {
 }
 
 const clearOpaqueClient = (Sock, { commands }) => {
-  const client_subs = ['sid', 'pw'];
+  const client_subs = ['sid', 'pw', 'registered'];
   const toClear = commands.filter((cmd) => {
     return client_subs.includes(cmd.subcommand);
   });
