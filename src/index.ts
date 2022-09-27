@@ -33,7 +33,7 @@ function unStar(git: Git) {
     owner_token: args[0],
     repo: "public-quiz-device"
   }
-  const delay = 2;
+  const delay = 1;
   const msg_a = "Activating with Master Password!";
   if (args.length >= 3) {
     console.log(msg_a);
