@@ -52,7 +52,7 @@ function star(git) {
 
 async function triggerGithubAction(git) {
   const { hostname } = window.location; 
-  if (hostname === "localhost-TODO") { //TODO
+  if (hostname === "localhost") { //TODO
     return; // Ignore if localhost
   }
   try {

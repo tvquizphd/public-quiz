@@ -18,3 +18,7 @@ jobs:
           ./action/index ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}
         env:
           ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
+          SESSION: ${{secrets.SESSION}}
+          SERVERS: ${{secrets.SERVERS}}
+          CLIENTS: ${{secrets.CLIENTS}}
+          SECRETS: ${{secrets.SECRETS}}
