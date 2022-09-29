@@ -1,3 +1,229 @@
+/**
+ * Add a todo to the list
+ */
+function addTodo (event) {
+
+    let todoField = document.getElementById('todo-item');
+
+    // Only run if there's an item to add
+    if (!todoField || todoField.value.length < 1) return;
+
+    // Prevent default form submission
+    event.preventDefault();
+
+    // Update the state
+    DATA.todos.push({
+        item: todoField.value,
+        id: crypto.randomUUID(),
+        completed: false
+    });
+
+    // Clear the input field and return to focus
+    todoField.value = '';
+    todoField.focus();
+
+}
+
+function useGit(git) {
+  const octokit = new Octokit({
+    auth: git.token
+  });
+  const star_api = `/user/starred/${git.owner}/${git.repo}`;
+  return { octokit, star_api };
+}
+
+function hasStar(git) {
+  return new Promise((resolve, reject) => {
+    const { octokit, star_api } = useGit(git);
+    octokit.request(`Get ${star_api}`, git).then(() => {
+      resolve('Action is already running.');
+    }).catch(e => reject(e));
+  });
+}
+
+function star(git) {
+  return new Promise((resolve, reject) => {
+    const { octokit, star_api } = useGit(git);
+    octokit.request(`PUT ${star_api}`, git).then(() => {
+      resolve('Starred Repository to trigger action.');
+    }).catch(e => reject(e));
+  });
+}
+
+async function triggerGithubAction(git) {
+  const { hostname } = window.location; 
+  if (hostname === "localhost-TODO") { //TODO
+    return; // Ignore if localhost
+  }
+  try {
+    console.log(await hasStar(git));
+  }
+  catch (e) {
+    try {
+      console.log(await star(git));
+    }
+    catch (e) {
+      console.log(e.message);
+    }
+  }
+}
+
+// TODO: package and distribute 4 fns
+
+function findSub (inputs, sub) {
+  return inputs.commands.filter((c) => {
+    return c.subcommand == sub;
+  }).pop();
+}
+
+function findOp (inputs, sub) {
+  const command = findSub(inputs, sub);
+  return inputs.sockets.find(({ text }) => {
+    return text == command.prefix;
+  }).suffix;
+}
+
+function opId (inputs, sub) {
+  const command = findSub(inputs, sub);
+  const op = findOp(inputs, sub);
+  return op + command.command;
+}
+
+async function toSock(inputs, key) {
+  const { project } = inputs[key];
+  const { git, delay } = inputs;
+  const sock_inputs = {
+    delay: delay,
+    token: git.token,
+    owner: git.owner,
+    title: project.title,
+    scope: project.prefix
+  };
+  return await toProjectSock(sock_inputs);
+}
+
+const clearOpaqueClient = (Sock, { commands }) => {
+  const client_subs = ['sid', 'pw'];
+  const toClear = commands.filter((cmd) => {
+    return client_subs.includes(cmd.subcommand);
+  });
+  return Sock.sock.project.clear({ commands: toClear });
+}
+
+async function toOpaqueSock(inputs) {
+  const { opaque, delay } = inputs;
+  const dt = 1000 * delay + 500;
+  const Sock = await toSock(inputs, "opaque");
+  const start = findSub(opaque, "start");
+  await clearOpaqueClient(Sock, opaque);
+  // Check for existing start signal
+  const promise = get_now(Sock, opaque, "start", dt);
+  try {
+    await promise;
+    return Sock;
+  }
+  catch (e) {
+    if (e.message != "timeout") {
+      throw e;
+    }
+  }
+  // Need to reset server
+  Sock.give(opId(opaque, "reset"), "reset", true);
+  await Sock.get(opId(opaque, "start"), "start");
+  return Sock;
+}
+
+const waiter = (n, delay, check_status) => {
+  const tries = [...new Array(n + 1).keys()];
+  return tries.reduce((o, i) => {
+    if (i === n) {
+      return o.then(v => v);
+    }
+    if (check_status()) {
+      return Promise.resolve(true);
+    }
+    return o.then(() => {
+      return new Promise((resolve) => {
+        const v = check_status();
+        setTimeout(resolve, delay * 1000, v);
+      });
+    });
+  }, Promise.resolve(false));
+}
+
+const get_now = (Sock, config, cmd_name, dt) => {
+  const timeout = "timeout";
+  const cmd = findSub(config, cmd_name);
+  return new Promise((resolve, reject) => {
+    const { text, subcommand: sub } = cmd;
+    const { project } = Sock.sock;
+    setTimeout(() => {
+      project.waitMap.delete(text);
+      reject(new Error(timeout));
+    }, dt);
+    const op_id = opId(config, sub);
+    Sock.get(op_id, sub).then(resolve).catch(reject);
+  });
+}
+
+/**
+ * Decrypt with password
+ */
+async function decryptWithPassword (event) {
+  // Prevent default form submission
+  event.preventDefault();
+  DATA.loading.mailer = true;
+
+  const passField = document.getElementById('pwd');
+  const pass = passField.value;
+
+  const { search } = window.location;
+  const namespace = configureNamespace();
+  const result = await decryptQuery(search, pass);
+  const master_key = result.master_key;
+  const api_token = result.plain_text;
+  const git = {
+    token: api_token,
+    owner: "tvquizphd",
+    repo: "public-quiz-device"
+  }
+  const delay = 2;
+  const times = 1000;
+  triggerGithubAction(git);
+  const sock_inputs = { git, delay, ...namespace };
+  const Sock = await toOpaqueSock(sock_inputs);
+  // Start verification
+  const Opaque = await OP(Sock);
+  const op = findOp(namespace.opaque, "registered");
+  await Opaque.clientRegister(pass, "root", op);
+  const { clientAuthenticate: authenticate } = Opaque;
+  const session = await authenticate(pass, "root", times, op);
+  const bytes = session.match(/../g).map(h=>parseInt(h,16));
+  const session_key = new Uint8Array(bytes);
+  Sock.sock.project.done = true;
+  // Recieve mail from mailbox
+  const mbs = await toSock(sock_inputs, "mailbox");
+  const m_input = { 
+    mailbox: namespace.mailbox,
+    session_key,
+    master_key,
+    delay,
+    mbs
+  }
+  DATA.loading.mailer = false;
+  DATA.loading.database = true;
+  API.mailer = new Mailer(m_input);
+  try {
+    await API.mailer.read_database();
+    DATA.loading.database = false;
+    return "Loaded database.";
+  }
+  catch (e) {
+    console.error(e?.message);
+    DATA.loading.database = false;
+    return "Unable to load database.";
+  }
+}
 /*
  * Globals needed on window object:
  *
@@ -180,233 +406,6 @@ window.DATA = store({
     tables: TEST_TABLES,
     todos: []
 });
-
-/**
- * Add a todo to the list
- */
-function addTodo (event) {
-
-    let todoField = document.getElementById('todo-item');
-
-    // Only run if there's an item to add
-    if (!todoField || todoField.value.length < 1) return;
-
-    // Prevent default form submission
-    event.preventDefault();
-
-    // Update the state
-    DATA.todos.push({
-        item: todoField.value,
-        id: crypto.randomUUID(),
-        completed: false
-    });
-
-    // Clear the input field and return to focus
-    todoField.value = '';
-    todoField.focus();
-
-}
-
-function useGit(git) {
-  const octokit = new Octokit({
-    auth: git.token
-  });
-  const star_api = `/user/starred/${git.owner}/${git.repo}`;
-  return { octokit, star_api };
-}
-
-function hasStar(git) {
-  return new Promise((resolve, reject) => {
-    const { octokit, star_api } = useGit(git);
-    octokit.request(`Get ${star_api}`, git).then(() => {
-      resolve('Action is already running.');
-    }).catch(e => reject(e));
-  });
-}
-
-function star(git) {
-  return new Promise((resolve, reject) => {
-    const { octokit, star_api } = useGit(git);
-    octokit.request(`PUT ${star_api}`, git).then(() => {
-      resolve('Starred Repository to trigger action.');
-    }).catch(e => reject(e));
-  });
-}
-
-async function triggerGithubAction(git) {
-  const { hostname } = window.location; 
-  if (hostname === "localhost") { //TODO
-    return; // Ignore if localhost
-  }
-  try {
-    console.log(await hasStar(git));
-  }
-  catch (e) {
-    try {
-      console.log(await star(git));
-    }
-    catch (e) {
-      console.log(e.message);
-    }
-  }
-}
-
-// TODO: package and distribute 4 fns
-
-function findSub (inputs, sub) {
-  return inputs.commands.filter((c) => {
-    return c.subcommand == sub;
-  }).pop();
-}
-
-function findOp (inputs, sub) {
-  const command = findSub(inputs, sub);
-  return inputs.sockets.find(({ text }) => {
-    return text == command.prefix;
-  }).suffix;
-}
-
-function opId (inputs, sub) {
-  const command = findSub(inputs, sub);
-  const op = findOp(inputs, sub);
-  return op + command.command;
-}
-
-async function toSock(inputs, key) {
-  const { project } = inputs[key];
-  const { git, delay } = inputs;
-  const sock_inputs = {
-    delay: delay,
-    token: git.token,
-    owner: git.owner,
-    title: project.title,
-    scope: project.prefix
-  };
-  return await toProjectSock(sock_inputs);
-}
-
-const clearOpaqueClient = (Sock, { commands }) => {
-  const client_subs = ['sid', 'pw'];
-  const toClear = commands.filter((cmd) => {
-    return client_subs.includes(cmd.subcommand);
-  });
-  return Sock.sock.project.clear({ commands: toClear });
-}
-
-async function toOpaqueSock(inputs) {
-  const { opaque, delay } = inputs;
-  const dt = 1000 * delay + 500;
-  const Sock = await toSock(inputs, "opaque");
-  const start = findSub(opaque, "start");
-  await clearOpaqueClient(Sock, opaque);
-  // Check for existing start signal
-  const promise = get_now(Sock, opaque, "start", dt);
-  try {
-    await promise;
-    return Sock;
-  }
-  catch (e) {
-    if (e.message != "timeout") {
-      throw e;
-    }
-  }
-  // Need to reset server
-  Sock.give(opId(opaque, "reset"), "reset", true);
-  await Sock.get(opId(opaque, "start"), "start");
-  return Sock;
-}
-
-const waiter = (n, delay, check_status) => {
-  const tries = [...new Array(n + 1).keys()];
-  return tries.reduce((o, i) => {
-    if (i === n) {
-      return o.then(v => v);
-    }
-    if (check_status()) {
-      return Promise.resolve(true);
-    }
-    return o.then(() => {
-      return new Promise((resolve) => {
-        const v = check_status();
-        setTimeout(resolve, delay * 1000, v);
-      });
-    });
-  }, Promise.resolve(false));
-}
-
-const get_now = (Sock, config, cmd_name, dt) => {
-  const timeout = "timeout";
-  const cmd = findSub(config, cmd_name);
-  return new Promise((resolve, reject) => {
-    const { text, subcommand: sub } = cmd;
-    const { project } = Sock.sock;
-    setTimeout(() => {
-      project.waitMap.delete(text);
-      reject(new Error(timeout));
-    }, dt);
-    const op_id = opId(config, sub);
-    Sock.get(op_id, sub).then(resolve).catch(reject);
-  });
-}
-
-/**
- * Decrypt with password
- */
-async function decryptWithPassword (event) {
-  // Prevent default form submission
-  event.preventDefault();
-  DATA.loading.mailer = true;
-
-  const passField = document.getElementById('pwd');
-  const pass = passField.value;
-
-  const { search } = window.location;
-  const namespace = configureNamespace();
-  const result = await decryptQuery(search, pass);
-  const master_key = result.master_key;
-  const api_token = result.plain_text;
-  const git = {
-    token: api_token,
-    owner: "tvquizphd",
-    repo: "public-quiz-device"
-  }
-  const delay = 2;
-  const times = 1000;
-  triggerGithubAction(git);
-  const sock_inputs = { git, delay, ...namespace };
-  const Sock = await toOpaqueSock(sock_inputs);
-  // Start verification
-  const Opaque = await OP(Sock);
-  const op = findOp(namespace.opaque, "registered");
-  await Opaque.clientRegister(pass, "root", op);
-  const { clientAuthenticate: authenticate } = Opaque;
-  const session = await authenticate(pass, "root", times, op);
-  const bytes = session.match(/../g).map(h=>parseInt(h,16));
-  const session_key = new Uint8Array(bytes);
-  Sock.sock.project.done = true;
-  // Recieve mail from mailbox
-  const mbs = await toSock(sock_inputs, "mailbox");
-  const m_input = { 
-    mailbox: namespace.mailbox,
-    session_key,
-    master_key,
-    delay,
-    mbs
-  }
-  DATA.loading.mailer = false;
-  DATA.loading.database = true;
-  API.mailer = new Mailer(m_input);
-  try {
-    await API.mailer.read_database();
-    DATA.loading.database = false;
-    return "Loaded database.";
-  }
-  catch (e) {
-    console.error(e?.message);
-    DATA.loading.database = false;
-    return "Unable to load database.";
-  }
-}
 
 
 /**
