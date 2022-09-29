@@ -50,8 +50,7 @@ pnpm develop <MY_TOKEN>
 
 ## Building for production 
 
-Compile typescript and package linux executable
+On each push to main, the `build` workflow will:
 
-```
-pnpm build
-```
+- Create a pull request for compiled (`tsc`) packaged (`pkg`) linux executable
+- Upload the `docs` directory to GitHub Pages.
