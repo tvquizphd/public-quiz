@@ -5,5 +5,13 @@ declare type Inputs = HasSec & {
     delay: number;
     git: Git;
 };
-declare const inbox: (inputs: Inputs) => Promise<boolean>;
+declare type Secrets = Record<string, string>;
+declare type Output = {
+    secrets: Secrets;
+    trio: Trio;
+};
+interface Inbox {
+    (i: Inputs): Promise<Output>;
+}
+declare const inbox: Inbox;
 export { inbox };

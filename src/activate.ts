@@ -236,8 +236,8 @@ const addLoginProject = async (inputs: GitLoginInputs) => {
 }
 
 const deleteMasterPass = (inputs: GitTokenInput) => {
-  const secret_name = 'MASTER_PASS';
-  return deleteSecret({...inputs, secret_name})
+  const name = 'MASTER_PASS';
+  return deleteSecret({...inputs, name})
 }
 
 const updateRepos = (inputs: GitTokenInput) => {

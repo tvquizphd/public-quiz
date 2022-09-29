@@ -5,14 +5,13 @@
   width: 100%;
 }
 .table-wrapper > div {
-  grid-template-columns: repeat(auto-fit, 300px);
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  padding: clamp(10px, 2vw, 40px);
+  gap: clamp(5px, 1vw, 20px);
   grid-template-rows: auto;
-  justify-items: center;
-  align-items: center;
+  justify-items: stretch;
+  align-items: stretch;
   display: grid;
-}
-.table-wrapper > div:last-child {
-  grid-template-columns: auto auto 1fr;
 }
 .table-wrapper table {
   display: contents;
@@ -21,10 +20,24 @@
   display: contents;
 }
 .table-wrapper tr {
-  display: contents;
+  justify-items: stretch;
+  align-items: stretch;
+  display: grid;
+  height: 100%;
+  width: 100%;
+}
+.table-wrapper > div:last-child tr {
+  grid-template-columns: 1fr 1fr;
+}
+.table-wrapper > div:last-child tr:nth-child(2n) {
+  grid-template-columns: 1fr;
+  grid-column-end: -1;
 }
 .table-wrapper td {
-  padding: clamp(5px, 1vw, 20px);
+  display: contents;
+}
+.table-wrapper td input[type=text] {
+  font-size: 1em;
 }
 .loading-wrapper {
   display: grid;
@@ -77,4 +90,38 @@
     50%{background-position:100% 0%; color: black}
     70%{background-position:140% 0%; color: black}
     100%{background-position:200% 0%; color: black}
+}
+.scroll-wrapper {
+  scroll-snap-type: y mandatory;
+  justify-items: center;
+  align-items: center;
+  overflow: scroll;
+  display: grid;
+  height: 2.5em;
+}
+.scroll-wrapper > button {
+  height: 2.5em;
+  scroll-snap-align: center;
+}
+button.item {
+  color: #631;
+  border: none;
+  font: inherit;
+  display: block;
+  outline: inherit;
+  margin: 0.333em;
+  text-align: center;
+  border-radius: 0.333em;
+  background-color: #fee0b6;
+	border-bottom: 0.4em groove rgba(55, 55, 55, 0.125);
+	border-right: 0.3em inset rgba(255, 255, 255, 0.5);
+	border-top: 0.4em outset rgba(255, 255, 255, 0.5);
+}
+button.active.item {
+	border-bottom: 0.4em inset rgba(255, 255, 255, 0.5);
+	border-left: 0.3em groove rgba(55, 55, 55, 0.125);
+	border-top: 0.4em groove rgba(55, 55, 55, 0.125);
+	background-color: #fdb863;
+	border-right: none;
+  color: black;
 }

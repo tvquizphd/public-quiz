@@ -1,16 +1,15 @@
+import { isProduction } from "./util/secrets";
 import { activate } from "./activate";
-import { inbox } from "./inbox";
-import { verify } from "./verify";
+import { isOkCreds } from "./outbox";
 import { outbox } from "./outbox";
 import { Octokit } from "octokit";
+import { verify } from "./verify";
+import { inbox } from "./inbox";
+import dotenv from "dotenv";
+import fs from "fs";
 
+import type { Creds } from "./outbox";
 import type { Git, Trio } from "./util/types";
-import type { OkCreds } from "./outbox";
-import type { Creds } from "./verify";
-
-function isOkCreds(c: Creds): c is OkCreds {
-  return !!(c as OkCreds).session;
-}
 
 function unStar(git: Git) {
   const octokit = new Octokit({
@@ -23,6 +22,7 @@ function unStar(git: Git) {
 }
 
 (async () => {
+  const prod = isProduction(process);
   const args = process.argv.slice(2);
   if (args.length < 1) {
     console.error('Missing 1st arg: MY_TOKEN');
@@ -34,9 +34,16 @@ function unStar(git: Git) {
     repo: "public-quiz-device"
   }
   const delay = 1;
-  const msg_a = "Activating with Master Password!";
+  if (!prod) {
+    console.log('DEVELOPMENT\n');
+    dotenv.config();
+  }
+  else {
+    console.log('PRODUCTION\n');
+  }
   if (args.length >= 3) {
-    console.log(msg_a);
+    const msg_a = "with Master Password!";
+    console.log(`Activating ${msg_a}`);
     try {
       await activate({
         git,
@@ -51,26 +58,27 @@ function unStar(git: Git) {
       return { git };
     }
   }
-  const session = process.env.SESSION || '';
-  const sec: Trio = [ "SECRETS", "SERVERS", "CLIENTS" ];
+  const pep = "ROOT_PEPPER";
+  const creds: Creds = {
+    name: "SESSION"
+  };
+  const session = process.env[creds.name] || '';
+  const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
+  const inbox_args = { git, sec, delay, session };
+  let trio: Trio = ["", "", ""];
   try {
-    const imported = await inbox({ git, sec, delay, session });
-    if (imported) {
-      console.log("\nImported your secrets.");
-    }
-    else {
-      console.log("\nNo new secrets.");
-    }
-    const creds: Creds = {
-      session: undefined
-    };
+    const imported = await inbox(inbox_args);
+    const { trio, secrets } = imported;
     while (!isOkCreds(creds)) {
       console.log("\nVerifying your credentials:");
-      const done = await verify({ git, delay });
-      creds.session = done.session;
+      const done = await verify({ git, pep, delay });
+      if (done) {
+        creds.secret = done;
+      }
     }
     console.log("\nVerified your credentials.");
-    const exported = await outbox({ git, sec, delay, creds });
+    const outbox_args = { git, trio, delay, creds };
+    const exported = await outbox(outbox_args);
     if (exported) {
       console.log("\nExported your secrets.");
     }
@@ -79,6 +87,21 @@ function unStar(git: Git) {
     console.error("Unable to Verify.");
     console.error(e?.message);
     return { git };
+  }
+  if (!prod) {
+    const env_all = [creds.name, pep, ...sec];
+    const env_vars = env_all.filter((v) => {
+      return process.env[v];
+    });
+    const new_env = env_vars.map((v) => {
+      return `${v}="${process.env[v]}"`;
+    }).join('\n');
+    try {
+      fs.writeFileSync('.env', new_env);
+      console.log('Wrote new .env file.');
+    } catch (e: any) {
+      console.error(e?.message);
+    }
   }
   return { git };
 })().then((outputs) => {

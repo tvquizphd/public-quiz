@@ -1,25 +1,32 @@
 import { configureNamespace } from "./config/sock";
 import { encryptQueryMaster } from "./util/encrypt";
+import { fromB64urlQuery } from "project-sock";
 import { addSecret } from "./util/secrets";
 import { toSock } from "./util/socket";
 import { opId } from "./util/lookup";
 
 import type { Git, Trio } from "./util/types";
-import type { Creds } from "./verify";
 
+export interface Creds {
+  secret?: string,
+  name: string
+}
 export interface OkCreds extends Creds {
-  session: string;
+  secret: string;
 }
 
-type HasSec = Record<"sec", Trio>;
-type Inputs = HasSec & {
+type HasTrio = Record<"trio", Trio>;
+type Inputs = HasTrio & {
   creds: OkCreds,
   delay: number,
   git: Git
 }
 
-const read_database = ({ sec }: HasSec) => {
-  const trio = sec.map((k) => process.env[k]);
+function isOkCreds(c: Creds): c is OkCreds {
+  return !!(c as OkCreds).secret;
+}
+
+const read_database = ({ trio }: HasTrio) => {
   if (trio.length !== 3) {
     throw new Error('SECRET must be 3 lines');
   }
@@ -32,27 +39,27 @@ const to_bytes = (s: string) => {
   return new Uint8Array(bytes);
 }
 const outbox = async (inputs: Inputs) => {
-  const secret_name = "SESSION";
   const subcommand = "from_secret";
   const namespace = configureNamespace();
-  const { session: secret } = inputs.creds;
+  const { secret, name } = inputs.creds;
   const master_key = to_bytes(secret);
-  const { git, sec, delay } = inputs;
+  const { git, trio, delay } = inputs;
   const sock_inputs = { git, delay, namespace };
   const Sock = await toSock(sock_inputs, "mailbox");
   try {
-    await addSecret({git, secret, secret_name});
+    await addSecret({git, secret, name});
   }
   catch (e: any) {
     console.error("Unable to save new session key.");
     console.error(e?.message);
     return false;
   }
-  const plain_text = read_database({ sec });
+  const plain_text = read_database({ trio });
   const to_encrypt = { plain_text, master_key };
-  const encrypted = encryptQueryMaster(to_encrypt);
+  const encrypted = await encryptQueryMaster(to_encrypt);
+  const { data } = fromB64urlQuery(encrypted);
   const op_id = opId(namespace.mailbox, subcommand);
-  Sock.give(op_id, subcommand, encrypted);
+  Sock.give(op_id, subcommand, data);
   Sock.sock.project.call_fifo.push(async () => {
     Sock.sock.project.done = true;
     console.log('Closed outbox.')
@@ -61,5 +68,6 @@ const outbox = async (inputs: Inputs) => {
 }
 
 export {
+  isOkCreds,
   outbox
 };

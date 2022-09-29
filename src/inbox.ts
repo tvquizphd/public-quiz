@@ -1,13 +1,14 @@
 import { configureNamespace } from "./config/sock";
 import { decryptQueryMaster } from "./util/decrypt";
+import { toB64urlQuery } from "project-sock";
 import { addSecret } from "./util/secrets";
 import { needKeys } from "./util/keys";
 import { toSock } from "./util/socket";
 import { findSub } from "./util/lookup";
 import { opId } from "./util/lookup";
 
-import type { QMI } from "./util/decrypt";
 import type { Git, Trio } from "./util/types";
+import type { Encrypted } from "./util/encrypt";
 
 type HasPlain = Record<"plain_text", string>;
 type HasSec = Record<"sec", Trio>;
@@ -21,20 +22,29 @@ type SaveInputs = HasSec & {
   secrets: Secrets,
   git: Git
 }
+type Output = {
+  secrets: Secrets,
+  trio: Trio
+}
 interface WriteDB {
-  (i: HasSec & HasPlain): Secrets;
+  (i: HasSec & HasPlain): Output;
+}
+interface Inbox {
+  (i: Inputs): Promise<Output>
+}
+
+function isTrio(trio: string[]): trio is Trio {
+  return trio.length === 3;
 }
 
 const write_database: WriteDB = ({ sec, plain_text }) => {
   const trio = plain_text.split('\n');
-  if (trio.length !== 3) {
+  if (!isTrio(trio)) {
     throw new Error('SECRET must be 3 lines');
   }
   const pairs = sec.map((k, i) => [k, trio[i]]);
-  pairs.forEach(([k, v]) => {
-    process.env[k] = v;
-  })
-  return Object.fromEntries(pairs);
+  const secrets = Object.fromEntries(pairs);
+  return { trio, secrets }
 }
 
 const saveSecrets = async (inputs: SaveInputs) => {
@@ -50,9 +60,9 @@ const saveSecrets = async (inputs: SaveInputs) => {
   const entries = Object.entries(secrets).filter(([name]) => {
     return sec.includes(name);
   })
-  const promises = entries.map(([secret_name, secret]) => {
+  const promises = entries.map(([name, secret]) => {
     return new Promise((resolve, reject) => {
-      addSecret({git, secret, secret_name}).then(() => {
+      addSecret({git, secret, name}).then(() => {
         resolve(null);
       }).catch((e) => {
         reject(e);
@@ -72,7 +82,7 @@ const saveSecrets = async (inputs: SaveInputs) => {
   }
 }
 
-const inbox = async (inputs: Inputs) => {
+const inbox: Inbox = async (inputs) => {
   const wait_extra_ms = 2000;
   const namespace = configureNamespace();
   const { git, sec, delay, session } = inputs;
@@ -87,6 +97,8 @@ const inbox = async (inputs: Inputs) => {
     project.done = true;
     console.log('Closed inbox.')
   };
+  const master_buffer = Buffer.from(session, "hex");
+  const master_key = new Uint8Array(master_buffer);
   const promise = new Promise((resolve, reject) => {
     const { text, subcommand: sub } = load;
     setTimeout(() => {
@@ -94,29 +106,31 @@ const inbox = async (inputs: Inputs) => {
       reject(new Error(timeout));
     }, dt);
     const op_id = opId(namespace.mailbox, sub);
-    const on_end = (out: any) => {
-      clean_up();
-      return resolve(out);
-    }
-    const on_err = (e: any) => {
-      clean_up();
-      return reject(e);
-    }
-    Sock.get(op_id, sub).then(on_end).catch(on_err);
+    Sock.get(op_id, sub).then(resolve).catch(reject);
   });
   try {
-    const query_input = (await promise) as QMI;
+    const data = await promise as Encrypted;
+    const search = toB64urlQuery({ data });
+    const query_input = { master_key, search };
     const { plain_text } = decryptQueryMaster(query_input);
-    const secrets = write_database({ sec, plain_text });
-    return await saveSecrets({ git, sec, secrets });
+    const { secrets, trio } = write_database({ sec, plain_text });
+    const done = await saveSecrets({ git, sec, secrets });
+    clean_up();
+    if (done) {
+      console.log("\nImported secrets.");
+      return { secrets, trio };
+    }
   }
   catch (e: any) {
-    clean_up();
     if (e?.message != timeout) {
       console.error(e?.message);
     }
   }
-  return false;
+  clean_up();
+  const secrets: Secrets = {};
+  const trio: Trio = ["", "", ""];
+  console.log("\nNo new secrets.");
+  return { secrets, trio };
 }
 
 export {

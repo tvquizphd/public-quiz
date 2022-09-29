@@ -1,13 +1,17 @@
 import type { Git, Trio } from "./util/types";
-import type { Creds } from "./verify";
-export interface OkCreds extends Creds {
-    session: string;
+export interface Creds {
+    secret?: string;
+    name: string;
 }
-declare type HasSec = Record<"sec", Trio>;
-declare type Inputs = HasSec & {
+export interface OkCreds extends Creds {
+    secret: string;
+}
+declare type HasTrio = Record<"trio", Trio>;
+declare type Inputs = HasTrio & {
     creds: OkCreds;
     delay: number;
     git: Git;
 };
+declare function isOkCreds(c: Creds): c is OkCreds;
 declare const outbox: (inputs: Inputs) => Promise<boolean>;
-export { outbox };
+export { isOkCreds, outbox };

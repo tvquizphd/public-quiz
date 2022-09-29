@@ -12,6 +12,7 @@ specifiers:
   '@typescript-eslint/eslint-plugin': ^5.38.0
   '@typescript-eslint/parser': ^5.38.0
   argon2: ^0.29.1
+  dotenv: ^16.0.2
   eslint: ^8.24.0
   libsodium-wrappers: 0.7.8
   octokit: ^2.0.7
@@ -34,6 +35,7 @@ devDependencies:
   '@types/node': 18.7.19
   '@typescript-eslint/eslint-plugin': 5.38.0_4gkcvl6qsi23tqqawfqgcwtp54
   '@typescript-eslint/parser': 5.38.0_7ilbxdl5iguzcjriqqcg2m5cku
+  dotenv: 16.0.2
   eslint: 8.24.0
   pkg: 5.8.0
   typescript: 4.8.3
@@ -965,6 +967,11 @@ packages:
     engines: {node: '>=6.0.0'}
     dependencies:
       esutils: 2.0.3
+    dev: true
+
+  /dotenv/16.0.2:
+    resolution: {integrity: sha512-JvpYKUmzQhYoIFgK2MOnF3bciIZoItIIoryihy0rIA+H4Jy0FmgyKYAHCTN98P5ybGSJcIFbh6QKeJdtZd1qhA==}
+    engines: {node: '>=12'}
     dev: true
 
   /ecdsa-sig-formatter/1.0.11:

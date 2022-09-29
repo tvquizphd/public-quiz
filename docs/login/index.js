@@ -4,24 +4,180 @@
  * reef, decryptQuery
  * OP, Octokit, DBTrio 
  * toProjectSock, configureNamespace
- * fromB64urlQuery, toB64urlQuery,
- * decryptQueryMaster, encryptQueryMaster
+ * fromB64urlQuery, decryptQueryMaster, encryptQueryMaster
  */
 
-const API = {
-  mailer: null
+class Mailer {
+  constructor(inputs) {
+    this.mailbox = inputs.mailbox;
+    this.sk = inputs.session_key;
+    this.mk = inputs.master_key;
+    this.delay = inputs.delay;
+    this.mbs = inputs.mbs;
+    this.dbt = new DBTrio({ DATA });
+    const { project } = this.mbs.sock;
+    const check_stop = (p) => p.done;
+    const check_start = (p) => !p.done;
+    const set_stop = (p, now=false) => {
+      p.call_fifo = [
+        ...(now ? [] : p.call_fifo),
+        async () => p.waitMap = new Map(),
+        async () => p.done = true
+      ];
+    }
+    const set_start = (p) => {
+      p.done = false;
+      p.mainLoop();
+    }
+    this.set_stop = set_stop.bind(null, project);
+    this.set_start = set_start.bind(null, project);
+    this.check_stop = check_stop.bind(null, project);
+    this.check_start = check_start.bind(null, project);
+    this.stop(true, 3).then(() => {
+      console.log('Stopped Mailbox polling');
+    }).catch((e) => console.error(e?.message));
+  }
+
+  async to_master_search(plain_text) {
+    const args = { plain_text, master_key: this.mk };
+    return await encryptQueryMaster(args);
+  }
+  async from_master_search(search) {
+    const args = { search, master_key: this.mk };
+    return (await decryptQueryMaster(args)).plain_text;
+  }
+  async to_session_search(plain_text) {
+    const args = { plain_text, master_key: this.sk };
+    const search = await encryptQueryMaster(args);
+    return fromB64urlQuery(search).data;
+  }
+  async from_session_search(search) {
+    const args = { search, master_key: this.sk };
+    return (await decryptQueryMaster(args)).plain_text;
+  }
+  get to_session() {
+    return this.to_session_search.bind(this);
+  }
+  get to_master() {
+    return this.to_master_search.bind(this);
+  }
+  get from_master() {
+    return this.from_master_search.bind(this);
+  }
+  get from_session() {
+    return this.from_session_search.bind(this);
+  }
+
+  stop(now, tries) {
+    const { project } = this.mbs.sock;
+    if (this.check_stop()) {
+      return true;
+    }
+    this.set_stop(now);
+    const wait = waiter(tries, this.delay, this.check_stop);
+    return new Promise((resolve, reject) => {
+      wait.then((v) => {
+        if (v) {
+          resolve(v);
+        }
+        const e = new Error('Unable to stop socket');
+        reject(e);
+      });
+    });
+  }
+
+  async restart(now, tries) {
+    await this.stop(now, tries);
+    this.set_start();
+  }
+
+  async read_database() {
+    const message = await this.read_mail();
+    const { dbt, from_master, from_session } = this;
+    const d_args = { from_master, from_session };
+    await dbt.decrypt(d_args, message);
+    return DATA.tables;
+  }
+
+  async read_mail() {
+    const sub = "from_secret";
+    const { mbs, mailbox } = this;
+    const proj = mbs.sock.project;
+    const dt = this.delay * 1000 + 1000;
+    const commands = [findSub(mailbox, sub)];
+    const clear_args = { commands, done: true };
+    const clear = proj.clear.bind(proj, clear_args);
+    await this.restart(false, 5);
+    try {
+      const promise = get_now(mbs, mailbox, sub, dt);
+      const mail = await promise;
+      await clear();
+      return mail;
+    }
+    catch (e) {
+      if (e.message != "timeout") {
+        throw e;
+      }
+    }
+  }
+
+  async send_database() {
+    const { dbt, to_master, to_session } = this;
+    const e_args = { to_master, to_session };
+    const message = await dbt.encrypt(e_args);
+    return await this.send_mail(message);
+  }
+
+  async send_mail(mail) {
+    const sub = "to_secret";
+    const { mbs, mailbox } = this;
+    await this.restart(false, 5);
+    mbs.give(opId(mailbox, sub), sub, mail);
+    await this.stop(false, 5);
+  }
+
+  render(cls) {
+    return this.dbt.render(cls);
+  }
 }
+
+const API = {
+  mailer: null,
+  get dbt() {
+    const { mailer } = API;
+    if (mailer instanceof Mailer) {
+      return mailer.dbt;
+    }
+    return new DBTrio({ DATA });
+  }
+}
+
+const TEST_TABLES = [
+  [
+    ["google.com"],
+    ["github.com"]
+  ],
+  [
+    ["email@example.com"],
+    ["cool_username_123"],
+  ],
+  [
+    ['0', '0', "correct horse battery staple 123"],
+    ['1', '1', "correct horse battery staple 1234"]
+  ]
+]
 
 const runReef = (mainId, formId, passFormId) => {
 
 const {store, component} = reef;
 
 // Create reactive data store
-const DATA = store({
+window.DATA = store({
     loading: {
       mailer: false,
       database: false
     },
+    tables: TEST_TABLES,
     todos: []
 });
 
@@ -79,7 +235,7 @@ function star(git) {
 
 async function triggerGithubAction(git) {
   const { hostname } = window.location; 
-  if (hostname === "localhost-TODO") { //TODO
+  if (hostname === "localhost") { //TODO
     return; // Ignore if localhost
   }
   try {
@@ -193,169 +349,6 @@ const get_now = (Sock, config, cmd_name, dt) => {
   });
 }
 
-const TEST_TABLES = [
-  [
-    ["email@example.com"],
-    ["cool_username_123"],
-  ],
-  [
-    ["google.com"],
-    ["github.com"]
-  ],
-  [
-    ['0', '0', "correct horse battery staple 123"],
-    ['1', '1', "correct horse battery staple 1234"]
-  ]
-]
-
-class Mailer {
-  constructor(inputs) {
-    this.mailbox = inputs.mailbox;
-    this.sk = inputs.session_key;
-    this.mk = inputs.master_key;
-    this.delay = inputs.delay;
-    this.mbs = inputs.mbs;
-    const tables = TEST_TABLES; 
-    const dbt_args = { tables };
-    this.dbt = new DBTrio(dbt_args);
-    const { project } = this.mbs.sock;
-    const check_stop = (p) => p.done;
-    const check_start = (p) => !p.done;
-    const set_stop = (p, now=false) => {
-      p.call_fifo = [
-        ...(now ? [] : p.call_fifo),
-        async () => p.waitMap = new Map(),
-        async () => p.done = true
-      ];
-    }
-    const set_start = (p) => {
-      p.done = false;
-      p.mainLoop();
-    }
-    this.set_stop = set_stop.bind(null, project);
-    this.set_start = set_start.bind(null, project);
-    this.check_stop = check_stop.bind(null, project);
-    this.check_start = check_start.bind(null, project);
-    this.stop(true, 3).then(() => {
-      console.log('Stopped Mailbox polling');
-    }).catch((e) => console.error(e?.message));
-  }
-
-  async to_master_search(plain_text) {
-    const args = { plain_text, master_key: this.mk };
-    return await encryptQueryMaster(args);
-  }
-  async from_master_search(search) {
-    const args = { search, master_key: this.mk };
-    return (await decryptQueryMaster(args)).plain_text;
-  }
-  async to_session_search(plain_text) {
-    const args = { plain_text, master_key: this.sk };
-    const search = await encryptQueryMaster(args);
-    return fromB64urlQuery(search).data;
-  }
-  async from_session_search(search) {
-    const args = { search, master_key: this.sk };
-    return (await decryptQueryMaster(args)).plain_text;
-  }
-  get to_session() {
-    return this.to_session_search.bind(this);
-  }
-  get to_master() {
-    return this.to_master_search.bind(this);
-  }
-  get from_master() {
-    return this.from_master_search.bind(this);
-  }
-  get from_session() {
-    return this.from_session_search.bind(this);
-  }
-
-  async test() {
-    const { dbt } = this;
-    const { to_master, to_session } = this;
-    const e_args = { to_master, to_session };
-    const et = await dbt.encrypt(e_args)
-
-    const { from_master, from_session } = this;
-    const d_args = { from_master, from_session };
-    await dbt.decrypt(d_args, et);
-    return dbt.tables;
-  }
-
-  stop(now, tries) {
-    const { project } = this.mbs.sock;
-    if (this.check_stop()) {
-      return true;
-    }
-    this.set_stop(now);
-    const wait = waiter(tries, this.delay, this.check_stop);
-    return new Promise((resolve, reject) => {
-      wait.then((v) => {
-        if (v) {
-          resolve(v);
-        }
-        const e = new Error('Unable to stop socket');
-        reject(e);
-      });
-    });
-  }
-
-  async restart(now, tries) {
-    await this.stop(now, tries);
-    this.set_start();
-  }
-
-  async get_database() {
-    const message = await this.get_mail();
-    const { dbt, from_master, from_session } = this;
-    const d_args = { from_master, from_session };
-    await dbt.decrypt(d_args, message);
-    return dbt.tables;
-  }
-
-  async get_mail() {
-    const sub = "from_secret";
-    const { mbs, mailbox } = this;
-    const proj = mbs.sock.project;
-    const dt = this.delay * 1000 + 1000;
-    const commands = [findSub(mailbox, sub)];
-    const clear_args = { commands, done: true };
-    const clear = proj.clear.bind(proj, clear_args);
-    await this.restart(false, 5);
-    try {
-      const promise = get_now(mbs, mailbox, sub, dt);
-      const mail = await promise;
-      await clear();
-      return mail;
-    }
-    catch (e) {
-      if (e.message != "timeout") {
-        throw e;
-      }
-    }
-  }
-
-  async send_database() {
-    const { dbt, to_master, to_session } = this;
-    const e_args = { to_master, to_session };
-    const message = await dbt.encrypt(e_args);
-    return await this.send_mail(message);
-  }
-
-  async send_mail(mail) {
-    const sub = "to_secret";
-    const { mbs, mailbox } = this;
-    await this.restart(false, 5);
-    mbs.give(opId(mailbox, sub), sub, mail);
-    await this.stop(false, 5);
-  }
-
-  render(cls) {
-    return this.dbt.render(cls);
-  }
-}
-
 /**
  * Decrypt with password
  */
@@ -404,7 +397,7 @@ async function decryptWithPassword (event) {
   DATA.loading.database = true;
   API.mailer = new Mailer(m_input);
   try {
-    await API.mailer.get_database();
+    await API.mailer.read_database();
     DATA.loading.database = false;
     return "Loaded database.";
   }
@@ -452,14 +445,13 @@ function submitTodos () {
     alert('TODO');
 }
 
-/**
- * Handle click events
- */
+// Handle all click events
 function clickHandler (event) {
 
     const todo = event.target.closest('[data-todo]');
     const send_mail = event.target.closest('.send-mail');
     const todo_submit = event.target.closest('.todo-submit');
+    const click_item = event.target.closest('.item');
     // Complete todos
     if (todo) {
         completeTodo(todo);
@@ -472,11 +464,29 @@ function clickHandler (event) {
     if (todo_submit) {
         submitTodos();
     }
+    const { dbt } = API;
+    // Handle item click
+    if (click_item) {
+      const d = click_item.dataset;
+      dbt.setTarget(click_item.dataset);
+      click_item.parentNode.scrollTop = 0;
+    }
 }
 
-/**
- * Handle form submit events
- */
+// Handle all wheel events
+function wheelHandler (event) {
+
+    const wrapper = event.target.closest('.scroll-wrapper');
+    const wrappers = document.querySelectorAll('.scroll-wrapper');
+
+    [...wrappers].forEach((wrap) => {
+      if (wrap !== wrapper) {
+        wrap.scrollTop = 0;
+      }
+    })
+}
+
+// Handle form submit events
 function submitHandler (event) {
   if (event.target.matches(`#${formId}`)) {
     addTodo(event);
@@ -555,7 +565,12 @@ function tableTemplate () {
         ${mailer.render("table-wrapper")}
       </div>`;
     }
-    return `<div></div>`;
+    // TODO: Remove placeholder table
+    // return `<div></div>`;
+    const { dbt } = API;
+    return `<div class="full-width">
+      ${dbt.render("table-wrapper")}
+    </div>`;
   })(DATA);
 }
 
@@ -606,6 +621,7 @@ component(`#${mainId}`, appTemplate);
 
 // Listen for events
 document.addEventListener('submit', submitHandler);
+document.addEventListener('wheel', wheelHandler);
 document.addEventListener('click', clickHandler);
 
 }

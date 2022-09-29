@@ -8,7 +8,7 @@
     "build": "pnpm tsc && pnpm pkg",
     "develop": "ts-node src/index.ts",
     "lint": "pnpm eslint src --ext .ts",
-  "pkg": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir ./action dist/index.js"
+    "pkg": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir ./action dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -40,8 +40,9 @@
     "@types/node": "^18.7.19",
     "@typescript-eslint/eslint-plugin": "^5.38.0",
     "@typescript-eslint/parser": "^5.38.0",
+    "dotenv": "^16.0.2",
     "eslint": "^8.24.0",
-    "typescript": "^4.8.3",
-    "pkg": "^5.8.0"
+    "pkg": "^5.8.0",
+    "typescript": "^4.8.3"
   }
 }
