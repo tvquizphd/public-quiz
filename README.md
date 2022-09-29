@@ -50,7 +50,13 @@ pnpm develop <MY_TOKEN>
 
 ## Building for production 
 
-On each push to main, the `build` workflow will:
+Update the version in `package.json` and with a tag:
+
+```
+git tag v0.x.y
+git push origin main --tags
+```
+On each pushed tag, the `build` workflow will:
 
 - Create a pull request for compiled (`tsc`) packaged (`pkg`) linux executable
 - Upload the `docs` directory to GitHub Pages.
