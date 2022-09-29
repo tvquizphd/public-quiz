@@ -1,0 +1,47 @@
+name: build 
+concurrency: 
+  group: build-and-open-pr
+  cancel-in-progress: true
+on:
+  push:
+    branches:
+      - 'main'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Use Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+      - name: Add PNPM to Path
+        run: echo $PNPM_HOME >> $GITHUB_PATH
+        env:
+          PNPM_HOME: "/home/runner/.local/share/pnpm"
+      - uses: pnpm/action-setup@v2.0.1
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+          run_install: |
+            - args: [--global, node-gyp]
+              cwd: "." 
+            - cwd: "." 
+        env:
+          CXX: gcc
+          PNPM_HOME: "/home/runner/.local/share/pnpm"
+      - name: Run with pnpm
+        run: |
+          pnpm build
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Add build artifact
+          title: Add build artifact
