@@ -49,6 +49,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Add build artifact
           title: Add build artifact
+          base: main
   pages:
     environment:
       name: github-pages
