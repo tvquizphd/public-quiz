@@ -39,11 +39,19 @@ Replace values in `< >` to run the following commands:
 Make a secret login link with two-step verification:
 
 ```
-pnpm action <MY_TOKEN> <CLIENT_ID> <MASTER_PASS>
+pnpm develop <MY_TOKEN> <CLIENT_ID> <MASTER_PASS>
 ```
 
 Login at the login link, which should trigger:
 
 ```
-pnpm action <MY_TOKEN>
+pnpm develop <MY_TOKEN>
+```
+
+## Building for production 
+
+Compile typescript and package linux executable
+
+```
+pnpm build
 ```

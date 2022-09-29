@@ -1,0 +1,24 @@
+name: action 
+concurrency: 
+  group: secret-tv-access
+  cancel-in-progress: true
+on:
+  watch:
+    types: [started]
+  workflow_dispatch:
+jobs:
+  action:
+    environment:
+        name: secret-tv-access
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Run executable 
+        run: |
+          ./action/index ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}
+        env:
+          ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}

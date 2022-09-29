@@ -12,14 +12,17 @@ body {
     display: grid;
     max-width: 960px;
     margin: 2em auto 2em;
-    padding: 2em;
     background: #fff;
     border: 1px solid #ddd;
     border-radius: 3px;
 }
-.container > section {
+.container > .contained {
+    padding: 2em;
     height: 100%;
-    display: inline-block;
+    margin-bottom: 2em;
+}
+.container > .uncontained {
+    height: 100%;
     margin-bottom: 2em;
 }
 h1, h2, h3, h4, h5 {

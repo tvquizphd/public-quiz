@@ -21,7 +21,7 @@ const decryptSecret = async ({ key, data }) => {
 window.decryptQueryMaster = async (inputs) => {
   const { master_key: key, search } = inputs;
   const { data } = fromB64urlQuery(search);
-  const out = await decryptSecret({data, key });
+  const out = await decryptSecret({ data, key });
   return {
     master_key: new Uint8Array(key),
     plain_text: new TextDecoder().decode(out)

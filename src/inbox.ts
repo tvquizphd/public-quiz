@@ -73,9 +73,10 @@ const saveSecrets = async (inputs: SaveInputs) => {
 }
 
 const inbox = async (inputs: Inputs) => {
+  const wait_extra_ms = 2000;
   const namespace = configureNamespace();
   const { git, sec, delay, session } = inputs;
-  const dt = 1000 * delay + 500;
+  const dt = 1000 * delay + wait_extra_ms;
   const timeout = "timeout";
   // Check for existing saved secrets
   const load = findSub(namespace.mailbox, "to_secret");

@@ -1,24 +1,26 @@
 /*
  * Globals needed on window object:
  *
- * reef, decryptQuery,
- * decryptQueryMaster,
- * encryptQueryMaster
- * OP, Octokit, toProjectSock
- * configureNamespace, toB64urlQuery 
+ * reef, decryptQuery
+ * OP, Octokit, DBTrio 
+ * toProjectSock, configureNamespace
+ * fromB64urlQuery, toB64urlQuery,
+ * decryptQueryMaster, encryptQueryMaster
  */
+
+const API = {
+  mailer: null
+}
 
 const runReef = (mainId, formId, passFormId) => {
 
-let {store, component} = reef;
+const {store, component} = reef;
 
 // Create reactive data store
-let DATA = store({
-    loaded: {
-      mailer: null
-    },
+const DATA = store({
     loading: {
-      mailer: false
+      mailer: false,
+      database: false
     },
     todos: []
 });
@@ -57,6 +59,15 @@ function useGit(git) {
   return { octokit, star_api };
 }
 
+function hasStar(git) {
+  return new Promise((resolve, reject) => {
+    const { octokit, star_api } = useGit(git);
+    octokit.request(`Get ${star_api}`, git).then(() => {
+      resolve('Action is already running.');
+    }).catch(e => reject(e));
+  });
+}
+
 function star(git) {
   return new Promise((resolve, reject) => {
     const { octokit, star_api } = useGit(git);
@@ -66,26 +77,21 @@ function star(git) {
   });
 }
 
-function unStar(git) {
-  return new Promise((resolve, reject) => {
-    const { octokit, star_api } = useGit(git);
-    octokit.request(`DELETE ${star_api}`).then(() => {
-      resolve('Unstarred Repository.');
-    }).catch(e => reject(e));
-  });
-}
-
 async function triggerGithubAction(git) {
   const { hostname } = window.location; 
-  if (hostname === "localhost") { //TODO
+  if (hostname === "localhost-TODO") { //TODO
     return; // Ignore if localhost
   }
   try {
-    await unStar(git);
-    console.log(await star(git));
+    console.log(await hasStar(git));
   }
   catch (e) {
-    console.error(e.message);
+    try {
+      console.log(await star(git));
+    }
+    catch (e) {
+      console.log(e.message);
+    }
   }
 }
 
@@ -124,7 +130,7 @@ async function toSock(inputs, key) {
 }
 
 const clearOpaqueClient = (Sock, { commands }) => {
-  const client_subs = ['sid', 'pw', 'registered'];
+  const client_subs = ['sid', 'pw'];
   const toClear = commands.filter((cmd) => {
     return client_subs.includes(cmd.subcommand);
   });
@@ -132,29 +138,19 @@ const clearOpaqueClient = (Sock, { commands }) => {
 }
 
 async function toOpaqueSock(inputs) {
-  const timeout = "timeout";
   const { opaque, delay } = inputs;
   const dt = 1000 * delay + 500;
   const Sock = await toSock(inputs, "opaque");
   const start = findSub(opaque, "start");
   await clearOpaqueClient(Sock, opaque);
   // Check for existing start signal
-  const promise = new Promise((resolve, reject) => {
-    const { text, subcommand: sub } = start;
-    const { project } = Sock.sock;
-    setTimeout(() => {
-      project.waitMap.delete(text);
-      reject(new Error(timeout));
-    }, dt);
-    const op_id = opId(opaque, sub);
-    Sock.get(op_id, sub).then(resolve).catch(reject);
-  });
+  const promise = get_now(Sock, opaque, "start", dt);
   try {
     await promise;
     return Sock;
   }
   catch (e) {
-    if (e.message != timeout) {
+    if (e.message != "timeout") {
       throw e;
     }
   }
@@ -164,14 +160,87 @@ async function toOpaqueSock(inputs) {
   return Sock;
 }
 
+const waiter = (n, delay, check_status) => {
+  const tries = [...new Array(n + 1).keys()];
+  return tries.reduce((o, i) => {
+    if (i === n) {
+      return o.then(v => v);
+    }
+    if (check_status()) {
+      return Promise.resolve(true);
+    }
+    return o.then(() => {
+      return new Promise((resolve) => {
+        const v = check_status();
+        setTimeout(resolve, delay * 1000, v);
+      });
+    });
+  }, Promise.resolve(false));
+}
+
+const get_now = (Sock, config, cmd_name, dt) => {
+  const timeout = "timeout";
+  const cmd = findSub(config, cmd_name);
+  return new Promise((resolve, reject) => {
+    const { text, subcommand: sub } = cmd;
+    const { project } = Sock.sock;
+    setTimeout(() => {
+      project.waitMap.delete(text);
+      reject(new Error(timeout));
+    }, dt);
+    const op_id = opId(config, sub);
+    Sock.get(op_id, sub).then(resolve).catch(reject);
+  });
+}
+
+const TEST_TABLES = [
+  [
+    ["email@example.com"],
+    ["cool_username_123"],
+  ],
+  [
+    ["google.com"],
+    ["github.com"]
+  ],
+  [
+    ['0', '0', "correct horse battery staple 123"],
+    ['1', '1', "correct horse battery staple 1234"]
+  ]
+]
 
 class Mailer {
   constructor(inputs) {
-    const { Sock } = inputs;
-    this.mk = inputs.master_key;
+    this.mailbox = inputs.mailbox;
     this.sk = inputs.session_key;
-    this.Sock = Sock;
+    this.mk = inputs.master_key;
+    this.delay = inputs.delay;
+    this.mbs = inputs.mbs;
+    const tables = TEST_TABLES; 
+    const dbt_args = { tables };
+    this.dbt = new DBTrio(dbt_args);
+    const { project } = this.mbs.sock;
+    const check_stop = (p) => p.done;
+    const check_start = (p) => !p.done;
+    const set_stop = (p, now=false) => {
+      p.call_fifo = [
+        ...(now ? [] : p.call_fifo),
+        async () => p.waitMap = new Map(),
+        async () => p.done = true
+      ];
+    }
+    const set_start = (p) => {
+      p.done = false;
+      p.mainLoop();
+    }
+    this.set_stop = set_stop.bind(null, project);
+    this.set_start = set_start.bind(null, project);
+    this.check_stop = check_stop.bind(null, project);
+    this.check_start = check_start.bind(null, project);
+    this.stop(true, 3).then(() => {
+      console.log('Stopped Mailbox polling');
+    }).catch((e) => console.error(e?.message));
   }
+
   async to_master_search(plain_text) {
     const args = { plain_text, master_key: this.mk };
     return await encryptQueryMaster(args);
@@ -182,21 +251,108 @@ class Mailer {
   }
   async to_session_search(plain_text) {
     const args = { plain_text, master_key: this.sk };
-    return await encryptQueryMaster(args);
+    const search = await encryptQueryMaster(args);
+    return fromB64urlQuery(search).data;
   }
   async from_session_search(search) {
     const args = { search, master_key: this.sk };
     return (await decryptQueryMaster(args)).plain_text;
   }
-  async print() {
-    const s1 = await this.to_master_search("hello");
-    console.log(s1)
-    const s2 = await this.to_session_search(s1);
-    console.log(s2)
-    const s3 = await this.from_session_search(s2);
-    console.log(s3)
-    const s4 = await this.from_master_search(s3);
-    console.log(s4)
+  get to_session() {
+    return this.to_session_search.bind(this);
+  }
+  get to_master() {
+    return this.to_master_search.bind(this);
+  }
+  get from_master() {
+    return this.from_master_search.bind(this);
+  }
+  get from_session() {
+    return this.from_session_search.bind(this);
+  }
+
+  async test() {
+    const { dbt } = this;
+    const { to_master, to_session } = this;
+    const e_args = { to_master, to_session };
+    const et = await dbt.encrypt(e_args)
+
+    const { from_master, from_session } = this;
+    const d_args = { from_master, from_session };
+    await dbt.decrypt(d_args, et);
+    return dbt.tables;
+  }
+
+  stop(now, tries) {
+    const { project } = this.mbs.sock;
+    if (this.check_stop()) {
+      return true;
+    }
+    this.set_stop(now);
+    const wait = waiter(tries, this.delay, this.check_stop);
+    return new Promise((resolve, reject) => {
+      wait.then((v) => {
+        if (v) {
+          resolve(v);
+        }
+        const e = new Error('Unable to stop socket');
+        reject(e);
+      });
+    });
+  }
+
+  async restart(now, tries) {
+    await this.stop(now, tries);
+    this.set_start();
+  }
+
+  async get_database() {
+    const message = await this.get_mail();
+    const { dbt, from_master, from_session } = this;
+    const d_args = { from_master, from_session };
+    await dbt.decrypt(d_args, message);
+    return dbt.tables;
+  }
+
+  async get_mail() {
+    const sub = "from_secret";
+    const { mbs, mailbox } = this;
+    const proj = mbs.sock.project;
+    const dt = this.delay * 1000 + 1000;
+    const commands = [findSub(mailbox, sub)];
+    const clear_args = { commands, done: true };
+    const clear = proj.clear.bind(proj, clear_args);
+    await this.restart(false, 5);
+    try {
+      const promise = get_now(mbs, mailbox, sub, dt);
+      const mail = await promise;
+      await clear();
+      return mail;
+    }
+    catch (e) {
+      if (e.message != "timeout") {
+        throw e;
+      }
+    }
+  }
+
+  async send_database() {
+    const { dbt, to_master, to_session } = this;
+    const e_args = { to_master, to_session };
+    const message = await dbt.encrypt(e_args);
+    return await this.send_mail(message);
+  }
+
+  async send_mail(mail) {
+    const sub = "to_secret";
+    const { mbs, mailbox } = this;
+    await this.restart(false, 5);
+    mbs.give(opId(mailbox, sub), sub, mail);
+    await this.stop(false, 5);
+  }
+
+  render(cls) {
+    return this.dbt.render(cls);
   }
 }
 
@@ -204,51 +360,59 @@ class Mailer {
  * Decrypt with password
  */
 async function decryptWithPassword (event) {
-    // Prevent default form submission
-    event.preventDefault();
-    DATA.loading.mailer = true;
+  // Prevent default form submission
+  event.preventDefault();
+  DATA.loading.mailer = true;
 
-    const passField = document.getElementById('pwd');
-    const pass = passField.value;
+  const passField = document.getElementById('pwd');
+  const pass = passField.value;
 
-    const { search } = window.location;
-    const namespace = configureNamespace();
-    const result = await decryptQuery(search, pass);
-    const master_key = result.master_key;
-    const api_token = result.plain_text;
-    const git = {
-      token: api_token,
-      owner: "tvquizphd",
-      repo: "public-quiz-device"
-    }
-    const delay = 2;
-    const times = 1000;
-    triggerGithubAction(git);
-    const sock_inputs = { git, delay, ...namespace };
-    const Sock = await toOpaqueSock(sock_inputs);
-    // Start verification
-    const Opaque = await OP(Sock);
-    const op = findOp(namespace.opaque, "registered");
-    await Opaque.clientRegister(pass, "root", op);
-    Opaque.clientAuthenticate(pass, "root", times, op).then((session) => {
-      Sock.sock.project.done = true;
-      const bytes = session.match(/../g).map(h=>parseInt(h,16));
-      const session_key = new Uint8Array(bytes);
-      toSock(sock_inputs, "mailbox").then((mbs) => {
-        const m_input = { 
-          session_key,
-          master_key,
-          Sock: mbs
-        }
-        const mailer = new Mailer(m_input);
-        DATA.loaded.mailer = mailer;
-        DATA.loading.mailer = false;
-      });
-    })
-    // Clear the input field and return to focus
-    passField.value = '';
-    passField.focus();
-    return "Running";
+  const { search } = window.location;
+  const namespace = configureNamespace();
+  const result = await decryptQuery(search, pass);
+  const master_key = result.master_key;
+  const api_token = result.plain_text;
+  const git = {
+    token: api_token,
+    owner: "tvquizphd",
+    repo: "public-quiz-device"
+  }
+  const delay = 2;
+  const times = 1000;
+  triggerGithubAction(git);
+  const sock_inputs = { git, delay, ...namespace };
+  const Sock = await toOpaqueSock(sock_inputs);
+  // Start verification
+  const Opaque = await OP(Sock);
+  const op = findOp(namespace.opaque, "registered");
+  await Opaque.clientRegister(pass, "root", op);
+  const { clientAuthenticate: authenticate } = Opaque;
+  const session = await authenticate(pass, "root", times, op);
+  const bytes = session.match(/../g).map(h=>parseInt(h,16));
+  const session_key = new Uint8Array(bytes);
+  Sock.sock.project.done = true;
+  // Recieve mail from mailbox
+  const mbs = await toSock(sock_inputs, "mailbox");
+  const m_input = { 
+    mailbox: namespace.mailbox,
+    session_key,
+    master_key,
+    delay,
+    mbs
+  }
+  DATA.loading.mailer = false;
+  DATA.loading.database = true;
+  API.mailer = new Mailer(m_input);
+  try {
+    await API.mailer.get_database();
+    DATA.loading.database = false;
+    return "Loaded database.";
+  }
+  catch (e) {
+    console.error(e?.message);
+    DATA.loading.database = false;
+    return "Unable to load database.";
+  }
 }
 
 
@@ -272,6 +436,18 @@ function completeTodo (item) {
 
 }
 
+function uploadDatabase() {
+    const { mailer } = API;
+    if (mailer instanceof Mailer) {
+      mailer.send_database().then(() => {
+        console.log('Sent mail.');
+      }).catch((e) => {
+        console.log('Unable to send mail.');
+        console.error(e);
+      })
+    }
+}
+
 function submitTodos () {
     alert('TODO');
 }
@@ -281,14 +457,19 @@ function submitTodos () {
  */
 function clickHandler (event) {
 
+    const todo = event.target.closest('[data-todo]');
+    const send_mail = event.target.closest('.send-mail');
+    const todo_submit = event.target.closest('.todo-submit');
     // Complete todos
-    let todo = event.target.closest('[data-todo]');
     if (todo) {
         completeTodo(todo);
     }
-
+    // Send mail
+    if (send_mail) {
+        uploadDatabase();
+    }
     // Submit all todos
-    if (event.target.closest('.todo-submit')) {
+    if (todo_submit) {
         submitTodos();
     }
 }
@@ -311,12 +492,14 @@ function codeTemplate () {
   const url = "https://github.com/login/device/";
   const loadingInfo = (({loading, loaded}) => {
     if (loading.mailer) {
+      return `<p class="loading"> Connecting... </p>`;
+    } 
+    if (loading.database) {
       return `<p class="loading"> Loading... </p>`;
     } 
-    const { mailer } = loaded;
+    const { mailer } = API;
     if (mailer instanceof Mailer) {
-      mailer.print();
-      return `<p class="loaded"> Welcome </p>`;
+      return `<p>Welcome</p>`;
     }
     return `
       <p>Please enter Password</p>
@@ -361,20 +544,61 @@ function listTemplate () {
     return '';
 }
 
+function tableTemplate () {
+  return (({loading, loaded}) => {
+    if (loading.mailer || loading.database) {
+      return `<div></div>`;
+    } 
+    const { mailer } = API;
+    if (mailer instanceof Mailer) {
+      return `<div class="full-width">
+        ${mailer.render("table-wrapper")}
+      </div>`;
+    }
+    return `<div></div>`;
+  })(DATA);
+}
+
+function uploadDatabaseTemplate () {
+  return (({loading, loaded}) => {
+    if (loading.mailer || loading.database) {
+      return `<div></div>`;
+    } 
+    const { mailer } = API;
+    if (mailer instanceof Mailer) {
+      return `<button class="send-mail">
+        Send Mail
+      </button>`;
+    }
+    return `<div></div>`;
+  })(DATA);
+}
+
 function appTemplate () {
     return `
-        <div>
-        ${codeTemplate()}
+      <div class="container">
+        <div class="contained">
+          <div>
+            ${codeTemplate()}
+          </div>
+          <br>
+          <form id="${formId}">
+              <label for="todo-item">What do you need? </label>
+              <input type="text" name="todo-item" id="todo-item">
+              <button>Find it</button>
+          </form>
+          <div>
+          ${listTemplate()}
+          </div>
         </div>
-        <br>
-        <form id="${formId}">
-            <label for="todo-item">What do you need? </label>
-            <input type="text" name="todo-item" id="todo-item">
-            <button>Find it</button>
-        </form>
-        <div>
-        ${listTemplate()}
-        </div>`;
+        <div class="uncontained">
+          ${tableTemplate()}
+        </div>
+        <div class="contained">
+          ${uploadDatabaseTemplate()}
+        </div>
+      </div>
+    `;
 }
 
 // Create reactive component

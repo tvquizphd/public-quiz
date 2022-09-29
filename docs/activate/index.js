@@ -58,14 +58,19 @@ function codeTemplate () {
 
 function appTemplate () {
     return `
-        <div>
-        ${codeTemplate()}
+      <div class="container">
+        <div class="contained">
+          <div>
+          ${codeTemplate()}
+          </div>
+          <form id="${passFormId}">
+            <label for="pwd">Password:</label>
+            <input type="password" id="pwd" name="pwd">
+            <button>Decrypt Code</button>
+          </form>
         </div>
-        <form id="${passFormId}">
-          <label for="pwd">Password:</label>
-          <input type="password" id="pwd" name="pwd">
-          <button>Decrypt Code</button>
-        </form>`;
+      </div>
+    `;
 }
 
 // Create reactive component

@@ -1,3 +1,31 @@
+.full-width {
+  width: 100%;
+}
+.table-wrapper {
+  width: 100%;
+}
+.table-wrapper > div {
+  grid-template-columns: repeat(auto-fit, 300px);
+  grid-template-rows: auto;
+  justify-items: center;
+  align-items: center;
+  display: grid;
+}
+.table-wrapper > div:last-child {
+  grid-template-columns: auto auto 1fr;
+}
+.table-wrapper table {
+  display: contents;
+}
+.table-wrapper tbody {
+  display: contents;
+}
+.table-wrapper tr {
+  display: contents;
+}
+.table-wrapper td {
+  padding: clamp(5px, 1vw, 20px);
+}
 .loading-wrapper {
   display: grid;
   position: relative;
@@ -20,7 +48,6 @@
   text-align: center;
 	opacity: 0.666;
 }
-
 .loading-wrapper > .loaded {
   background-position: 50% 0%;
   color: white;
@@ -30,7 +57,6 @@
   -moz-animation: Animation 4s linear infinite;
   animation: Animation 4s linear infinite;
 }
-
 @-webkit-keyframes Animation {
     0%{background-position:0% 0%; color: black}
     30%{background-position:60% 0%; color: white}
