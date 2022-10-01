@@ -1,28 +1,13 @@
-/**
- * Add a todo to the list
+/*
+ * Globals needed on window object:
+ *
+ * reef, decryptQuery
+ * OP, Octokit, DBTrio 
+ * toProjectSock, configureNamespace
+ * fromB64urlQuery, toB64urlQuery
+ * decryptQueryMaster, encryptQueryMaster
+ * itemButtonTag
  */
-function addTodo (event) {
-
-    let todoField = document.getElementById('todo-item');
-
-    // Only run if there's an item to add
-    if (!todoField || todoField.value.length < 1) return;
-
-    // Prevent default form submission
-    event.preventDefault();
-
-    // Update the state
-    DATA.todos.push({
-        item: todoField.value,
-        id: crypto.randomUUID(),
-        completed: false
-    });
-
-    // Clear the input field and return to focus
-    todoField.value = '';
-    todoField.focus();
-
-}
 
 function useGit(git) {
   const octokit = new Octokit({
@@ -52,9 +37,11 @@ function star(git) {
 
 async function triggerGithubAction(git) {
   const { hostname } = window.location; 
-  if (hostname === "localhost") { //TODO
-    return; // Ignore if localhost
+  if (DATA.local) {
+    console.log('DEVELOPMENT: please run action locally.');
+    return;
   }
+  console.log('PRODUCTION: calling GitHub action.');
   try {
     console.log(await hasStar(git));
   }
@@ -151,18 +138,18 @@ const waiter = (n, delay, check_status) => {
   }, Promise.resolve(false));
 }
 
-const get_now = (Sock, config, cmd_name, dt) => {
+const get_now = (Sock, config, sub, dt) => {
   const timeout = "timeout";
-  const cmd = findSub(config, cmd_name);
+  const cmd = findSub(config, sub);
   return new Promise((resolve, reject) => {
-    const { text, subcommand: sub } = cmd;
+    const { text, subcommand } = cmd;
     const { project } = Sock.sock;
     setTimeout(() => {
       project.waitMap.delete(text);
       reject(new Error(timeout));
     }, dt);
-    const op_id = opId(config, sub);
-    Sock.get(op_id, sub).then(resolve).catch(reject);
+    const op_id = opId(config, subcommand);
+    Sock.get(op_id, subcommand).then(resolve).catch(reject);
   });
 }
 
@@ -173,8 +160,10 @@ async function decryptWithPassword (event) {
   // Prevent default form submission
   event.preventDefault();
   DATA.loading.mailer = true;
+  const { target } = event;
 
-  const passField = document.getElementById('pwd');
+  const passSelect = 'input[type="password"]';
+  const passField = target.querySelector(passSelect);
   const pass = passField.value;
 
   const { search } = window.location;
@@ -224,14 +213,6 @@ async function decryptWithPassword (event) {
     return "Unable to load database.";
   }
 }
-/*
- * Globals needed on window object:
- *
- * reef, decryptQuery
- * OP, Octokit, DBTrio 
- * toProjectSock, configureNamespace
- * fromB64urlQuery, decryptQueryMaster, encryptQueryMaster
- */
 
 class Mailer {
   constructor(inputs) {
@@ -247,11 +228,12 @@ class Mailer {
     const set_stop = (p, now=false) => {
       p.call_fifo = [
         ...(now ? [] : p.call_fifo),
-        async () => p.waitMap = new Map(),
         async () => p.done = true
       ];
     }
     const set_start = (p) => {
+      p.waitMap = new Map();
+      p.call_fifo = [];
       p.done = false;
       p.mainLoop();
     }
@@ -259,9 +241,6 @@ class Mailer {
     this.set_start = set_start.bind(null, project);
     this.check_stop = check_stop.bind(null, project);
     this.check_start = check_start.bind(null, project);
-    this.stop(true, 3).then(() => {
-      console.log('Stopped Mailbox polling');
-    }).catch((e) => console.error(e?.message));
   }
 
   async to_master_search(plain_text) {
@@ -269,6 +248,9 @@ class Mailer {
     return await encryptQueryMaster(args);
   }
   async from_master_search(search) {
+    if (search === "") {
+      return "";
+    }
     const args = { search, master_key: this.mk };
     return (await decryptQueryMaster(args)).plain_text;
   }
@@ -277,7 +259,8 @@ class Mailer {
     const search = await encryptQueryMaster(args);
     return fromB64urlQuery(search).data;
   }
-  async from_session_search(search) {
+  async from_session_search(data) {
+    const search = toB64urlQuery({ data });
     const args = { search, master_key: this.sk };
     return (await decryptQueryMaster(args)).plain_text;
   }
@@ -297,7 +280,7 @@ class Mailer {
   stop(now, tries) {
     const { project } = this.mbs.sock;
     if (this.check_stop()) {
-      return true;
+      return Promise.resolve(true);
     }
     this.set_stop(now);
     const wait = waiter(tries, this.delay, this.check_stop);
@@ -319,6 +302,7 @@ class Mailer {
 
   async read_database() {
     const message = await this.read_mail();
+    await this.stop(false, 5);
     const { dbt, from_master, from_session } = this;
     const d_args = { from_master, from_session };
     await dbt.decrypt(d_args, message);
@@ -327,39 +311,30 @@ class Mailer {
 
   async read_mail() {
     const sub = "from_secret";
+    const wait_extra_ms = 3000;
     const { mbs, mailbox } = this;
     const proj = mbs.sock.project;
-    const dt = this.delay * 1000 + 1000;
+    const dt = this.delay * 1000 + 2000;
     const commands = [findSub(mailbox, sub)];
     const clear_args = { commands, done: true };
-    const clear = proj.clear.bind(proj, clear_args);
-    await this.restart(false, 5);
-    try {
-      const promise = get_now(mbs, mailbox, sub, dt);
-      const mail = await promise;
-      await clear();
-      return mail;
-    }
-    catch (e) {
-      if (e.message != "timeout") {
-        throw e;
-      }
-    }
+    const { subcommand } = findSub(mailbox, sub);
+    const op_id = opId(mailbox, subcommand);
+    return await mbs.get(op_id, subcommand);
   }
 
   async send_database() {
     const { dbt, to_master, to_session } = this;
     const e_args = { to_master, to_session };
     const message = await dbt.encrypt(e_args);
-    return await this.send_mail(message);
+    await this.restart(true, 5);
+    await this.send_mail(message);
+    await this.stop(false, 5);
   }
 
   async send_mail(mail) {
     const sub = "to_secret";
     const { mbs, mailbox } = this;
-    await this.restart(false, 5);
     mbs.give(opId(mailbox, sub), sub, mail);
-    await this.stop(false, 5);
   }
 
   render(cls) {
@@ -369,6 +344,7 @@ class Mailer {
 
 const API = {
   mailer: null,
+  focus: null,
   get dbt() {
     const { mailer } = API;
     if (mailer instanceof Mailer) {
@@ -378,60 +354,32 @@ const API = {
   }
 }
 
-const TEST_TABLES = [
-  [
-    ["google.com"],
-    ["github.com"]
-  ],
-  [
-    ["email@example.com"],
-    ["cool_username_123"],
-  ],
-  [
-    ['0', '0', "correct horse battery staple 123"],
-    ['1', '1', "correct horse battery staple 1234"]
-  ]
-]
+const EMPTY_NEW = [ [""], [""], ["", "", ""] ];
+const EMPTY_TABLES = EMPTY_NEW.map((row) => [row]);
 
-const runReef = (mainId, formId, passFormId) => {
+const runReef = (mainId, passFormId) => {
 
 const {store, component} = reef;
 
 // Create reactive data store
 window.DATA = store({
+    local: false,
     loading: {
       mailer: false,
-      database: false
+      database: false,
+      sending: false
     },
-    tables: TEST_TABLES,
-    todos: []
+    newRows: [...EMPTY_NEW],
+    tables: [...EMPTY_TABLES]
 });
 
 
-/**
- * Mark a todo as complete (or incomplete)
- * @param  {Node} item  The todo item
- */
-function completeTodo (item) {
-
-    // Get the todo item
-    let todoItem = DATA.todos[item.getAttribute('data-todo')];
-    if (!todoItem) return;
-
-    // If it's completed, uncomplete it
-    // Otherwise, mark is as complete
-    if (todoItem.completed) {
-        todoItem.completed = false;
-    } else {
-        todoItem.completed = true;
-    }
-
-}
-
 function uploadDatabase() {
     const { mailer } = API;
+    DATA.loading.sending = true;
     if (mailer instanceof Mailer) {
       mailer.send_database().then(() => {
+        DATA.loading.sending = false;
         console.log('Sent mail.');
       }).catch((e) => {
         console.log('Unable to send mail.');
@@ -440,56 +388,67 @@ function uploadDatabase() {
     }
 }
 
-function submitTodos () {
-    alert('TODO');
-}
-
 // Handle all click events
 function clickHandler (event) {
 
-    const todo = event.target.closest('[data-todo]');
     const send_mail = event.target.closest('.send-mail');
-    const todo_submit = event.target.closest('.todo-submit');
     const click_item = event.target.closest('.item');
-    // Complete todos
-    if (todo) {
-        completeTodo(todo);
-    }
     // Send mail
     if (send_mail) {
         uploadDatabase();
-    }
-    // Submit all todos
-    if (todo_submit) {
-        submitTodos();
     }
     const { dbt } = API;
     // Handle item click
     if (click_item) {
       const d = click_item.dataset;
-      dbt.setTarget(click_item.dataset);
+      if (d.targetKey === "set-local") {
+        const v = parseInt(d.targetIdx);
+        DATA.local = !!v;
+      }
+      // Handle database table management
+      dbt.handleClick(click_item.dataset);
       click_item.parentNode.scrollTop = 0;
     }
 }
 
+function renderHandler(event) {
+  if (API.focus) {
+    const { id, position } = API.focus;
+    const elem = document.getElementById(id)
+    API.focus = null;
+    elem.focus();
+    elem.setSelectionRange(...position);
+  }
+};
+
+function resetScroll (fn) {
+  const wrappers = document.querySelectorAll('.scroll-wrapper');
+  [...wrappers].filter(fn).forEach((wrap) => wrap.scrollTop = 0);
+}
+
+// Handle all wheel events
+function inputHandler (event) {
+    const { dbt } = API;
+    const field = event.target.closest('input[type="text"]');
+    if (!field) {
+      return;
+    }
+    const { selectionStart, selectionEnd } = field;
+    const position = [selectionStart, selectionEnd];
+    const { id, dataset, value } = field
+    dbt.handleClick(dataset, value);
+    API.focus = { id, position };
+    resetScroll(() => true);
+}
+
 // Handle all wheel events
 function wheelHandler (event) {
-
     const wrapper = event.target.closest('.scroll-wrapper');
-    const wrappers = document.querySelectorAll('.scroll-wrapper');
-
-    [...wrappers].forEach((wrap) => {
-      if (wrap !== wrapper) {
-        wrap.scrollTop = 0;
-      }
-    })
+    resetScroll((wrap) => wrap !== wrapper);
 }
 
 // Handle form submit events
 function submitHandler (event) {
-  if (event.target.matches(`#${formId}`)) {
-    addTodo(event);
-  }
   if (event.target.matches(`#${passFormId}`)) {
     decryptWithPassword(event).then((done) => {
       console.log(done)
@@ -510,12 +469,19 @@ function codeTemplate () {
     if (mailer instanceof Mailer) {
       return `<p>Welcome</p>`;
     }
+    const u_id = "user-root";
+    const p_id = "password-input";
+    const user_auto = 'readonly="readonly" autocomplete="username"';
+    const user_props = `id="u-root" value="root" ${user_auto}`;
+    const pwd_auto = 'autocomplete="current-password"';
+    const pwd_props = `id="pwd" ${pwd_auto}`;
     return `
-      <p>Please enter Password</p>
       <form id="${passFormId}">
-        <label for="pwd">Password:</label>
-        <input type="password" id="pwd" name="pwd">
-        <button>Log in</button>
+        <label for="${u_id}">Username:</label>
+        <input id="${u_id} "type="text" ${user_props}>
+        <label for="${p_id}">Password:</label>
+        <input id="${p_id}" type="password" ${pwd_props}>
+        <button class="b-add">Log in</button>
       </form>
     `;
   })(DATA);
@@ -524,33 +490,6 @@ function codeTemplate () {
       ${loadingInfo} 
     </div>
   `;
-}
-
-function listTemplate () {
-
-    // Create each todo item
-    let todoList = DATA.todos.map(function (todo, index) {
-        return `
-            <li class="todo" id="todo-${todo.id}">
-                <label ${todo.completed ? ' class="completed"' : ''}>
-                    <input data-todo="${index}" type="checkbox" ${todo.completed ? ' checked="checked"' : ''}>
-                    <span class="todo-item">${todo.item}</span>
-                </label>
-            </li>`;
-    }).join('');
-
-    if (todoList.length > 0) {
-        return `
-            <ul class="todos">
-                ${todoList}
-            </ul>
-            <p>
-                <button class="todo-submit">
-                    Get them all
-                </button>
-            </p>`;
-    }
-    return '';
 }
 
 function tableTemplate () {
@@ -564,12 +503,7 @@ function tableTemplate () {
         ${mailer.render("table-wrapper")}
       </div>`;
     }
-    // TODO: Remove placeholder table
-    // return `<div></div>`;
-    const { dbt } = API;
-    return `<div class="full-width">
-      ${dbt.render("table-wrapper")}
-    </div>`;
+    return `<div></div>`;
   })(DATA);
 }
 
@@ -578,48 +512,80 @@ function uploadDatabaseTemplate () {
     if (loading.mailer || loading.database) {
       return `<div></div>`;
     } 
+    if (loading.sending) {
+      return `<div class="loading-wrapper">
+        <p class="loading"> Saving... </p>
+      </div>`;
+    } 
     const { mailer } = API;
     if (mailer instanceof Mailer) {
-      return `<button class="send-mail">
-        Send Mail
-      </button>`;
+      return `<div>
+        <button class="send-mail b-add">
+          Save Passwords 
+        </button>
+      </div>
+      `;
     }
     return `<div></div>`;
   })(DATA);
 }
 
+function debugTemplate() {
+  if (location.hostname !== "localhost") {
+    return "";
+  }
+  const { local } = DATA;
+  const close = `</button>`;
+  const labels = ['GitHub', 'Local'];
+  const buttons = [false, true].map((i) => {
+    const choice = +(i ^ local);
+    const idx = {
+      "target-idx": `${choice}`,
+      "target-key": `set-local`
+    }
+    const text = labels[choice] + ' Action';
+    const open = itemButtonTag(+i, idx, ['item']);
+    return `${open}${text}${close}`;
+  }).join('');
+  return `
+    <div>
+      Action testing:
+    </div>
+    <div class="scroll-wrapper">
+      <div class="scroll-bg"></div>
+      ${buttons}
+    </div>
+  `;
+}
+
 function appTemplate () {
-    return `
-      <div class="container">
-        <div class="contained">
-          <div>
-            ${codeTemplate()}
-          </div>
-          <br>
-          <form id="${formId}">
-              <label for="todo-item">What do you need? </label>
-              <input type="text" name="todo-item" id="todo-item">
-              <button>Find it</button>
-          </form>
-          <div>
-          ${listTemplate()}
-          </div>
-        </div>
-        <div class="uncontained">
-          ${tableTemplate()}
-        </div>
-        <div class="contained">
-          ${uploadDatabaseTemplate()}
+  return `
+    <div class="container">
+      <div class="contained">
+        <div class="debug-wrapper">
+          ${debugTemplate()}
         </div>
       </div>
-    `;
+      <div class="contained">
+        ${codeTemplate()}
+      </div>
+      <div class="uncontained">
+        ${tableTemplate()}
+      </div>
+      <div class="contained">
+        ${uploadDatabaseTemplate()}
+      </div>
+    </div>
+  `;
 }
 
 // Create reactive component
 component(`#${mainId}`, appTemplate);
 
 // Listen for events
+document.addEventListener('reef:render', renderHandler);
 document.addEventListener('submit', submitHandler);
+document.addEventListener('input', inputHandler);
 document.addEventListener('wheel', wheelHandler);
 document.addEventListener('click', clickHandler);
 
@@ -632,5 +598,5 @@ window.onload = (event) => {
   rootForm.id = "root-form";
   reefMain.appendChild(rootForm);
   reefMain.appendChild(rootApp);
-  runReef("reef-main", "todo-form", "pass-form");
+  runReef("reef-main", "pass-form");
 };

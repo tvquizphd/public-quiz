@@ -17,13 +17,16 @@ body {
     border-radius: 3px;
 }
 .container > .contained {
-    padding: 2em;
-    height: 100%;
-    margin-bottom: 2em;
+    grid-template-columns: 1fr minmax(300px, 60vw) 1fr;
+    justify-items: center;
+    align-items: center;
+    display: grid;
+}
+.container > .contained > div {
+  grid-column: 2;
 }
 .container > .uncontained {
-    height: 100%;
-    margin-bottom: 2em;
+    margin-bottom: 0.5em;
 }
 h1, h2, h3, h4, h5 {
     color: #494949;
@@ -48,4 +51,7 @@ ul {
 }
 img {
     max-width: 100%;
+}
+form > label {
+    display: block;
 }
