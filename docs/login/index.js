@@ -354,8 +354,8 @@ const API = {
   }
 }
 
-const EMPTY_NEW = [ [""], [""], ["", "", ""] ];
-const EMPTY_TABLES = EMPTY_NEW.map((row) => [row]);
+const EMPTY_NEW = [ [""], [""], ["","",""] ];
+const EMPTY_TABLES = [ [], [], [] ];
 
 const runReef = (mainId, passFormId) => {
 
@@ -474,13 +474,13 @@ function codeTemplate () {
     const user_auto = 'readonly="readonly" autocomplete="username"';
     const user_props = `id="u-root" value="root" ${user_auto}`;
     const pwd_auto = 'autocomplete="current-password"';
-    const pwd_props = `id="pwd" ${pwd_auto}`;
+    const pwd_props = `id="${p_id}" ${pwd_auto}`;
     return `
       <form id="${passFormId}">
         <label for="${u_id}">Username:</label>
         <input id="${u_id} "type="text" ${user_props}>
         <label for="${p_id}">Password:</label>
-        <input id="${p_id}" type="password" ${pwd_props}>
+        <input type="password" ${pwd_props}>
         <button class="b-add">Log in</button>
       </form>
     `;
@@ -503,7 +503,10 @@ function tableTemplate () {
         ${mailer.render("table-wrapper")}
       </div>`;
     }
-    return `<div></div>`;
+    this.dbt = new DBTrio({ DATA });
+    return `<div class="full-width">
+      ${dbt.render("table-wrapper")}
+    </div>`;
   })(DATA);
 }
 
@@ -552,7 +555,6 @@ function debugTemplate() {
       Action testing:
     </div>
     <div class="scroll-wrapper">
-      <div class="scroll-bg"></div>
       ${buttons}
     </div>
   `;

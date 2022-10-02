@@ -65,10 +65,8 @@ function unStar(git: Git) {
   const session = process.env[creds.name] || '';
   const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
   const inbox_args = { git, sec, delay, session };
-  let trio: Trio = ["", "", ""];
   try {
-    const imported = await inbox(inbox_args);
-    const { trio, secrets } = imported;
+    const { trio } = await inbox(inbox_args);
     while (!isOkCreds(creds)) {
       console.log("\nVerifying your credentials:");
       const done = await verify({ git, pep, delay });
@@ -94,6 +92,7 @@ function unStar(git: Git) {
       return process.env[v];
     });
     const new_env = env_vars.map((v) => {
+      // set in non-production addSecret call
       return `${v}="${process.env[v]}"`;
     }).join('\n');
     try {

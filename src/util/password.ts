@@ -1,4 +1,3 @@
-import { getRandomValues, randomInt } from 'crypto';
 import { fromB64urlQuery } from 'project-sock';
 import { hash, argon2d } from 'argon2';
 
@@ -10,7 +9,7 @@ export type Digest = {
 }
 export type Pass = Record<"pass", string>;
 interface Digester {
-  (t: string, o: {}): Promise<Digest>
+  (t: string): Promise<Digest>
 }
 interface DigestPass {
   (p: Pass): Promise<Digest>
@@ -30,8 +29,8 @@ const toUniformUrl = (str: string): string => {
   return str.replaceAll('+','-').replaceAll('/','_');
 }
 
-const digest: Digester = async (text, opts) => {
-  const options = {...opts, type: argon2d };
+const digest: Digester = async (text) => {
+  const options = { type: argon2d };
   const url = await hash(text, options);
   const [s64, h64] = url.split('$').slice(-2);
   const coded = `?salt=:${s64}&hash=:${h64}`;
@@ -45,7 +44,7 @@ const digest: Digester = async (text, opts) => {
 
 const digestNewPass: DigestPass = async ({ pass }) => {
   const text = pass.normalize('NFC');
-  return await digest(text, {});
+  return await digest(text);
 }
 
 export {

@@ -54,6 +54,9 @@ const outbox = async (inputs: Inputs) => {
     console.error(e?.message);
     return false;
   }
+  if (trio.every(s => s === '')) {
+    return false;
+  }
   const plain_text = read_database({ trio });
   const to_encrypt = { plain_text, master_key };
   const encrypted = await encryptQueryMaster(to_encrypt);

@@ -57,17 +57,34 @@ function codeTemplate () {
 }
 
 function appTemplate () {
+    const p_id = 'pwd';
+    const pwd_auto = 'autocomplete="current-password"';
+    const pwd_props = `id="${p_id}" ${pwd_auto}`;
     return `
       <div class="container">
         <div class="contained">
           <div>
           ${codeTemplate()}
           </div>
-          <form id="${passFormId}">
-            <label for="pwd">Password:</label>
-            <input type="password" id="pwd" name="pwd">
-            <button>Decrypt Code</button>
-          </form>
+          <div>
+            <form id="${passFormId}">
+              <label for="${p_id}">Password:</label>
+              <input type="password" ${pwd_props}>
+              <button class="b-add">Decrypt</button>
+            </form>
+          </div>
+        </div>
+        <div class="contained">
+          <div>
+            <ol>
+              <li>
+              Decrypt the code
+              </li>
+              <li>
+              Authenticate with GitHub
+              </li>
+            </ol>
+          </div>
         </div>
       </div>
     `;

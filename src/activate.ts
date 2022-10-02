@@ -173,18 +173,17 @@ const askUser: AskUser = async (inputs) => {
   let total_time = 0;
   let interval = inputs.interval;
   console.log(`Polling interval ${interval}+ s`);
-  while (true) {
+  let result: AskOutputs = { interval };
+  while (!isAuthSuccess(result)) {
     total_time += interval;
-    const timestamp = printSeconds(total_time);
-    const result = await askUserOnce(inputs, timestamp);
-    if (isAuthSuccess(result)) {
-      return result;
-    }
     if (interval != result.interval) {
       console.log(`Polling interval now ${interval}+ s`);
+      interval = result.interval;
     }
-    interval = result.interval;
+    const timestamp = printSeconds(total_time);
+    result = await askUserOnce(inputs, timestamp);
   }
+  return result;
 }
 
 const toProjectUrl: ToProjectUrl = ({ owner }, { number }) => {
@@ -242,7 +241,6 @@ const deleteMasterPass = (inputs: GitTokenInput) => {
 
 const updateRepos = (inputs: GitTokenInput) => {
   const title = "Login";
-  const to_public = "on GitHub Public Repo";
   return new Promise((resolve, reject) => {
     const login_inputs = { ...inputs, title};
     addLoginProject(login_inputs).then(async (proj) => {
@@ -318,7 +316,7 @@ const activate = (config_in: ConfigureInputs) => {
               await code_proj.finish();
               console.error('Deleted master password.');
               resolve('Activated User!');
-            }).catch(async (error) => {
+            }).catch(async () => {
               // TODO -- confirm Master Password already deleted?
               await code_proj.finish();
               resolve('Activated User!');

@@ -1,4 +1,4 @@
-const { toNamespace } = require("project-sock");
+import { toNamespace } from "project-sock";
 
 export type Project = {
   title: string,
@@ -20,9 +20,10 @@ export interface NameInterface {
 }
 type Obj<T> = Record<string, T>
 export type Namespace = Obj<NameInterface>
+type Sep = [string, string, string];
 
 const configureNamespace = (): Namespace => {
-  const sep = ["__", "", "__"];
+  const sep: Sep = ["__", "", "__"];
 
   return toNamespace({
     opaque: {

@@ -100,7 +100,6 @@ const verify: Verify = (config_in) => {
   const namespace: Namespace = configureNamespace();
   const opaque: NameInterface = namespace.opaque;
   const { git, pep, delay } = config_in;
-  const { project } = opaque;
   const user = "root";
   const times = 1000;
   const op_inputs = { git, delay, namespace };

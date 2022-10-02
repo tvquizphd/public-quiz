@@ -55,3 +55,37 @@ img {
 form > label {
     display: block;
 }
+input[type=password],
+input[type=text] {
+  padding-left: .5em;
+  background-color: #cfcce5;
+  line-height: 2em;
+  font-size: 1em;
+  border: none;
+}
+button.b-add {
+  color: #631;
+	background-color: #fdb863;
+	border-bottom: 0.2em groove rgba(55, 55, 55, 0.125);
+	border-right: 0.2em inset rgba(255, 255, 255, 0.5);
+	border-top: 0.2em outset rgba(255, 255, 255, 0.5);
+}
+button.item.b-delete {
+  color: #fff;
+	background-color: #cf6333;
+	border-bottom: 0.2em groove rgba(55, 55, 55, 0.125);
+	border-right: 0.2em inset rgba(255, 255, 255, 0.5);
+	border-top: 0.2em outset rgba(255, 255, 255, 0.5);
+}
+button {
+  border: none;
+  font: inherit;
+  min-width: 4em;
+  display: block;
+  outline: inherit;
+  overflow: hidden;
+  text-align: center;
+  white-space: nowrap;
+  border-radius: 0.333em;
+  text-overflow: ellipsis;
+}

@@ -43,10 +43,7 @@ const toScroll = (prefix, target, at) => {
     });
     const close_out = `</div>`;
     const close_in = `</button>`;
-    const open_out = `
-      <div class="scroll-wrapper">
-      <div class="scroll-bg"></div>
-      `;
+    const open_out = `<div class="scroll-wrapper">`;
     const range = (first ? [first] : []).concat(rest);
     return range.reduce((o, { value, idx }, i) => {
 			const open_in = itemButtonTag(i, idx, ['item']);
@@ -72,13 +69,13 @@ const toNewInput = (text, key) => {
   const i_data = toData(i_idx);
   const id = `input-${key}-new`;
   const entity = {
-    "server": " Service",
-    "client": " Username",
-  }[key] || "";
+    "server": "Site",
+    "client": "User",
+  }[key] || "Pass";
   return `
     <div class="text-input-wrapper">
       <input id="${id}" ${props} ${i_data}>
-      ${open}Add New${entity}${close}
+      ${open}Add ${entity}${close}
     </div>
   `;
 }
@@ -180,16 +177,14 @@ const renderTable = (rows) => {
   }, toOpen('table')) + toClose('table');
 }
 const toTableNew = (idx, at) => {
+  const n = [1, 1, 3][idx];
   const row = at.DATA.newRows[idx];
-  const n = row.length;
   const rows = useNew(n, idx, at);
   return renderTable(rows);
 }
 const toTableMarkup = (idx, at) => {
+  const n = [1, 1, 3][idx];
   const table = at.DATA.tables[idx];
-  const n = table.reduce((o, r) => {
-    return Math.max(o, r.length);
-  }, 0);
   const rows = useRows(n, idx, at);
   return renderTable(rows);
 }
@@ -463,9 +458,9 @@ class AsciiTables {
     const open = `<div class=${cls}>`;
     const close = "</div>";
     const headers = [
-      'Services',
-      'Usernames',
-      'Passwords'
+      'Sites to access',
+      'Your usernames',
+      'Your passwords'
     ]
     return [0,1,2].reduce((o, idx) => {
       const tn = toTableNew(idx, this);
@@ -474,7 +469,7 @@ class AsciiTables {
         <div class="table-header">
           <h2>${headers[idx]}</h2>
         </div>
-        <div>${tn}</div>
+        <div class="bg-highlight">${tn}</div>
         <div>${tm}</div>
       `;
     }, open) + close;
