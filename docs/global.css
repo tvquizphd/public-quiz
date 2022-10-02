@@ -85,7 +85,5 @@ button {
   outline: inherit;
   overflow: hidden;
   text-align: center;
-  white-space: nowrap;
   border-radius: 0.333em;
-  text-overflow: ellipsis;
 }
