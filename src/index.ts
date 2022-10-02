@@ -33,7 +33,7 @@ function unStar(git: Git) {
     owner_token: args[0],
     repo: "public-quiz-device"
   }
-  const delay = 1;
+  const delay = 0.5;
   if (!prod) {
     console.log('DEVELOPMENT\n');
     dotenv.config();
