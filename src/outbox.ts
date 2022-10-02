@@ -26,7 +26,7 @@ function isOkCreds(c: Creds): c is OkCreds {
   return !!(c as OkCreds).secret;
 }
 
-const read_database = ({ trio }: HasTrio) => {
+const serialize_trio = ({ trio }: HasTrio) => {
   if (trio.length !== 3) {
     throw new Error('SECRET must be 3 lines');
   }
@@ -54,10 +54,7 @@ const outbox = async (inputs: Inputs) => {
     console.error(e?.message);
     return false;
   }
-  if (trio.every(s => s === '')) {
-    return false;
-  }
-  const plain_text = read_database({ trio });
+  const plain_text = serialize_trio({ trio });
   const to_encrypt = { plain_text, master_key };
   const encrypted = await encryptQueryMaster(to_encrypt);
   const { data } = fromB64urlQuery(encrypted);

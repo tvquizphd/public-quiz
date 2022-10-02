@@ -5,9 +5,7 @@ declare type Inputs = HasSec & {
     delay: number;
     git: Git;
 };
-declare type Secrets = Record<string, string>;
 declare type Output = {
-    secrets: Secrets;
     trio: Trio;
 };
 interface Inbox {

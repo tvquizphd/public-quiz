@@ -17,17 +17,17 @@ type Inputs = HasSec & {
   delay: number,
   git: Git
 }
-type Secrets = Record<string, string>;
-type SaveInputs = HasSec & {
-  secrets: Secrets,
+type HasSecrets = {
+  secrets: Record<string, string>
+}
+type SaveInputs = HasSec & HasSecrets & {
   git: Git
 }
 type Output = {
-  secrets: Secrets,
   trio: Trio
 }
-interface WriteDB {
-  (i: HasSec & HasPlain): Output;
+interface FromTrio {
+  (i: HasSec & HasPlain): Output & HasSecrets;
 }
 interface Inbox {
   (i: Inputs): Promise<Output>
@@ -37,7 +37,7 @@ function isTrio(trio: string[]): trio is Trio {
   return trio.length === 3;
 }
 
-const write_database: WriteDB = ({ sec, plain_text }) => {
+const deserialize_trio: FromTrio = ({ sec, plain_text }) => {
   const trio = plain_text.split('\n');
   if (!isTrio(trio)) {
     throw new Error('SECRET must be 3 lines');
@@ -113,12 +113,12 @@ const inbox: Inbox = async (inputs) => {
     const search = toB64urlQuery({ data });
     const query_input = { master_key, search };
     const { plain_text } = decryptQueryMaster(query_input);
-    const { secrets, trio } = write_database({ sec, plain_text });
+    const { secrets, trio } = deserialize_trio({ sec, plain_text });
     const done = await saveSecrets({ git, sec, secrets });
     clean_up();
     if (done) {
       console.log("\nImported secrets.");
-      return { secrets, trio };
+      return { trio };
     }
   }
   catch (e: any) {
@@ -127,10 +127,14 @@ const inbox: Inbox = async (inputs) => {
     }
   }
   clean_up();
-  const secrets: Secrets = {};
-  const trio: Trio = ["", "", ""];
   console.log("\nNo new secrets.");
-  return { secrets, trio };
+  const trio = sec.map((name) => {
+    return process.env[name] || '';
+  });
+  if (!isTrio(trio)) {
+    throw new Error("Error reading secrets.");
+  }
+  return { trio };
 }
 
 export {
