@@ -176,7 +176,7 @@ async function decryptWithPassword (event) {
     owner: "tvquizphd",
     repo: "public-quiz-device"
   }
-  const delay = 0.5;
+  const delay = 1.0;
   const times = 1000;
   triggerGithubAction(git);
   const sock_inputs = { git, delay, ...namespace };
