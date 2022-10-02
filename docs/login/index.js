@@ -503,6 +503,9 @@ function tableTemplate () {
         ${mailer.render("table-wrapper")}
       </div>`;
     }
+    if (DATA.local === false) {
+      return `<div></div>`;
+    }
     this.dbt = new DBTrio({ DATA });
     return `<div class="full-width">
       ${dbt.render("table-wrapper")}
