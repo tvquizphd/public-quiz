@@ -117,11 +117,20 @@ background-color: #9191c1;
 }
 .scroll-wrapper > button.item {
   color: #631;
-  background-color: #fee0b6;
-  box-shadow: 0 0 0.25em 0.25em #fee0b6;
   font-family: "Arial Narrow", Arial, sans-serif;
+  background-color: transparent;
+  box-shadow: none;
 }
 .scroll-wrapper > button.active.item {
+  box-shadow: 0 0 0.25em 0.25em #9191c1;
+	background-color: #9191c1;
+  color: white;
+}
+.bg-highlight .scroll-wrapper > button.item {
+  background-color: #fee0b6;
+  box-shadow: 0 0 0.25em 0.25em #fee0b6;
+}
+.bg-highlight .scroll-wrapper > button.active.item {
   box-shadow: 0 0 0.25em 0.25em #fdb863;
 	background-color: #fdb863;
   color: black;
