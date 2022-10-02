@@ -1,5 +1,5 @@
 const configureNamespace = () => {
-  const sep = ["__", "", "__"];
+  const sep = "__";
 
   return toNamespace({
     opaque: {

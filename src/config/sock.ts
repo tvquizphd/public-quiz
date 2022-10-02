@@ -20,10 +20,9 @@ export interface NameInterface {
 }
 type Obj<T> = Record<string, T>
 export type Namespace = Obj<NameInterface>
-type Sep = [string, string, string];
 
 const configureNamespace = (): Namespace => {
-  const sep: Sep = ["__", "", "__"];
+  const sep = "__";
 
   return toNamespace({
     opaque: {

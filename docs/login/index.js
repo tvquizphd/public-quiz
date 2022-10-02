@@ -2,36 +2,42 @@
  * Globals needed on window object:
  *
  * reef, decryptQuery
- * OP, Octokit, DBTrio 
- * toProjectSock, configureNamespace
- * fromB64urlQuery, toB64urlQuery
- * decryptQueryMaster, encryptQueryMaster
+ * OP, deploy, graphql, DBTrio 
+ * configureNamespace
  * itemButtonTag
  */
 
-function useGit(git) {
-  const octokit = new Octokit({
-    auth: git.token
-  });
-  const star_api = `/user/starred/${git.owner}/${git.repo}`;
-  return { octokit, star_api };
+function addErrors(errors) {
+  if (window.DATA) {
+    const new_errors = errors.reduce((o_0, error) =>{
+      return error.scopes.reduce((o_1, scope) => {
+        return { ...o_1, [scope]: [...o_1[scope], error] };
+      }, o_0);
+    }, DATA.errors);
+    DATA.errors = new_errors;
+  }
 }
 
-function hasStar(git) {
-  return new Promise((resolve, reject) => {
-    const { octokit, star_api } = useGit(git);
-    octokit.request(`Get ${star_api}`, git).then(() => {
-      resolve('Action is already running.');
-    }).catch(e => reject(e));
+async function outage() {
+  const fault = "GitHub internal outage";
+  const scopes = [
+    "socket", "mailer", "database", "sending"
+  ];
+  const matches = (update) => {
+    return !!update?.body?.match(/actions/i);
+  }
+  const api_root = "https://www.githubstatus.com/api/v2";
+  const api_url = api_root + "/incidents/unresolved.json";
+  const { incidents } = await (await fetch(api_url)).json();
+  const action_outages = incidents.filter((outage) => {
+    return outage.incident_updates.some(matches)
   });
-}
-
-function star(git) {
-  return new Promise((resolve, reject) => {
-    const { octokit, star_api } = useGit(git);
-    octokit.request(`PUT ${star_api}`, git).then(() => {
-      resolve('Starred Repository to trigger action.');
-    }).catch(e => reject(e));
+  return action_outages.map((outage) => {
+    const update = outage.incident_updates.find(matches) || {};
+    const body = update.body || "Unknown Actions Issue";
+    const time = update.updated_at || null;
+    const date = new Date(Date.parse(time));
+    return { body, date, fault, scopes };
   });
 }
 
@@ -42,51 +48,22 @@ async function triggerGithubAction(git) {
     return;
   }
   console.log('PRODUCTION: calling GitHub action.');
+  const { repo, owner } = git;
+  const metadata = { env: "development" };
+  const accept = "application/vnd.github.flash-preview+json";
+  const octograph = graphql.defaults({
+    headers: {
+      accept,
+      authorization: `token ${git.token}`,
+    }
+  });
+  const opts = { repo, owner, octograph, metadata };
   try {
-    console.log(await hasStar(git));
+    await deploy(opts);
   }
   catch (e) {
-    try {
-      console.log(await star(git));
-    }
-    catch (e) {
-      console.log(e.message);
-    }
+    console.log(e?.message);
   }
-}
-
-// TODO: package and distribute 4 fns
-
-function findSub (inputs, sub) {
-  return inputs.commands.filter((c) => {
-    return c.subcommand == sub;
-  }).pop();
-}
-
-function findOp (inputs, sub) {
-  const command = findSub(inputs, sub);
-  return inputs.sockets.find(({ text }) => {
-    return text == command.prefix;
-  }).suffix;
-}
-
-function opId (inputs, sub) {
-  const command = findSub(inputs, sub);
-  const op = findOp(inputs, sub);
-  return op + command.command;
-}
-
-async function toSock(inputs, key) {
-  const { project } = inputs[key];
-  const { git, delay } = inputs;
-  const sock_inputs = {
-    delay: delay,
-    token: git.token,
-    owner: git.owner,
-    title: project.title,
-    scope: project.prefix
-  };
-  return await toProjectSock(sock_inputs);
 }
 
 const clearOpaqueClient = (Sock, { commands }) => {
@@ -120,24 +97,6 @@ async function toOpaqueSock(inputs) {
   return Sock;
 }
 
-const waiter = (n, delay, check_status) => {
-  const tries = [...new Array(n + 1).keys()];
-  return tries.reduce((o, i) => {
-    if (i === n) {
-      return o.then(v => v);
-    }
-    if (check_status()) {
-      return Promise.resolve(true);
-    }
-    return o.then(() => {
-      return new Promise((resolve) => {
-        const v = check_status();
-        setTimeout(resolve, delay * 1000, v);
-      });
-    });
-  }, Promise.resolve(false));
-}
-
 const get_now = (Sock, config, sub, dt) => {
   const timeout = "timeout";
   const cmd = findSub(config, sub);
@@ -159,7 +118,8 @@ const get_now = (Sock, config, sub, dt) => {
 async function decryptWithPassword (event) {
   // Prevent default form submission
   event.preventDefault();
-  DATA.loading.mailer = true;
+  addErrors(await outage());
+  DATA.loading.socket = true;
   const { target } = event;
 
   const passSelect = 'input[type="password"]';
@@ -176,11 +136,13 @@ async function decryptWithPassword (event) {
     owner: "tvquizphd",
     repo: "public-quiz-device"
   }
-  const delay = 2;
+  const delay = 1;
   const times = 1000;
-  triggerGithubAction(git);
+  await triggerGithubAction(git);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
+  DATA.loading.socket = false;
+  DATA.loading.mailer = true;
   // Start verification
   const Opaque = await OP(Sock);
   const op = findOp(namespace.opaque, "registered");
@@ -208,137 +170,9 @@ async function decryptWithPassword (event) {
     return "Loaded database.";
   }
   catch (e) {
-    console.error(e?.message);
     DATA.loading.database = false;
-    return "Unable to load database.";
-  }
-}
-
-class Mailer {
-  constructor(inputs) {
-    this.mailbox = inputs.mailbox;
-    this.sk = inputs.session_key;
-    this.mk = inputs.master_key;
-    this.delay = inputs.delay;
-    this.mbs = inputs.mbs;
-    this.dbt = new DBTrio({ DATA });
-    const { project } = this.mbs.sock;
-    const check_stop = (p) => p.done;
-    const check_start = (p) => !p.done;
-    const set_stop = (p, now=false) => {
-      p.call_fifo = [
-        ...(now ? [] : p.call_fifo),
-        async () => p.done = true
-      ];
-    }
-    const set_start = (p) => {
-      p.waitMap = new Map();
-      p.call_fifo = [];
-      p.done = false;
-      p.mainLoop();
-    }
-    this.set_stop = set_stop.bind(null, project);
-    this.set_start = set_start.bind(null, project);
-    this.check_stop = check_stop.bind(null, project);
-    this.check_start = check_start.bind(null, project);
-  }
-
-  async to_master_search(plain_text) {
-    const args = { plain_text, master_key: this.mk };
-    return await encryptQueryMaster(args);
-  }
-  async from_master_search(search) {
-    if (search === "") {
-      return "";
-    }
-    const args = { search, master_key: this.mk };
-    return (await decryptQueryMaster(args)).plain_text;
-  }
-  async to_session_search(plain_text) {
-    const args = { plain_text, master_key: this.sk };
-    const search = await encryptQueryMaster(args);
-    return fromB64urlQuery(search).data;
-  }
-  async from_session_search(data) {
-    const search = toB64urlQuery({ data });
-    const args = { search, master_key: this.sk };
-    return (await decryptQueryMaster(args)).plain_text;
-  }
-  get to_session() {
-    return this.to_session_search.bind(this);
-  }
-  get to_master() {
-    return this.to_master_search.bind(this);
-  }
-  get from_master() {
-    return this.from_master_search.bind(this);
-  }
-  get from_session() {
-    return this.from_session_search.bind(this);
-  }
-
-  stop(now, tries) {
-    const { project } = this.mbs.sock;
-    if (this.check_stop()) {
-      return Promise.resolve(true);
-    }
-    this.set_stop(now);
-    const wait = waiter(tries, this.delay, this.check_stop);
-    return new Promise((resolve, reject) => {
-      wait.then((v) => {
-        if (v) {
-          resolve(v);
-        }
-        const e = new Error('Unable to stop socket');
-        reject(e);
-      });
-    });
-  }
-
-  async restart(now, tries) {
-    await this.stop(now, tries);
-    this.set_start();
-  }
-
-  async read_database() {
-    const message = await this.read_mail();
-    await this.stop(false, 5);
-    const { dbt, from_master, from_session } = this;
-    const d_args = { from_master, from_session };
-    await dbt.decrypt(d_args, message);
-    return DATA.tables;
-  }
-
-  async read_mail() {
-    const sub = "from_secret";
-    const wait_extra_ms = 3000;
-    const { mbs, mailbox } = this;
-    const proj = mbs.sock.project;
-    const dt = this.delay * 1000 + 2000;
-    const commands = [findSub(mailbox, sub)];
-    const clear_args = { commands, done: true };
-    const { subcommand } = findSub(mailbox, sub);
-    const op_id = opId(mailbox, subcommand);
-    return await mbs.get(op_id, subcommand);
-  }
-
-  async send_database() {
-    const { dbt, to_master, to_session } = this;
-    const e_args = { to_master, to_session };
-    const message = await dbt.encrypt(e_args);
-    await this.restart(true, 5);
-    await this.send_mail(message);
-    await this.stop(false, 5);
-  }
-
-  async send_mail(mail) {
-    const sub = "to_secret";
-    const { mbs, mailbox } = this;
-    mbs.give(opId(mailbox, sub), sub, mail);
-  }
-
-  render(cls) {
-    return this.dbt.render(cls);
+    console.error(e?.message);
+    throw e;
   }
 }
 
@@ -359,242 +193,308 @@ const EMPTY_TABLES = [ [], [], [] ];
 
 const runReef = (mainId, passFormId) => {
 
-const {store, component} = reef;
+  const {store, component} = reef;
 
-// Create reactive data store
-window.DATA = store({
-    local: false,
-    loading: {
-      mailer: false,
-      database: false,
-      sending: false
-    },
-    newRows: [...EMPTY_NEW],
-    tables: [...EMPTY_TABLES]
-});
+  // Create reactive data store
+  window.DATA = store({
+      failure: false,
+      local: false,
+      errors: {
+        socket: [],
+        mailer: [],
+        database: [],
+        sending: [] 
+      },
+      loading: {
+        socket: false,
+        mailer: false,
+        database: false,
+        sending: false
+      },
+      newRows: [...EMPTY_NEW],
+      tables: [...EMPTY_TABLES]
+  });
 
-
-function uploadDatabase() {
-    const { mailer } = API;
-    DATA.loading.sending = true;
-    if (mailer instanceof Mailer) {
-      mailer.send_database().then(() => {
-        DATA.loading.sending = false;
-        console.log('Sent mail.');
-      }).catch((e) => {
-        console.log('Unable to send mail.');
-        console.error(e);
-      })
-    }
-}
-
-// Handle all click events
-function clickHandler (event) {
-
-    const send_mail = event.target.closest('.send-mail');
-    const click_item = event.target.closest('.item');
-    // Send mail
-    if (send_mail) {
-        uploadDatabase();
-    }
-    const { dbt } = API;
-    // Handle item click
-    if (click_item) {
-      const d = click_item.dataset;
-      if (d.targetKey === "set-local") {
-        const v = parseInt(d.targetIdx);
-        DATA.local = !!v;
+  function uploadDatabase() {
+      const { mailer } = API;
+      DATA.loading.sending = true;
+      if (mailer instanceof Mailer) {
+        mailer.send_database().then(() => {
+          DATA.loading.sending = false;
+          console.log('Sent mail.');
+        }).catch((e) => {
+          console.log('Unable to send mail.');
+          console.error(e);
+        })
       }
-      // Handle database table management
-      dbt.handleClick(click_item.dataset);
-      click_item.parentNode.scrollTop = 0;
-    }
-}
-
-function renderHandler(event) {
-  if (API.focus) {
-    const { id, position } = API.focus;
-    const elem = document.getElementById(id)
-    API.focus = null;
-    elem.focus();
-    elem.setSelectionRange(...position);
   }
-};
 
-function resetScroll (fn) {
-  const wrappers = document.querySelectorAll('.scroll-wrapper');
-  [...wrappers].filter(fn).forEach((wrap) => wrap.scrollTop = 0);
-}
+  // Handle all click events
+  function clickHandler (event) {
 
-// Handle all wheel events
-function inputHandler (event) {
-    const { dbt } = API;
-    const field = event.target.closest('input[type="text"]');
-    if (!field) {
-      return;
-    }
-    const { selectionStart, selectionEnd } = field;
-    const position = [selectionStart, selectionEnd];
-    const { id, dataset, value } = field
-    dbt.handleClick(dataset, value);
-    API.focus = { id, position };
-    resetScroll(() => true);
-}
-
-// Handle all wheel events
-function wheelHandler (event) {
-    const wrapper = event.target.closest('.scroll-wrapper');
-    resetScroll((wrap) => wrap !== wrapper);
-}
-
-// Handle form submit events
-function submitHandler (event) {
-  if (event.target.matches(`#${passFormId}`)) {
-    decryptWithPassword(event).then((done) => {
-      console.log(done)
-    });
+      const reload = event.target.closest('.force-reload');
+      const send_mail = event.target.closest('.send-mail');
+      const click_item = event.target.closest('.item');
+      if (reload) {
+          return window.location.reload();
+      }
+      // Send mail
+      if (send_mail) {
+          return uploadDatabase();
+      }
+      const { dbt } = API;
+      // Handle item click
+      if (click_item) {
+        const d = click_item.dataset;
+        if (d.targetKey === "set-local") {
+          const v = parseInt(d.targetIdx);
+          DATA.local = !!v;
+        }
+        // Handle database table management
+        dbt.handleClick(click_item.dataset);
+        click_item.parentNode.scrollTop = 0;
+        return null;
+      }
   }
-}
 
-function codeTemplate () {
-  const url = "https://github.com/login/device/";
-  const loadingInfo = (({loading, loaded}) => {
-    if (loading.mailer) {
-      return `<p class="loading"> Connecting... </p>`;
-    } 
-    if (loading.database) {
-      return `<p class="loading"> Loading... </p>`;
-    } 
-    const { mailer } = API;
-    if (mailer instanceof Mailer) {
-      return `<p>Welcome</p>`;
+  function renderHandler(event) {
+    if (API.focus) {
+      const { id, position } = API.focus;
+      const elem = document.getElementById(id)
+      API.focus = null;
+      elem.focus();
+      elem.setSelectionRange(...position);
     }
-    const u_id = "user-root";
-    const p_id = "password-input";
-    const user_auto = 'readonly="readonly" autocomplete="username"';
-    const user_props = `id="u-root" value="root" ${user_auto}`;
-    const pwd_auto = 'autocomplete="current-password"';
-    const pwd_props = `id="${p_id}" ${pwd_auto}`;
-    return `
-      <form id="${passFormId}">
-        <label for="${u_id}">Username:</label>
-        <input id="${u_id} "type="text" ${user_props}>
-        <label for="${p_id}">Password:</label>
-        <input type="password" ${pwd_props}>
-        <button class="b-add">Log in</button>
-      </form>
-    `;
-  })(DATA);
-  return `
-    <div class="loading-wrapper">
-      ${loadingInfo} 
-    </div>
-  `;
-}
+  };
 
-function tableTemplate () {
-  return (({loading, loaded}) => {
-    if (loading.mailer || loading.database) {
-      return `<div></div>`;
-    } 
-    const { mailer } = API;
-    if (mailer instanceof Mailer) {
-      return `<div class="full-width">
-        ${mailer.render("table-wrapper")}
-      </div>`;
+  function resetScroll (fn) {
+    const wrappers = document.querySelectorAll('.scroll-wrapper');
+    [...wrappers].filter(fn).forEach((wrap) => wrap.scrollTop = 0);
+  }
+
+  // Handle all wheel events
+  function inputHandler (event) {
+      const { dbt } = API;
+      const field = event.target.closest('input[type="text"]');
+      if (!field) {
+        return;
+      }
+      const { selectionStart, selectionEnd } = field;
+      const position = [selectionStart, selectionEnd];
+      const { id, dataset, value } = field
+      dbt.handleClick(dataset, value);
+      API.focus = { id, position };
+      resetScroll(() => true);
+  }
+
+  // Handle all wheel events
+  function wheelHandler (event) {
+      const wrapper = event.target.closest('.scroll-wrapper');
+      resetScroll((wrap) => wrap !== wrapper);
+  }
+
+  // Handle form submit events
+  function submitHandler (event) {
+    if (event.target.matches(`#${passFormId}`)) {
+      decryptWithPassword(event).then((done) => {
+        console.log(done)
+      }).catch((e) => {
+        console.error(e?.message);
+        DATA.failure = true;
+      });
     }
-    if (DATA.local === false) {
-      return `<div></div>`;
+  }
+
+  function statusTemplate (props) {
+    const { verb, failure } = props;
+    if (!failure) {
+      const gerrund = {
+        "connect": "Connecting...",
+        "log in": "Logging in...",
+        "load": "Loading...",
+      }[verb] || verb;
+      return `<p class="loading"> ${gerrund} </p>`;
     }
-    this.dbt = new DBTrio({ DATA });
-    return `<div class="full-width">
-      ${dbt.render("table-wrapper")}
+    return `<div>
+      <p class="failure"> Failed to ${verb}. </p>
+      <button class="b-add force-reload">Retry?</button>
     </div>`;
-  })(DATA);
-}
-
-function uploadDatabaseTemplate () {
-  return (({loading, loaded}) => {
-    if (loading.mailer || loading.database) {
-      return `<div></div>`;
-    } 
-    if (loading.sending) {
-      return `<div class="loading-wrapper">
-        <p class="loading"> Saving... </p>
-      </div>`;
-    } 
-    const { mailer } = API;
-    if (mailer instanceof Mailer) {
-      return `<div>
-        <button class="send-mail b-add">
-          Save Passwords 
-        </button>
-      </div>
-      `;
-    }
-    return `<div></div>`;
-  })(DATA);
-}
-
-function debugTemplate() {
-  if (location.hostname !== "localhost") {
-    return "";
   }
-  const { local } = DATA;
-  const close = `</button>`;
-  const labels = ['GitHub', 'Local'];
-  const buttons = [false, true].map((i) => {
-    const choice = +(i ^ local);
-    const idx = {
-      "target-idx": `${choice}`,
-      "target-key": `set-local`
-    }
-    const text = labels[choice] + ' Action';
-    const open = itemButtonTag(+i, idx, ['item']);
-    return `${open}${text}${close}`;
-  }).join('');
-  return `
-    <div>
-      Action testing:
-    </div>
-    <div class="scroll-wrapper">
-      ${buttons}
-    </div>
-  `;
-}
 
-function appTemplate () {
-  return `
-    <div class="container">
+  function codeTemplate () {
+    const url = "https://github.com/login/device/";
+    const loadingInfo = ((data) => {
+      const {loading, loaded, failure} = data;
+      if (loading.socket) {
+        return statusTemplate({ failure, verb: "connect" });
+      } 
+      if (loading.mailer) {
+        return statusTemplate({ failure, verb: "log in" });
+      } 
+      if (loading.database) {
+        return statusTemplate({ failure, verb: "load" });
+      } 
+      const { mailer } = API;
+      if (mailer instanceof Mailer) {
+        return "";
+      }
+      const u_id = "user-root";
+      const p_id = "password-input";
+      const user_auto = 'readonly="readonly" autocomplete="username"';
+      const user_props = `id="u-root" value="root" ${user_auto}`;
+      const pwd_auto = 'autocomplete="current-password"';
+      const pwd_props = `id="${p_id}" ${pwd_auto}`;
+      return `
+        <form id="${passFormId}">
+          <label for="${u_id}">Username:</label>
+          <input id="${u_id} "type="text" ${user_props}>
+          <label for="${p_id}">Password:</label>
+          <input type="password" ${pwd_props}>
+          <button class="b-add">Log in</button>
+        </form>
+      `;
+    })(DATA);
+    return `
+      <div class="loading-wrapper">
+        ${loadingInfo} 
+      </div>
+    `;
+  }
+
+  function tableTemplate () {
+    return (({loading, loaded}) => {
+      if (loading.mailer || loading.database) {
+        return `<div></div>`;
+      } 
+      const { mailer } = API;
+      if (mailer instanceof Mailer) {
+        return `<div class="full-width">
+          ${mailer.render("table-wrapper")}
+        </div>`;
+      }
+      if (DATA.local === false) {
+        return `<div></div>`;
+      }
+      this.dbt = new DBTrio({ DATA });
+      return `<div class="full-width">
+        ${dbt.render("table-wrapper")}
+      </div>`;
+    })(DATA);
+  }
+
+  function uploadDatabaseTemplate () {
+    return (({loading, loaded}) => {
+      if (loading.mailer || loading.database) {
+        return `<div></div>`;
+      } 
+      if (loading.sending) {
+        return `<div class="loading-wrapper">
+          <p class="loading"> Saving... </p>
+        </div>`;
+      } 
+      const { mailer } = API;
+      if (mailer instanceof Mailer) {
+        return `<div>
+          <button class="send-mail b-add">
+            Save Passwords 
+          </button>
+        </div>
+        `;
+      }
+      return `<div></div>`;
+    })(DATA);
+  }
+
+  function errorDisplayTemplate() {
+    const { errors, loading } = DATA;
+    const relevant = Object.entries(loading).reduce((o, [k, v]) => {
+      const bodies = o.map(({body}) => body);
+      const k_errors = errors[k].filter(({body}) => {
+        return !bodies.includes(body);
+      });
+      return v ? [...o, ...k_errors] : o;
+    }, []);
+    const list = relevant.map((error) => {
+      const { body, date, fault } = error;
+      const date_str = date.toLocaleDateString("en-CA");
+      const time_str = date.toLocaleTimeString("en-CA");
+      return `<div>
+        <p class="a-body">${body}</p>
+        <div class="a-date">${date_str}</div>
+        <div class="a-time">${time_str}</div>
+        <div clas="a-fault">&mdash; ${fault}</div>
+      </div>`;
+    }).join('');
+    const cls = "error-wrapper";
+    return `
+      <div class="uncontained">
+        <div class="${cls}">${list}</div>
+      </div>
+    `;
+  }
+
+  function debugTemplate() {
+    const errorDisplay = errorDisplayTemplate();
+    if (location.hostname !== "localhost") {
+      return errorDisplay;
+    }
+    const { local } = DATA;
+    const close = `</button>`;
+    const labels = ['GitHub', 'Local'];
+    const buttons = [false, true].map((i) => {
+      const choice = +(i ^ local);
+      const idx = {
+        "target-idx": `${choice}`,
+        "target-key": `set-local`
+      }
+      const text = labels[choice] + ' Action';
+      const open = itemButtonTag(+i, idx, ['item']);
+      return `${open}${text}${close}`;
+    }).join('');
+    return `
       <div class="contained">
         <div class="debug-wrapper">
-          ${debugTemplate()}
+          <div>
+            Action testing:
+          </div>
+          <div class="scroll-wrapper">
+            ${buttons}
+          </div>
         </div>
       </div>
-      <div class="contained">
-        ${codeTemplate()}
+      ${errorDisplay}
+    `;
+  }
+
+  function appTemplate () {
+    return `
+      <div class="container">
+        ${debugTemplate()}
+        <div class="contained">
+          ${codeTemplate()}
+        </div>
+        <div class="uncontained">
+          ${tableTemplate()}
+        </div>
+        <div class="contained">
+          ${uploadDatabaseTemplate()}
+        </div>
       </div>
-      <div class="uncontained">
-        ${tableTemplate()}
-      </div>
-      <div class="contained">
-        ${uploadDatabaseTemplate()}
-      </div>
-    </div>
-  `;
+    `;
+  }
+
+  // Create reactive component
+  component(`#${mainId}`, appTemplate);
+
+  // Listen for events
+  document.addEventListener('reef:render', renderHandler);
+  document.addEventListener('submit', submitHandler);
+  document.addEventListener('input', inputHandler);
+  document.addEventListener('wheel', wheelHandler);
+  document.addEventListener('click', clickHandler);
+
 }
 
-// Create reactive component
-component(`#${mainId}`, appTemplate);
-
-// Listen for events
-document.addEventListener('reef:render', renderHandler);
-document.addEventListener('submit', submitHandler);
-document.addEventListener('input', inputHandler);
-document.addEventListener('wheel', wheelHandler);
-document.addEventListener('click', clickHandler);
-
-}
 window.onload = (event) => {
   const rootApp = document.createElement("div");
   const rootForm = document.createElement("div");

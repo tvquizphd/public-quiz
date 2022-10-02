@@ -68,6 +68,9 @@ interface HandleToken {
   (i: TokenInputs): Promise<TokenQuery>
 }
 const ROOT = "https://pass.tvquizphd.com";
+const SCOPES = [
+  'repo_deployment', 'public_repo', 'project'
+];
 
 function isBadAuthError(a: AuthError): boolean {
   const good_errors = [
@@ -105,9 +108,7 @@ class PollingFails extends Error {
 
 const getConfigurable = (inputs: ConfigureInputs) => {
   const { client_id } = inputs;
-  const scope = [
-    'public_repo', 'project'
-  ].join(',');
+  const scope = SCOPES.join(',');
   const keys = { client_id, scope }
   const authPath = 'github.com/login/device/code';
   const deviceParameters = new URLSearchParams(keys);
@@ -260,8 +261,7 @@ const updateRepos = (inputs: GitTokenInput) => {
 const handleToken: HandleToken = async (inputs) => {
   const {scope, token_type} = inputs;
   const scope_set = new Set(scope.split(','));
-  const scope_needs = ['public_repo', 'project'];
-  if (!scope_needs.every(x => scope_set.has(x))) {
+  if (!SCOPES.every(x => scope_set.has(x))) {
     throw new Error(`Need project scope, not '${scope}'`);
   }
   if (token_type != 'bearer') {

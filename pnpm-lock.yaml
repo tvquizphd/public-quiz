@@ -17,7 +17,7 @@ specifiers:
   libsodium-wrappers: 0.7.8
   octokit: ^2.0.7
   pkg: ^5.8.0
-  project-sock: 1.0.0-alpha.5.3
+  project-sock: 1.0.0-beta.3.0
   ts-node: ^10.9.1
   typescript: ^4.8.3
 
@@ -27,7 +27,7 @@ dependencies:
   argon2: 0.29.1
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
-  project-sock: 1.0.0-alpha.5.3
+  project-sock: 1.0.0-beta.3.0
   ts-node: 10.9.1_u7tj3mdglidusk2sd73zi6kt7q
 
 devDependencies:
@@ -1886,8 +1886,8 @@ packages:
     engines: {node: '>=0.4.0'}
     dev: true
 
-  /project-sock/1.0.0-alpha.5.3:
-    resolution: {integrity: sha512-wWK26EwQWBmqluLlZ2bYeu9WCdsinAp7yhsLIlUMlakUiGE2i7rAJc96nZmcThkmQP+ctrMKNSi+z6KTSFmZXg==}
+  /project-sock/1.0.0-beta.3.0:
+    resolution: {integrity: sha512-IDW+qxreghzcSdA0U0YqLFnN8wrVoObwYIPU1IURoO0lAx6Co8zA1JNTq5hs7vfjfPRQRzdKAjEldi0qyjxDNQ==}
     dependencies:
       '@octokit/graphql': 5.0.1
     transitivePeerDependencies:

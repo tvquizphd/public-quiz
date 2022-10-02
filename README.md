@@ -7,16 +7,16 @@
 
 ## Usage
 
-- Star this repo (unstar first if needed).
-- View the "Activate" project in [your private projects](https://github.com/tvquizphd?tab=projects).
+- Star the repository to begin activation process.
+- Click the link in the "Activate" project in [your private projects](https://github.com/tvquizphd?tab=projects).
 - Then enter password and follow instructions to use the GitHub authentication code.
 
-Your secret device is now [a connected application](https://github.com/settings/applications).
+Now, the password manager can access [a connected application](https://github.com/settings/applications).
 
-- View the "Login" project in [your private projects](https://github.com/tvquizphd?tab=projects).
-- Then enter password and follow instructions to manage your passwords.
+- Click the link in the "Login" project in [your private projects](https://github.com/tvquizphd?tab=projects).
+- Then enter password to begin managing your services, usernames, and passwords.
 
-Reuse the login link whenever you return.
+Reuse the same login link whenever you return.
 
 ## Local Testing
 
@@ -53,7 +53,7 @@ pnpm develop <MY_TOKEN>
 Update the version in `package.json` and with a tag:
 
 ```
-git tag v0.x.y
+git tag v1.x.y
 git push origin main --tags
 ```
 On each pushed tag, the `build` workflow will:

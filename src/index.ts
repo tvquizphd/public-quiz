@@ -1,8 +1,9 @@
 import { isProduction } from "./util/secrets";
+import { graphql } from "@octokit/graphql";
+import { undeploy } from "project-sock";
 import { activate } from "./activate";
 import { isOkCreds } from "./outbox";
 import { outbox } from "./outbox";
-import { Octokit } from "octokit";
 import { verify } from "./verify";
 import { inbox } from "./inbox";
 import dotenv from "dotenv";
@@ -11,22 +12,33 @@ import fs from "fs";
 import type { Creds } from "./outbox";
 import type { Git, Trio } from "./util/types";
 
-function unStar(git: Git) {
-  const octokit = new Octokit({
-    auth: git.owner_token
-  });
-  const star_api = `/user/starred/${git.owner}/${git.repo}`;
-  octokit.request(`DELETE ${star_api}`).catch((e: any) => {
-    console.error(e?.message);
-  });
+type Result = {
+  success: boolean;
+  message: string;
 }
 
-(async () => {
+async function lockDeployment(git: Git) {
+  const { repo, owner } = git;
+  const metadata = { env: "development" };
+  const octograph = graphql.defaults({
+    headers: {
+      authorization: `token ${git.owner_token}`,
+    }
+  });
+  const opts = { repo, owner, octograph, metadata };
+  const { success } = await undeploy(opts);
+  if (success) {
+    return console.log("Successfully undeployed action.");
+  }
+  console.log("No active action to undeploy");
+}
+
+(async (): Promise<Result> => {
   const prod = isProduction(process);
   const args = process.argv.slice(2);
   if (args.length < 1) {
-    console.error('Missing 1st arg: MY_TOKEN');
-    return {};
+    const message = "Missing 1st arg: MY_TOKEN";
+    return { success: false, message };
   }
   const git = {
     owner: "tvquizphd",
@@ -40,6 +52,14 @@ function unStar(git: Git) {
   }
   else {
     console.log('PRODUCTION\n');
+    try {
+      await lockDeployment(git);
+    }
+    catch (e: any) {
+      console.error(e?.message);
+      const message = "Unable to undeploy";
+      return { success: false, message };
+    }
   }
   if (args.length >= 3) {
     const msg_a = "with Master Password!";
@@ -53,9 +73,9 @@ function unStar(git: Git) {
       });
     }
     catch (e: any) {
-      console.error("Unable to Activate.");
       console.error(e?.message);
-      return { git };
+      const message = "Unable to activate";
+      return { success: false, message };
     }
   }
   const pep = "ROOT_PEPPER";
@@ -82,9 +102,9 @@ function unStar(git: Git) {
     }
   }
   catch (e: any) {
-    console.error("Unable to Verify.");
     console.error(e?.message);
-    return { git };
+    const message = "Unable to verify";
+    return { success: false, message };
   }
   if (!prod) {
     const env_all = [creds.name, pep, ...sec];
@@ -102,11 +122,13 @@ function unStar(git: Git) {
       console.error(e?.message);
     }
   }
-  return { git };
-})().then((outputs) => {
-  if ("git" in outputs) {
-    unStar(outputs.git as Git);
+  const message = "Verification complete";
+  return { success: true, message };
+})().then(async (result: Result) => {
+  if (result.success) {
+    return console.log(result.message);
   }
+  return console.error(result.message);
 }).catch((e: any) => {
   console.error("Unexpected Error Occured");
   console.error(e?.message);

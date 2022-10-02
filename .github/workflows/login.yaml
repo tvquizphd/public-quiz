@@ -1,0 +1,46 @@
+name: login
+on:
+  deployment:
+  workflow_dispatch:
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensuring existing deployment
+        id: deployment
+        run: |
+          JSON=$(curl \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          $ROOT/repos/$REPO/deployments?environment=$STAGE);
+          OUTPUT=$(jq -r '.[0].environment' <<< $JSON);
+          echo "deployment environment is $OUTPUT";
+          echo "::set-output name=approved::$OUTPUT";
+        env:
+          ROOT: "https://api.github.com"
+          REPO: ${{ github.repository }}
+          STAGE: "development"
+    outputs:
+      approved: ${{ steps.deployment.outputs.approved }}
+  login:
+    needs: [filter]
+    if: needs.filter.outputs.approved == 'development'
+    concurrency:
+      group: secret-tv-access
+      cancel-in-progress: true
+    environment:
+        name: secret-tv-access
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo ${{needs.filter.outputs.approved}}
+      - uses: actions/checkout@v3
+      - name: Run executable
+        run: |
+          ./action/index ${{secrets.MY_TOKEN}}
+        env:
+          ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
+          SESSION: ${{secrets.SESSION}}
+          SERVERS: ${{secrets.SERVERS}}
+          CLIENTS: ${{secrets.CLIENTS}}
+          SECRETS: ${{secrets.SECRETS}}
