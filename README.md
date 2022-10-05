@@ -7,7 +7,7 @@
 
 ## Usage
 
-- Manually trigger the [activation action](https://github.com/tvquizphd/public-quiz-device/actions/workflows/action.yaml).
+- Star this repository to trigger activation (unstar firt if already starred).
 - Click the link in the "Activate" project in [your private projects](https://github.com/tvquizphd?tab=projects).
 - Then enter password and follow instructions to use the GitHub authentication code.
 
