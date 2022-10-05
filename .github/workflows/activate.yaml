@@ -1,0 +1,48 @@
+name: activate
+on:
+  watch:
+    types: [started]
+  workflow_dispatch:
+jobs:
+  filter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ensure user has starred repository
+        id: star
+        run: |
+          STATUS=`curl -Is \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          $ROOT/user/starred/$REPO | grep HTTP | cut -d ' ' -f2`;
+          echo "Authenticated user star status is $STATUS";
+          echo "::set-output name=approved::$STATUS";
+        env:
+          ROOT: "https://api.github.com"
+          REPO: ${{ github.repository }}
+      - name: Unstar repository
+        run: |
+          curl -X DELETE \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          $ROOT/user/starred/$REPO;
+        env:
+          ROOT: "https://api.github.com"
+          REPO: ${{ github.repository }}
+    outputs:
+      approved: ${{ steps.star.outputs.approved }}
+  activate:
+    needs: [filter]
+    if: needs.filter.outputs.approved == '204'
+    concurrency:
+      group: secret-tv-access
+      cancel-in-progress: true
+    environment:
+        name: secret-tv-access
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo ${{needs.filter.outputs.approved}}
+      - uses: actions/checkout@v3
+      - name: Run executable
+        run: |
+          ./action/index ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}

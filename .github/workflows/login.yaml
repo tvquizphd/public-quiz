@@ -1,4 +1,4 @@
-name: action
+name: login
 on:
   deployment:
   workflow_dispatch:
@@ -6,8 +6,8 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     steps:
-      - name: Continue during existing deployment
-        id: jq
+      - name: Ensuring existing deployment
+        id: deployment
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
@@ -21,8 +21,8 @@ jobs:
           REPO: ${{ github.repository }}
           STAGE: "development"
     outputs:
-      approved: ${{ steps.jq.outputs.approved }}
-  action:
+      approved: ${{ steps.deployment.outputs.approved }}
+  login:
     needs: [filter]
     if: needs.filter.outputs.approved == 'development'
     concurrency:
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run executable
         run: |
-          ./action/index ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}
+          ./action/index ${{secrets.MY_TOKEN}}
         env:
           ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
           SESSION: ${{secrets.SESSION}}

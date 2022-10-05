@@ -1,5 +1,5 @@
 .bg-highlight {
-background-color: #9191c1;
+  background-color: #9191c1;
 }
 .full-width {
   width: 100%;
@@ -54,12 +54,12 @@ background-color: #9191c1;
     linear-gradient(to right, transparent, rgb(140,44,0), transparent),
     url("noise.svg");
   filter: contrast(200%) brightness(400%);
-	image-rendering: pixelated;
+  image-rendering: pixelated;
   background-size: 200% auto;
   pointer-events: none;
-	border-radius: 1em;
+  border-radius: 1em;
   text-align: center;
-	opacity: 0.666;
+  opacity: 0.666;
 }
 .loading-wrapper > .loaded {
   background-position: 50% 0%;
@@ -123,7 +123,7 @@ background-color: #9191c1;
 }
 .scroll-wrapper > button.active.item {
   box-shadow: 0 0 0.25em 0.25em #9191c1;
-	background-color: #9191c1;
+  background-color: #9191c1;
   color: white;
 }
 .bg-highlight .scroll-wrapper > button.item {
@@ -132,7 +132,7 @@ background-color: #9191c1;
 }
 .bg-highlight .scroll-wrapper > button.active.item {
   box-shadow: 0 0 0.25em 0.25em #fdb863;
-	background-color: #fdb863;
+  background-color: #fdb863;
   color: black;
 }
 .debug-wrapper {
@@ -155,4 +155,28 @@ div.table-header {
 }
 div.table-header > h2 {
   margin-bottom: 0.2em;
+}
+.error-wrapper {
+  font-family: "Arial Narrow", Arial, sans-serif;
+}
+.error-wrapper > div {
+  background-color: #802010;
+  grid-template-areas: 
+        "body body body"
+        "date time fault";
+  padding: 0.5em;
+  display: grid;
+  color: white;
+}
+.error-wrapper > div > .a-body {
+  grid-area: body;
+}
+.error-wrapper > div > .a-date {
+  grid-area: date;
+}
+.error-wrapper > div > .a-time {
+  grid-area: time;
+}
+.error-wrapper > div > .a-fault {
+  grid-area: fault;
 }

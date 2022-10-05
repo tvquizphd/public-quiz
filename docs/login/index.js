@@ -7,27 +7,40 @@
  * itemButtonTag
  */
 
-async function star(opts) {
-  const { id, octograph } = opts;
-  await octograph(`
-    mutation($id: ID!) {
-      removeStar(input: { starrableId: $id }) {
-        starrable {
-          id
-        }
-      }
-    }
-  `, { id });
-  await octograph(`
-    mutation($id: ID!) {
-      addStar(input: { starrableId: $id }) {
-        starrable {
-          id
-        }
-      }
-    }
-  `, { id });
+function addErrors(errors) {
+  if (window.DATA) {
+    const new_errors = errors.reduce((o_0, error) =>{
+      return error.scopes.reduce((o_1, scope) => {
+        return { ...o_1, [scope]: [...o_1[scope], error] };
+      }, o_0);
+    }, DATA.errors);
+    DATA.errors = new_errors;
+  }
 }
+
+async function outage() {
+  const fault = "GitHub internal outage";
+  const scopes = [
+    "socket", "mailer", "database", "sending"
+  ];
+  const matches = (update) => {
+    return !!update?.body?.match(/actions/i);
+  }
+  const api_root = "https://www.githubstatus.com/api/v2";
+  const api_url = api_root + "/incidents/unresolved.json";
+  const { incidents } = await (await fetch(api_url)).json();
+  const action_outages = incidents.filter((outage) => {
+    return outage.incident_updates.some(matches)
+  });
+  return action_outages.map((outage) => {
+    const update = outage.incident_updates.find(matches) || {};
+    const body = update.body || "Unknown Actions Issue";
+    const time = update.updated_at || null;
+    const date = new Date(Date.parse(time));
+    return { body, date, fault, scopes };
+  });
+}
+
 async function triggerGithubAction(git) {
   const { hostname } = window.location; 
   if (DATA.local) {
@@ -46,8 +59,7 @@ async function triggerGithubAction(git) {
   });
   const opts = { repo, owner, octograph, metadata };
   try {
-    const { id } = await deploy(opts);
-    await star({ id, octograph });
+    await deploy(opts);
   }
   catch (e) {
     console.log(e?.message);
@@ -106,6 +118,7 @@ const get_now = (Sock, config, sub, dt) => {
 async function decryptWithPassword (event) {
   // Prevent default form submission
   event.preventDefault();
+  addErrors(await outage());
   DATA.loading.socket = true;
   const { target } = event;
 
@@ -125,7 +138,7 @@ async function decryptWithPassword (event) {
   }
   const delay = 1;
   const times = 1000;
-  triggerGithubAction(git);
+  await triggerGithubAction(git);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
   DATA.loading.socket = false;
@@ -157,9 +170,9 @@ async function decryptWithPassword (event) {
     return "Loaded database.";
   }
   catch (e) {
-    console.error(e?.message);
     DATA.loading.database = false;
-    return "Unable to load database.";
+    console.error(e?.message);
+    throw e;
   }
 }
 
@@ -184,7 +197,14 @@ const runReef = (mainId, passFormId) => {
 
   // Create reactive data store
   window.DATA = store({
+      failure: false,
       local: false,
+      errors: {
+        socket: [],
+        mailer: [],
+        database: [],
+        sending: [] 
+      },
       loading: {
         socket: false,
         mailer: false,
@@ -194,7 +214,6 @@ const runReef = (mainId, passFormId) => {
       newRows: [...EMPTY_NEW],
       tables: [...EMPTY_TABLES]
   });
-
 
   function uploadDatabase() {
       const { mailer } = API;
@@ -213,11 +232,15 @@ const runReef = (mainId, passFormId) => {
   // Handle all click events
   function clickHandler (event) {
 
+      const reload = event.target.closest('.force-reload');
       const send_mail = event.target.closest('.send-mail');
       const click_item = event.target.closest('.item');
+      if (reload) {
+          return window.location.reload();
+      }
       // Send mail
       if (send_mail) {
-          uploadDatabase();
+          return uploadDatabase();
       }
       const { dbt } = API;
       // Handle item click
@@ -230,6 +253,7 @@ const runReef = (mainId, passFormId) => {
         // Handle database table management
         dbt.handleClick(click_item.dataset);
         click_item.parentNode.scrollTop = 0;
+        return null;
       }
   }
 
@@ -274,21 +298,41 @@ const runReef = (mainId, passFormId) => {
     if (event.target.matches(`#${passFormId}`)) {
       decryptWithPassword(event).then((done) => {
         console.log(done)
+      }).catch((e) => {
+        console.error(e?.message);
+        DATA.failure = true;
       });
     }
   }
 
+  function statusTemplate (props) {
+    const { verb, failure } = props;
+    if (!failure) {
+      const gerrund = {
+        "connect": "Connecting...",
+        "log in": "Logging in...",
+        "load": "Loading...",
+      }[verb] || verb;
+      return `<p class="loading"> ${gerrund} </p>`;
+    }
+    return `<div>
+      <p class="failure"> Failed to ${verb}. </p>
+      <button class="b-add force-reload">Retry?</button>
+    </div>`;
+  }
+
   function codeTemplate () {
     const url = "https://github.com/login/device/";
-    const loadingInfo = (({loading, loaded}) => {
+    const loadingInfo = ((data) => {
+      const {loading, loaded, failure} = data;
       if (loading.socket) {
-        return `<p class="loading"> Connecting... </p>`;
+        return statusTemplate({ failure, verb: "connect" });
       } 
       if (loading.mailer) {
-        return `<p class="loading"> Logging in... </p>`;
+        return statusTemplate({ failure, verb: "log in" });
       } 
       if (loading.database) {
-        return `<p class="loading"> Loading... </p>`;
+        return statusTemplate({ failure, verb: "load" });
       } 
       const { mailer } = API;
       if (mailer instanceof Mailer) {
@@ -361,9 +405,38 @@ const runReef = (mainId, passFormId) => {
     })(DATA);
   }
 
+  function errorDisplayTemplate() {
+    const { errors, loading } = DATA;
+    const relevant = Object.entries(loading).reduce((o, [k, v]) => {
+      const bodies = o.map(({body}) => body);
+      const k_errors = errors[k].filter(({body}) => {
+        return !bodies.includes(body);
+      });
+      return v ? [...o, ...k_errors] : o;
+    }, []);
+    const list = relevant.map((error) => {
+      const { body, date, fault } = error;
+      const date_str = date.toLocaleDateString("en-CA");
+      const time_str = date.toLocaleTimeString("en-CA");
+      return `<div>
+        <p class="a-body">${body}</p>
+        <div class="a-date">${date_str}</div>
+        <div class="a-time">${time_str}</div>
+        <div clas="a-fault">&mdash; ${fault}</div>
+      </div>`;
+    }).join('');
+    const cls = "error-wrapper";
+    return `
+      <div class="uncontained">
+        <div class="${cls}">${list}</div>
+      </div>
+    `;
+  }
+
   function debugTemplate() {
+    const errorDisplay = errorDisplayTemplate();
     if (location.hostname !== "localhost") {
-      return "";
+      return errorDisplay;
     }
     const { local } = DATA;
     const close = `</button>`;
@@ -379,23 +452,24 @@ const runReef = (mainId, passFormId) => {
       return `${open}${text}${close}`;
     }).join('');
     return `
-      <div>
-        Action testing:
+      <div class="contained">
+        <div class="debug-wrapper">
+          <div>
+            Action testing:
+          </div>
+          <div class="scroll-wrapper">
+            ${buttons}
+          </div>
+        </div>
       </div>
-      <div class="scroll-wrapper">
-        ${buttons}
-      </div>
+      ${errorDisplay}
     `;
   }
 
   function appTemplate () {
     return `
       <div class="container">
-        <div class="contained">
-          <div class="debug-wrapper">
-            ${debugTemplate()}
-          </div>
-        </div>
+        ${debugTemplate()}
         <div class="contained">
           ${codeTemplate()}
         </div>
