@@ -7,19 +7,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Continue during existing deployment
+        id: jq
         run: |
-          curl \
+          JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
-          $ROOT/repos/$REPO/deployments?environment=$STAGE \
-          | jq -e '.[0].environment'
+          $ROOT/repos/$REPO/deployments?environment=$STAGE);
+          OUTPUT=$(jq -r '.[0].environment' <<< $JSON);
+          echo "deployment environment is $OUTPUT";
+          echo "::set-output name=approved::$OUTPUT";
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
           STAGE: "development"
-          SECRETS: ${{secrets.SECRETS}}
+    outputs:
+      approved: ${{ steps.jq.outputs.approved }}
   action:
-    needs: filter
+    needs: [filter]
+    if: needs.filter.outputs.approved == 'development'
     concurrency:
       group: secret-tv-access
       cancel-in-progress: true
@@ -27,6 +32,8 @@ jobs:
         name: secret-tv-access
     runs-on: ubuntu-latest
     steps:
+      - run: |
+          echo ${{needs.filter.outputs.approved}}
       - uses: actions/checkout@v3
       - name: Run executable
         run: |
