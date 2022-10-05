@@ -12,12 +12,33 @@ import fs from "fs";
 import type { Creds } from "./outbox";
 import type { Git, Trio } from "./util/types";
 
-(async () => {
+type Result = {
+  success: boolean;
+  message: string;
+}
+
+async function lockDeployment(git: Git) {
+  const { repo, owner } = git;
+  const metadata = { env: "development" };
+  const octograph = graphql.defaults({
+    headers: {
+      authorization: `token ${git.owner_token}`,
+    }
+  });
+  const opts = { repo, owner, octograph, metadata };
+  const { success } = await undeploy(opts);
+  if (success) {
+    return console.log("Successfully undeployed action.");
+  }
+  console.log("No active action to undeploy");
+}
+
+(async (): Promise<Result> => {
   const prod = isProduction(process);
   const args = process.argv.slice(2);
   if (args.length < 1) {
-    console.error('Missing 1st arg: MY_TOKEN');
-    return {};
+    const message = "Missing 1st arg: MY_TOKEN";
+    return { success: false, message };
   }
   const git = {
     owner: "tvquizphd",
@@ -31,6 +52,14 @@ import type { Git, Trio } from "./util/types";
   }
   else {
     console.log('PRODUCTION\n');
+    try {
+      await lockDeployment(git);
+    }
+    catch (e: any) {
+      console.error(e?.message);
+      const message = "Unable to undeploy";
+      return { success: false, message };
+    }
   }
   if (args.length >= 3) {
     const msg_a = "with Master Password!";
@@ -44,9 +73,9 @@ import type { Git, Trio } from "./util/types";
       });
     }
     catch (e: any) {
-      console.error("Unable to Activate.");
       console.error(e?.message);
-      return { git };
+      const message = "Unable to activate";
+      return { success: false, message };
     }
   }
   const pep = "ROOT_PEPPER";
@@ -73,9 +102,9 @@ import type { Git, Trio } from "./util/types";
     }
   }
   catch (e: any) {
-    console.error("Unable to Verify.");
     console.error(e?.message);
-    return { git };
+    const message = "Unable to verify";
+    return { success: false, message };
   }
   if (!prod) {
     const env_all = [creds.name, pep, ...sec];
@@ -93,24 +122,13 @@ import type { Git, Trio } from "./util/types";
       console.error(e?.message);
     }
   }
-  return { git };
-})().then(async (outputs) => {
-  const { git } = outputs;
-  if (!!git) {
-    const { repo, owner } = git;
-    const metadata = { env: "development" };
-    const octograph = graphql.defaults({
-      headers: {
-        authorization: `token ${git.owner_token}`,
-      }
-    });
-    const opts = { repo, owner, octograph, metadata };
-    const { success } = await undeploy(opts);
-    if (success) {
-      return console.log("Successfully undeployed action.");
-    }
-    console.log("No active action to undeploy");
+  const message = "Verification complete";
+  return { success: true, message };
+})().then(async (result: Result) => {
+  if (result.success) {
+    return console.log(result.message);
   }
+  return console.error(result.message);
 }).catch((e: any) => {
   console.error("Unexpected Error Occured");
   console.error(e?.message);
