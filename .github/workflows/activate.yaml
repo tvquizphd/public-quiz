@@ -12,7 +12,7 @@ jobs:
         run: |
           STATUS=`curl -Is \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" \
           $ROOT/user/starred/$REPO | grep HTTP | cut -d ' ' -f2`;
           echo "Authenticated user star status is $STATUS";
           echo "::set-output name=approved::$STATUS";
@@ -23,13 +23,15 @@ jobs:
         run: |
           curl -X DELETE \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" \
           $ROOT/user/starred/$REPO;
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
     outputs:
       approved: ${{ steps.star.outputs.approved }}
+    environment:
+        name: secret-tv-access
   activate:
     needs: [filter]
     if: needs.filter.outputs.approved == '204'
