@@ -1,6 +1,7 @@
 name: action
 on:
-  deployment:
+  watch:
+    types: [started]
   workflow_dispatch:
 jobs:
   filter:
