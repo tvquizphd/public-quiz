@@ -1,19 +1,35 @@
-name: action 
-concurrency: 
-  group: secret-tv-access
-  cancel-in-progress: true
+name: action
 on:
   watch:
     types: [started]
   workflow_dispatch:
 jobs:
+  filter:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Continue during existing deployment
+        run: |
+          curl \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          $ROOT/repos/$REPO/deployments?environment=$STAGE \
+          | jq -e '.[0].environment'
+        env:
+          ROOT: "https://api.github.com"
+          REPO: ${{ github.repository }}
+          STAGE: "development"
+          SECRETS: ${{secrets.SECRETS}}
   action:
+    needs: filter
+    concurrency:
+      group: secret-tv-access
+      cancel-in-progress: true
     environment:
         name: secret-tv-access
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - name: Run executable 
+      - name: Run executable
         run: |
           ./action/index ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}} ${{secrets.MASTER_PASS}}
         env:

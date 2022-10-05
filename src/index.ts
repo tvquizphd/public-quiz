@@ -1,8 +1,9 @@
 import { isProduction } from "./util/secrets";
+import { graphql } from "@octokit/graphql";
+import { undeploy } from "project-sock";
 import { activate } from "./activate";
 import { isOkCreds } from "./outbox";
 import { outbox } from "./outbox";
-import { Octokit } from "octokit";
 import { verify } from "./verify";
 import { inbox } from "./inbox";
 import dotenv from "dotenv";
@@ -10,16 +11,6 @@ import fs from "fs";
 
 import type { Creds } from "./outbox";
 import type { Git, Trio } from "./util/types";
-
-function unStar(git: Git) {
-  const octokit = new Octokit({
-    auth: git.owner_token
-  });
-  const star_api = `/user/starred/${git.owner}/${git.repo}`;
-  octokit.request(`DELETE ${star_api}`).catch((e: any) => {
-    console.error(e?.message);
-  });
-}
 
 (async () => {
   const prod = isProduction(process);
@@ -103,9 +94,22 @@ function unStar(git: Git) {
     }
   }
   return { git };
-})().then((outputs) => {
-  if ("git" in outputs) {
-    unStar(outputs.git as Git);
+})().then(async (outputs) => {
+  const { git } = outputs;
+  if (!!git) {
+    const { repo, owner } = git;
+    const metadata = { env: "development" };
+    const octograph = graphql.defaults({
+      headers: {
+        authorization: `token ${git.owner_token}`,
+      }
+    });
+    const opts = { repo, owner, octograph, metadata };
+    const { success } = await undeploy(opts);
+    if (success) {
+      return console.log("Successfully undeployed action.");
+    }
+    console.log("No active action to undeploy");
   }
 }).catch((e: any) => {
   console.error("Unexpected Error Occured");

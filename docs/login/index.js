@@ -2,38 +2,12 @@
  * Globals needed on window object:
  *
  * reef, decryptQuery
- * OP, Octokit, DBTrio 
+ * OP, deploy, graphql, DBTrio 
  * toProjectSock, configureNamespace
  * fromB64urlQuery, toB64urlQuery
  * decryptQueryMaster, encryptQueryMaster
  * itemButtonTag
  */
-
-function useGit(git) {
-  const octokit = new Octokit({
-    auth: git.token
-  });
-  const star_api = `/user/starred/${git.owner}/${git.repo}`;
-  return { octokit, star_api };
-}
-
-function hasStar(git) {
-  return new Promise((resolve, reject) => {
-    const { octokit, star_api } = useGit(git);
-    octokit.request(`Get ${star_api}`, git).then(() => {
-      resolve('Action is already running.');
-    }).catch(e => reject(e));
-  });
-}
-
-function star(git) {
-  return new Promise((resolve, reject) => {
-    const { octokit, star_api } = useGit(git);
-    octokit.request(`PUT ${star_api}`, git).then(() => {
-      resolve('Starred Repository to trigger action.');
-    }).catch(e => reject(e));
-  });
-}
 
 async function triggerGithubAction(git) {
   const { hostname } = window.location; 
@@ -42,16 +16,21 @@ async function triggerGithubAction(git) {
     return;
   }
   console.log('PRODUCTION: calling GitHub action.');
+  const { repo, owner } = git;
+  const metadata = { env: "development" };
+  const accept = "application/vnd.github.flash-preview+json";
+  const octograph = graphql.defaults({
+    headers: {
+      accept,
+      authorization: `token ${git.token}`,
+    }
+  });
+  const opts = { repo, owner, octograph, metadata };
   try {
-    console.log(await hasStar(git));
+    await deploy(opts);
   }
   catch (e) {
-    try {
-      console.log(await star(git));
-    }
-    catch (e) {
-      console.log(e.message);
-    }
+    console.log(e.message);
   }
 }
 
@@ -467,7 +446,7 @@ function codeTemplate () {
     } 
     const { mailer } = API;
     if (mailer instanceof Mailer) {
-      return `<p>Welcome</p>`;
+      return "";
     }
     const u_id = "user-root";
     const p_id = "password-input";
