@@ -7,7 +7,7 @@
 
 ## Usage
 
-- Star this repository to trigger activation (unstar firt if already starred).
+- Manually trigger "action" workflow [in GitHub Actions](https://github.com/tvquizphd/public-quiz-device/actions).
 - Click the link in the "Activate" project in [your private projects](https://github.com/tvquizphd?tab=projects).
 - Then enter password and follow instructions to use the GitHub authentication code.
 
