@@ -61,15 +61,14 @@ async function lockDeployment(git: Git) {
       return { success: false, message };
     }
   }
-  if (args.length >= 3) {
-    const msg_a = "with Master Password!";
+  if (args.length >= 2) {
+    const msg_a = "with new public key!";
     console.log(`Activating ${msg_a}`);
     try {
       await activate({
         git,
         delay,
-        client_id: args[1],
-        master_pass: args[2]
+        client_id: args[1]
       });
     }
     catch (e: any) {

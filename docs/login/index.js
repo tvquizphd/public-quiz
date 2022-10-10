@@ -486,7 +486,6 @@ const runReef = (mainId, passFormId) => {
   // Create reactive component
   component(`#${mainId}`, appTemplate);
 
-  // Listen for events
   document.addEventListener('reef:render', renderHandler);
   document.addEventListener('submit', submitHandler);
   document.addEventListener('input', inputHandler);

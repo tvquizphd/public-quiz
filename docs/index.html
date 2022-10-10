@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Activate - Quiz</title>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+    <link href="./global.css" rel="stylesheet" type="text/css">
+    <link href="./index.css" rel="stylesheet" type="text/css">
+</head>
+<body>
+<div id="reef-main"></div>
+<script type="importmap">
+{
+  "imports": {
+    "buffer": "https://ga.jspm.io/npm:buffer@6.0.3/index.js",
+    "eccrypto/browser": "https://ga.jspm.io/npm:eccrypto@1.1.6/browser.js"
+  },
+  "scopes": {
+    "https://ga.jspm.io/": {
+      "base64-js": "https://ga.jspm.io/npm:base64-js@1.5.1/index.js",
+      "bn.js": "https://ga.jspm.io/npm:bn.js@4.12.0/lib/bn.js",
+      "brorand": "https://ga.jspm.io/npm:brorand@1.1.0/index.js",
+      "buffer": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/buffer.js",
+      "crypto": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/crypto.js",
+      "elliptic": "https://ga.jspm.io/npm:elliptic@6.5.4/lib/dev.elliptic.js",
+      "hash.js": "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash.js",
+      "hmac-drbg": "https://ga.jspm.io/npm:hmac-drbg@1.0.1/lib/hmac-drbg.js",
+      "ieee754": "https://ga.jspm.io/npm:ieee754@1.2.1/index.js",
+      "inherits": "https://ga.jspm.io/npm:inherits@2.0.4/inherits_browser.js",
+      "minimalistic-assert": "https://ga.jspm.io/npm:minimalistic-assert@1.0.1/index.js",
+      "minimalistic-crypto-utils": "https://ga.jspm.io/npm:minimalistic-crypto-utils@1.0.1/lib/utils.js"
+    }
+  }
+}
+</script>
+<!-- Polyfill for modules browsers without import maps support -->
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.5.1/dist/es-module-shims.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/reefjs@12/dist/reef.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/argon2-browser@1.18.0/dist/argon2-bundled.min.js"></script>
+<script src="./scripts/toKey.js"></script>
+<script src="./scripts/decrypt.js"></script>
+<script type="module">
+  import { fromB64urlQuery } from "https://cdn.skypack.dev/project-sock";
+  import { toB64urlQuery } from "https://cdn.skypack.dev/project-sock";
+  window.fromB64urlQuery = fromB64urlQuery;
+  window.toB64urlQuery = toB64urlQuery;
+</script>
+<script type="module" src="./index.js" async></script>
+</body>
+</html>

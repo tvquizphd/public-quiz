@@ -1,0 +1,30 @@
+.list-wrapper > ol > li {
+  padding-left: 0.5em;
+  line-height: 1.5em;
+  font-size: 1.5em;
+}
+.list-wrapper > ol > li > button {
+  font-size: 0.75em;
+}
+.list-wrapper > ol > li > span {
+  font-size: 0.75em;
+}
+.copy-wrapper {
+  display: grid;
+  grid-template-columns: 1fr auto;
+}
+.copy-wrapper > div {
+  font-family: "Arial Narrow", Arial, sans-serif;
+  background-color: #cfcce5;
+  white-space: nowrap;
+  padding-left: 0.5em;
+  line-height: 2em;
+  overflow: scroll;
+}
+.highlight {
+  background-color: #cfcce5;
+}
+.copier {
+  cursor: pointer;
+  padding: 0.5em;
+}

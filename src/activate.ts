@@ -1,21 +1,24 @@
 import { needKeys } from "./util/keys";
 import { printSeconds } from "./util/time";
-import { Project, toProject, toB64urlQuery } from "project-sock";
+import { simpleGit, CleanOptions } from 'simple-git';
+import { fromB64urlQuery, toB64urlQuery } from "project-sock";
+import { encryptQueryMaster } from "./util/encrypt";
 import { encryptSecrets } from "./util/encrypt";
 import { deleteSecret } from "./util/secrets";
+import * as eccrypto from "eccrypto";
+import path from 'node:path';
+import fs from 'fs'
 
 import type { Git } from "./util/types";
-import type { Secrets } from "./util/encrypt";
+import type { Encrypted } from "./util/encrypt";
 
-interface ToProjectUrl {
-  (o: { owner: string }, n: { number: number }): string
+type HasData = {
+  data: Encrypted
 }
-
 type ConfigureInputs = {
   git: Git,
   delay: number,
-  client_id: string,
-  master_pass: string
+  client_id: string
 }
 type HasInterval = {
   interval: number
@@ -37,6 +40,9 @@ type AuthSuccess = {
 type AuthVerdict = AuthError | AuthSuccess;
 type AskOutputs = HasInterval | AuthSuccess;
 
+interface ToProjectUrl {
+  (o: { owner: string }, n: { number: number }): string
+}
 interface Configure {
   (i: ConfigureInputs): Promise<AskInputs>;
 }
@@ -46,31 +52,101 @@ interface AskUser {
 interface AskUserOnce {
   (i: AskInputs, ts: string): Promise<AskOutputs>;
 }
-type CodeInputs = { 
-  ENCRYPTED_CODE: Secrets,
-  title: string,
-  delay: number,
+type HasMaster = {
+  master_key: Uint8Array 
+}
+type HasPubMaster = Pasted & HasMaster;
+type TokenInputs = AuthSuccess & HasPubMaster;
+type HasGit = {
   git: Git
 }
-type TokenInputs = AuthSuccess & {
-  password: string
+type Pasted = {
+  pub: Uint8Array 
 }
-type TokenQuery = {
-  e_token_query: string
+type ToEncryptPublic = HasPubMaster & {
+  plain_text: string
+} 
+interface ToPasted {
+  (i: HasGit) : Promise<Partial<Pasted>>
 }
-type GitTokenInput = TokenQuery & {
-  git: Git
-}
-type GitLoginInputs = GitTokenInput & {
-  title: string
+interface AwaitPasted {
+  (i: HasGit) : Promise<Pasted>
 }
 interface HandleToken {
-  (i: TokenInputs): Promise<TokenQuery>
+  (i: TokenInputs): Promise<string>
+}
+interface EncryptPublic {
+  (i: ToEncryptPublic): Promise<string>
 }
 const ROOT = "https://pass.tvquizphd.com";
 const SCOPES = [
-  'repo_deployment', 'public_repo', 'project'
+  'repo_deployment', 'project'
 ];
+
+function hasData(d: Partial<HasData>): d is HasData {
+  return !!d.data?.tag && !!d.data?.ev && !!d.data?.iv;
+}
+
+function isPasted(p: Partial<Pasted>): p is Pasted {
+  return !!p.pub;
+}
+
+const encryptPublic: EncryptPublic = async (inputs) => {
+  const { pub, master_key, plain_text } = inputs;
+  const encrypted = await encryptQueryMaster({
+    master_key, plain_text 
+  });
+  const decoded = fromB64urlQuery(encrypted);
+  if (!hasData(decoded)) {
+    throw new Error("Invalid public encryption")
+  }
+  const { data } = decoded;
+  return toB64urlQuery({ data, pub });
+}
+
+const useGit = (git: Git, fname: string) => {
+  const cwd = process.cwd();
+  const { owner, owner_token, repo } = git;
+  const wiki = `${repo}.wiki`;
+  const tmp_dir = path.relative(cwd, 'tmp_wiki');
+  const login = `${owner}:${owner_token}@github.com`;
+  const repo_url = `https://${login}/${owner}/${wiki}.git`;
+  const tmp_file = path.join(tmp_dir, wiki, fname);
+  if (!fs.existsSync(tmp_dir)){
+    fs.mkdirSync(tmp_dir);
+  }
+  return { repo_url, tmp_dir, tmp_file };
+}
+
+const updateWiki = async (git: Git, data: string) => {
+  const fname = "Home.md";
+  const { repo_url, tmp_dir, tmp_file } = useGit(git, fname);
+  const wiki_dir = path.dirname(tmp_file);
+  const git_opts = {
+    binary: 'git',
+    baseDir: tmp_dir
+  }
+  const github = simpleGit(git_opts);
+  await github.clean(CleanOptions.FORCE);
+  await github.clone(repo_url);
+  await github.cwd(wiki_dir);
+  await github.add([ fname ]);
+  fs.writeFileSync(tmp_file, data);
+  const msg = `Updated ${fname}`;
+  await github.commit(msg, [ fname ]);
+  await github.push();
+}
+
+const toPrivate = () => {
+  return eccrypto.generatePrivate();
+}
+
+const toKeyPair = async () => {
+  const b_priv = await toPrivate();
+  const priv = new Uint8Array(b_priv);
+  const pub = new Uint8Array(eccrypto.getPublic(b_priv));
+  return { priv, pub };
+}
 
 function isBadAuthError(a: AuthError): boolean {
   const good_errors = [
@@ -187,79 +263,8 @@ const askUser: AskUser = async (inputs) => {
   return result;
 }
 
-const toProjectUrl: ToProjectUrl = ({ owner }, { number }) => {
-  const git_str = `${owner}/projects/${number}`;
-  return `https://github.com/users/${git_str}`;
-}
-
-const addCodeProject = async (inputs: CodeInputs): Promise<Project> => {
-  const { git, delay } = inputs;
-  const inputs_1 = ({
-    delay: delay,
-    owner: git.owner,
-    title: inputs.title,
-    token: git.owner_token
-  })
-  const e_code = inputs.ENCRYPTED_CODE;
-  const project = await toProject(inputs_1);
-  if (!project) {
-    throw new Error("Unable to find Activation Project");
-  }
-  const e_code_query = toB64urlQuery(e_code);
-  const client_root = ROOT + "/activate";
-  const client_activate = client_root + e_code_query;
-  const body = `# [Get 2FA Code](${client_activate})`;
-  const title = 'Activate with GitHub Code';
-  await project.clear();
-	await project.addItem(title, body);
-  return project;
-}
-
-const addLoginProject = async (inputs: GitLoginInputs) => {
-  const { e_token_query, git } = inputs;
-  const inputs_1 = ({
-    owner: git.owner,
-    title: inputs.title,
-    token: git.owner_token
-  })
-  const project = await toProject(inputs_1);
-  if (!project) {
-    throw new Error("Unable to find Login Project");
-  }
-  const client_root = ROOT + "/login";
-  const client_login = client_root + e_token_query;
-  const body = `# [Log in](${client_login})`;
-  const title = 'Password Manager Login';
-  await project.clear();
-	await project.addItem(title, body);
-  return project;
-}
-
-const deleteMasterPass = (inputs: GitTokenInput) => {
-  const name = 'MASTER_PASS';
-  return deleteSecret({...inputs, name})
-}
-
-const updateRepos = (inputs: GitTokenInput) => {
-  const title = "Login";
-  return new Promise((resolve, reject) => {
-    const login_inputs = { ...inputs, title};
-    addLoginProject(login_inputs).then(async (proj) => {
-      console.log("Added Login Project");
-      const info = `Log in with '${title}' project:`
-      const login_url = toProjectUrl(inputs.git, proj);
-      console.log(`${info}\n${login_url}\n`);
-      await proj.finish();
-      resolve(null);
-    }).catch((e) => {
-      console.error("Unable to add Login Project");
-      reject(e);
-    });
-  });
-}
-
 const handleToken: HandleToken = async (inputs) => {
-  const {scope, token_type} = inputs;
+  const { pub, scope, token_type } = inputs;
   const scope_set = new Set(scope.split(','));
   if (!SCOPES.every(x => scope_set.has(x))) {
     throw new Error(`Need project scope, not '${scope}'`);
@@ -268,78 +273,78 @@ const handleToken: HandleToken = async (inputs) => {
     throw new Error(`Need bearer token, not '${token_type}'`);
   }
   console.log('Authorized by User');
-  const to_encrypt = {
-    password: inputs.password,
-    secret_text: inputs.access_token
-  }
-  const encrypted = await encryptSecrets(to_encrypt);
-  const e_token_query = toB64urlQuery(encrypted); 
+  const { master_key, access_token } = inputs;
+  const e_token_query = await encryptPublic({
+    pub, master_key, plain_text: access_token 
+  });
   console.log('Encrypted GitHub access token');
-  return {
-    e_token_query,
-  };
+  return e_token_query;
+}
+
+const toPasted: ToPasted = async ({ git }) => {
+  const root = "https://raw.githubusercontent.com/wiki";
+  const wiki = `${root}/${git.owner}/${git.repo}/Home.md`;
+  const text = await (await fetch(wiki)).text();
+  return fromB64urlQuery(text) as Partial<Pasted>;
+}
+
+const awaitPasted: AwaitPasted = async ({ git }) => {
+  let tries = 0;
+  const dt = 1000; // 1 second
+  while (tries < 1000) {
+    await new Promise(r => setTimeout(r, dt));
+    const pasted = await toPasted({ git });
+    if (isPasted(pasted)) {
+      return pasted;
+    }
+  }
+  throw new Error("Timeout waiting for wiki");
+}
+
+const derive = async (priv: Uint8Array, pub: Uint8Array) => {
+  const b_priv = Buffer.from(priv);
+  const b_pub = Buffer.from(pub);
+  const b_key = eccrypto.derive(b_priv, b_pub);
+  return new Uint8Array(await b_key);
 }
 
 const activate = (config_in: ConfigureInputs) => {
   const { git, delay } = config_in;
-  const { master_pass } = config_in;
   return new Promise((resolve, reject) => {
-    configureDevice(config_in).then(async (outputs: AskInputs) => {
+    awaitPasted({git}).then(async (pasted) => {
+      const { priv, pub } =  await toKeyPair();
+      const master_key = await derive(priv, pasted.pub);
+      const outputs = await configureDevice(config_in);
       console.log('Device Configured');
       const { user_code } = outputs;
-      const e_code = await encryptSecrets({
-        password: master_pass,
-        secret_text: user_code 
-      })
-      // Create activation link
-      const code_title = "Activate";
-      const code_proj = await addCodeProject({ 
-        ENCRYPTED_CODE: e_code,
-        title: code_title,
-        delay,
-        git
+      const e_code_query = await encryptPublic({
+        pub, master_key, plain_text: user_code 
       });
-      const proj_url = toProjectUrl(git, code_proj);
-      const info = `Open '${code_title}' project:`;
-      console.log(`${info}\n${proj_url}\n`);
+      // Create activation link
+      await updateWiki(git, e_code_query);
+      console.log("Posted code to wiki");
       // Wait for user to visit link
       askUser(outputs).then((verdict) => {
-        const token_in = {
-          ...verdict,
-          password: master_pass
-        }
+        const token_in = { ...verdict, pub, master_key };
         handleToken(token_in).then((token_out) => {
-          const git_input = { ...token_out, git };
-          updateRepos(git_input).then(async () => {
-            await code_proj.finish();
-            deleteMasterPass(git_input).then(async () => {
-              await code_proj.finish();
-              console.error('Deleted master password.');
-              resolve('Activated User!');
-            }).catch(async () => {
-              // TODO -- confirm Master Password already deleted?
-              await code_proj.finish();
-              resolve('Activated User!');
-            })
-          }).catch(async (error) => {
+          updateWiki(git, token_out).then(() => {
+            resolve('Posted token to wiki');
+          }).catch((e: any) => {
             console.error('Unable to update private repo.');
-            await code_proj.finish();
-            reject(error);
+            reject(e);
           })
-        }).catch(async (error) => {
+        }).catch((e: any) => {
           console.error('Error issuing token or verifier.');
-          await code_proj.finish();
-          reject(error);
+          reject(e);
         });
-      }).catch(async (e: any) => {
+      }).catch((e: any) => {
       console.error('Not Authorized by User');
-        await code_proj.finish();
         reject(e);
       });
     }).catch((e: any) => {
-      console.error('Device is Not Configured');
+      console.error('Timeout awaiting public key');
       reject(e);
-    });
+    })
   });
 }
 

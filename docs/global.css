@@ -65,6 +65,7 @@ input[type=text] {
 }
 button.b-add {
   color: #631;
+  cursor: pointer;
 	background-color: #fdb863;
 	border-bottom: 0.2em groove rgba(55, 55, 55, 0.125);
 	border-right: 0.2em inset rgba(255, 255, 255, 0.5);
@@ -81,7 +82,6 @@ button {
   border: none;
   font: inherit;
   min-width: 4em;
-  display: block;
   outline: inherit;
   overflow: hidden;
   text-align: center;
