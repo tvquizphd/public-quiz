@@ -1,11 +1,16 @@
 import { fromB64urlQuery } from "https://cdn.skypack.dev/project-sock";
 
 function isPastedPub(p) {
-  return !!p.pub;
+  const n_keys = Object.keys(p).length;
+  return !!p.pub && n_keys === 1;
 }
 
-function isPastedData(p) {
-  return !!p.pub && !!p.data;
+function isPastedCode(p) {
+  return !!p.pub && !!p.code;
+}
+
+function isPastedToken(p) {
+  return !!p.pub && !!p.token;
 }
 
 const toPasted = async ({ git }) => {
@@ -35,8 +40,15 @@ class WikiMailer {
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
       const pasted = await toPasted({ git });
-      if (isPastedData(pasted)) {
-        this.handle('code', pasted);
+      if (isPastedToken(pasted)) {
+        const { token: data, pub } = pasted;
+        this.handle('token', { data, pub });
+        this.handlers.code = [];
+        this.handlers.wiki = [];
+      }
+      else if (isPastedCode(pasted)) {
+        const { code: data, pub } = pasted;
+        this.handle('code', { data, pub });
         this.handlers.wiki = [];
       }
       else if (isPastedPub(pasted)) {

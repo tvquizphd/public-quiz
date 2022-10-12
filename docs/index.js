@@ -1,10 +1,11 @@
-import { Buffer } from "buffer";
-import { WikiMailer } from "./scripts/wiki.js";
 import * as eccrypto from "eccrypto/browser";
+import { WikiMailer } from "./scripts/wiki.js";
+import { Buffer } from "buffer"
 /*
  * Globals needed on window object:
  *
- * reef, decryptQueryMaster, fromB64urlQuery, toB64urlQuery
+ * reef, decryptQueryMaster,
+ * fromB64urlQuery, toB64urlQuery
  */
 const LOCAL_KEY = "private"
 
@@ -78,12 +79,22 @@ const runReef = (mainId) => {
         DATA.phase = Math.max(1, DATA.phase);
         wikiMailer.addHandler('wiki', (pasted) => {
           DATA.phase = Math.max(2, DATA.phase);
-        })
+        });
         wikiMailer.addHandler('code', (pasted) => {
           DATA.phase = Math.max(2, DATA.phase);
           const decrypt_in = { ...pasted, priv };
           decryptPublic(decrypt_in).then((code) => {
             DATA.code = code;
+          }).catch((e) => {
+            console.error(e?.message);
+          });
+        });
+        wikiMailer.addHandler('token', (pasted) => {
+          DATA.phase = Math.max(3, DATA.phase);
+          const decrypt_in = { ...pasted, priv };
+          decryptPublic(decrypt_in).then((token) => {
+            DATA.token = token;
+            console.log(token);
           }).catch((e) => {
             console.error(e?.message);
           });
@@ -150,7 +161,6 @@ const runReef = (mainId) => {
         toSpans("Copy temporary public key."),
         toSpans(`Paste into ${wiki_link} Home.md.`),
         [...toCopyTag(), ...copy_spans],
-        toSpans("Wait for your GitHub token."),
         toSpans("Choose master password!")
       ];
       const items = item_spans.map((spans, i) => {

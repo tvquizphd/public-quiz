@@ -55,16 +55,17 @@ interface AskUserOnce {
 type HasMaster = {
   master_key: Uint8Array 
 }
+type Pasted = {
+  pub: Uint8Array 
+}
 type HasPubMaster = Pasted & HasMaster;
 type TokenInputs = AuthSuccess & HasPubMaster;
 type HasGit = {
   git: Git
 }
-type Pasted = {
-  pub: Uint8Array 
-}
 type ToEncryptPublic = HasPubMaster & {
-  plain_text: string
+  plain_text: string,
+  label: string
 } 
 interface ToPasted {
   (i: HasGit) : Promise<Partial<Pasted>>
@@ -88,11 +89,13 @@ function hasData(d: Partial<HasData>): d is HasData {
 }
 
 function isPasted(p: Partial<Pasted>): p is Pasted {
-  return !!p.pub;
+  const n_keys = Object.keys(p).length;
+  return !!p.pub && n_keys === 1;
 }
 
 const encryptPublic: EncryptPublic = async (inputs) => {
-  const { pub, master_key, plain_text } = inputs;
+  const { plain_text } = inputs;
+  const { pub, master_key, label } = inputs;
   const encrypted = await encryptQueryMaster({
     master_key, plain_text 
   });
@@ -101,20 +104,22 @@ const encryptPublic: EncryptPublic = async (inputs) => {
     throw new Error("Invalid public encryption")
   }
   const { data } = decoded;
-  return toB64urlQuery({ data, pub });
+  return toB64urlQuery({ [label]: data, pub });
 }
 
 const useGit = (git: Git, fname: string) => {
   const cwd = process.cwd();
   const { owner, owner_token, repo } = git;
   const wiki = `${repo}.wiki`;
-  const tmp_dir = path.relative(cwd, 'tmp_wiki');
   const login = `${owner}:${owner_token}@github.com`;
   const repo_url = `https://${login}/${owner}/${wiki}.git`;
+  const tmp_dir = path.relative(cwd, 'tmp-wiki');
   const tmp_file = path.join(tmp_dir, wiki, fname);
-  if (!fs.existsSync(tmp_dir)){
-    fs.mkdirSync(tmp_dir);
+  const rf = { recursive: true, force: true };
+  if (fs.existsSync(tmp_dir)){
+    fs.rmSync(tmp_dir, rf);
   }
+  fs.mkdirSync(tmp_dir);
   return { repo_url, tmp_dir, tmp_file };
 }
 
@@ -275,7 +280,8 @@ const handleToken: HandleToken = async (inputs) => {
   console.log('Authorized by User');
   const { master_key, access_token } = inputs;
   const e_token_query = await encryptPublic({
-    pub, master_key, plain_text: access_token 
+    pub, master_key, label: "token",
+    plain_text: access_token 
   });
   console.log('Encrypted GitHub access token');
   return e_token_query;
@@ -290,13 +296,16 @@ const toPasted: ToPasted = async ({ git }) => {
 
 const awaitPasted: AwaitPasted = async ({ git }) => {
   let tries = 0;
-  const dt = 1000; // 1 second
-  while (tries < 1000) {
+  const delay = 1;
+  const dt = delay * 1000;
+  const max_tries = 15*60/delay;
+  while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     const pasted = await toPasted({ git });
     if (isPasted(pasted)) {
       return pasted;
     }
+    tries += 1;
   }
   throw new Error("Timeout waiting for wiki");
 }
@@ -318,7 +327,8 @@ const activate = (config_in: ConfigureInputs) => {
       console.log('Device Configured');
       const { user_code } = outputs;
       const e_code_query = await encryptPublic({
-        pub, master_key, plain_text: user_code 
+        pub, master_key, label: "code",
+        plain_text: user_code 
       });
       // Create activation link
       await updateWiki(git, e_code_query);
