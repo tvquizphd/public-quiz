@@ -1,6 +1,6 @@
-name: copy wiki
+name: deploy pages and wiki 
 concurrency: 
-  group: wiki-and-pages 
+  group: pages-and-wiki
   cancel-in-progress: true
 permissions:
   pages: write
