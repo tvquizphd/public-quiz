@@ -1,0 +1,38 @@
+name: copy wiki
+concurrency: 
+  group: wiki-and-pages 
+  cancel-in-progress: true
+permissions:
+  pages: write
+  id-token: write
+on:
+  gollum:
+  push:
+    tags:
+      - '*'
+jobs:
+  copy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Pages
+        uses: actions/configure-pages@v2
+      - name: Copy Wiki Home
+        run: |
+          git clone $ROOT/$REPO.wiki.git
+          cp ${REPO#*/}.wiki/$FILE docs
+        env:
+          FILE: "Home.md"
+          ROOT: "https://github.com"
+          REPO: ${{ github.repository }}
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'docs'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v1

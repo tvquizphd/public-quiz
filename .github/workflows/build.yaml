@@ -3,8 +3,6 @@ concurrency:
   group: build-and-open-pr
   cancel-in-progress: true
 permissions:
-  pages: write
-  id-token: write
   contents: write 
   pull-requests: write
 on:
@@ -50,20 +48,3 @@ jobs:
           commit-message: Add build artifact
           title: Add build artifact
           base: main
-  pages:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: 'docs'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
