@@ -3,9 +3,8 @@ import { printSeconds } from "./util/time";
 import { simpleGit, CleanOptions } from 'simple-git';
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { encryptQueryMaster } from "./util/encrypt";
-import { encryptSecrets } from "./util/encrypt";
-import { deleteSecret } from "./util/secrets";
 import * as eccrypto from "eccrypto";
+import { Octokit } from "octokit";
 import path from 'node:path';
 import fs from 'fs'
 
@@ -40,9 +39,6 @@ type AuthSuccess = {
 type AuthVerdict = AuthError | AuthSuccess;
 type AskOutputs = HasInterval | AuthSuccess;
 
-interface ToProjectUrl {
-  (o: { owner: string }, n: { number: number }): string
-}
 interface Configure {
   (i: ConfigureInputs): Promise<AskInputs>;
 }
@@ -67,8 +63,11 @@ type ToEncryptPublic = HasPubMaster & {
   plain_text: string,
   label: string
 } 
+interface ToPagesSite {
+  (i: HasGit) : Promise<string>
+}
 interface ToPasted {
-  (i: HasGit) : Promise<Partial<Pasted>>
+  (i: string) : Promise<Partial<Pasted>>
 }
 interface AwaitPasted {
   (i: HasGit) : Promise<Pasted>
@@ -79,7 +78,6 @@ interface HandleToken {
 interface EncryptPublic {
   (i: ToEncryptPublic): Promise<string>
 }
-const ROOT = "https://pass.tvquizphd.com";
 const SCOPES = [
   'repo_deployment', 'project'
 ];
@@ -287,9 +285,17 @@ const handleToken: HandleToken = async (inputs) => {
   return e_token_query;
 }
 
-const toPasted: ToPasted = async ({ git }) => {
-  const root = "https://raw.githubusercontent.com/wiki";
-  const wiki = `${root}/${git.owner}/${git.repo}/Home.md`;
+const toPagesSite: ToPagesSite = async ({ git }) => {
+  const { owner_token: auth, owner, repo } = git;
+  const octokit = new Octokit({ auth });
+  const opts = { owner, repo };
+  const api_url = `/repos/${owner}/${repo}/pages`;
+  const out = await octokit.request(`GET ${api_url}`, opts);
+  return out.data.html_url;
+}
+
+const toPasted: ToPasted = async (url) => {
+  const wiki = `${url}/Home.md`;
   const text = await (await fetch(wiki)).text();
   return fromB64urlQuery(text) as Partial<Pasted>;
 }
@@ -299,9 +305,10 @@ const awaitPasted: AwaitPasted = async ({ git }) => {
   const delay = 1;
   const dt = delay * 1000;
   const max_tries = 15*60/delay;
+  const url = await toPagesSite({ git });
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const pasted = await toPasted({ git });
+    const pasted = await toPasted(url);
     if (isPasted(pasted)) {
       return pasted;
     }
@@ -318,7 +325,7 @@ const derive = async (priv: Uint8Array, pub: Uint8Array) => {
 }
 
 const activate = (config_in: ConfigureInputs) => {
-  const { git, delay } = config_in;
+  const { git } = config_in;
   return new Promise((resolve, reject) => {
     awaitPasted({git}).then(async (pasted) => {
       const { priv, pub } =  await toKeyPair();
@@ -348,11 +355,11 @@ const activate = (config_in: ConfigureInputs) => {
           reject(e);
         });
       }).catch((e: any) => {
-      console.error('Not Authorized by User');
+      console.error('Not authorized by the user.');
         reject(e);
       });
     }).catch((e: any) => {
-      console.error('Timeout awaiting public key');
+      console.error('Unable to read public key.');
       reject(e);
     })
   });

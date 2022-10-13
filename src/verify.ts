@@ -55,7 +55,6 @@ const isPepper = (t: TreeAny): t is Pepper => {
 const toPepper: ToPepper = async (inputs) => {
   const { git, times, pep } = inputs;
   const { Opaque, Sock } = inputs;
-  Sock.give(opId(inputs, "start"), "start", true);
   const secret_str = process.env[pep] || '';
   const pepper = fromB64urlQuery(secret_str);
   const op = findOp(inputs, "registered");
@@ -109,11 +108,6 @@ const verify: Verify = (config_in) => {
         ...opaque,
         git, pep, times, Opaque, Sock
       };
-      // Always listen for reset signal
-      Sock.get(opId(opaque, "reset"), "reset").then(() => {
-        const reset = () => resolve(undefined);
-        Sock.sock.project.finish().finally(reset);
-      });
       // Authenticate server with opaque sequence
       const op = findOp(opaque, "registered");
       toPepper(pepper_inputs).then(({ pepper }) => {

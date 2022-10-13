@@ -38,13 +38,24 @@
 <script async src="https://ga.jspm.io/npm:es-module-shims@1.5.1/dist/es-module-shims.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/reefjs@12/dist/reef.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/argon2-browser@1.18.0/dist/argon2-bundled.min.js"></script>
+<script src="./config/sock.js"></script>
+<script src="./scripts/oprf.js"></script>
+<script src="./scripts/opaque.js"></script>
 <script src="./scripts/toKey.js"></script>
 <script src="./scripts/decrypt.js"></script>
+<script src="./scripts/encrypt.js"></script>
+<script src="./scripts/finders.js"></script>
 <script type="module">
-  import { fromB64urlQuery } from "https://cdn.skypack.dev/project-sock";
-  import { toB64urlQuery } from "https://cdn.skypack.dev/project-sock";
+  import { 
+    toProjectSock, fromB64urlQuery, toB64urlQuery, toNamespace, deploy
+  } from "https://cdn.skypack.dev/project-sock";
+  import { graphql } from "https://cdn.skypack.dev/@octokit/graphql";
   window.fromB64urlQuery = fromB64urlQuery;
   window.toB64urlQuery = toB64urlQuery;
+  window.toProjectSock = toProjectSock;
+  window.toNamespace = toNamespace;
+  window.graphql = graphql;
+  window.deploy = deploy;
 </script>
 <script type="module" src="./index.js" async></script>
 </body>

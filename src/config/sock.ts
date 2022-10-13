@@ -42,10 +42,6 @@ const configureNamespace = (): Namespace => {
             "beta", "Xs", "c", "As", "authenticated"
           ]
         }]
-        },{
-        "stat": [{
-          ":next": ["reset", "start"]
-        }]
       }]
     },
     mailbox: {

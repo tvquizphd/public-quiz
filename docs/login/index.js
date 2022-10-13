@@ -41,9 +41,8 @@ async function outage() {
   });
 }
 
-async function triggerGithubAction(git) {
-  const { hostname } = window.location; 
-  if (DATA.local) {
+async function triggerGithubAction(local, git) {
+  if (local) {
     console.log('DEVELOPMENT: please run action locally.');
     return;
   }
@@ -78,22 +77,7 @@ async function toOpaqueSock(inputs) {
   const { opaque, delay } = inputs;
   const dt = 1000 * delay + 500;
   const Sock = await toSock(inputs, "opaque");
-  const start = findSub(opaque, "start");
   await clearOpaqueClient(Sock, opaque);
-  // Check for existing start signal
-  const promise = get_now(Sock, opaque, "start", dt);
-  try {
-    await promise;
-    return Sock;
-  }
-  catch (e) {
-    if (e.message != "timeout") {
-      throw e;
-    }
-  }
-  // Need to reset server
-  Sock.give(opId(opaque, "reset"), "reset", true);
-  await Sock.get(opId(opaque, "start"), "start");
   return Sock;
 }
 
@@ -116,7 +100,6 @@ const get_now = (Sock, config, sub, dt) => {
  * Decrypt with password
  */
 async function decryptWithPassword (event) {
-  // Prevent default form submission
   event.preventDefault();
   addErrors(await outage());
   DATA.loading.socket = true;
@@ -138,7 +121,7 @@ async function decryptWithPassword (event) {
   }
   const delay = 1;
   const times = 1000;
-  await triggerGithubAction(git);
+  await triggerGithubAction(DATA.local, git);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
   DATA.loading.socket = false;
@@ -322,9 +305,8 @@ const runReef = (mainId, passFormId) => {
   }
 
   function codeTemplate () {
-    const url = "https://github.com/login/device/";
     const loadingInfo = ((data) => {
-      const {loading, loaded, failure} = data;
+      const {loading, failure} = data;
       if (loading.socket) {
         return statusTemplate({ failure, verb: "connect" });
       } 
@@ -362,7 +344,7 @@ const runReef = (mainId, passFormId) => {
   }
 
   function tableTemplate () {
-    return (({loading, loaded}) => {
+    return (({loading}) => {
       if (loading.mailer || loading.database) {
         return `<div></div>`;
       } 
@@ -383,7 +365,7 @@ const runReef = (mainId, passFormId) => {
   }
 
   function uploadDatabaseTemplate () {
-    return (({loading, loaded}) => {
+    return (({loading}) => {
       if (loading.mailer || loading.database) {
         return `<div></div>`;
       } 

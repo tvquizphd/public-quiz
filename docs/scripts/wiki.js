@@ -13,20 +13,20 @@ function isPastedToken(p) {
   return !!p.pub && !!p.token;
 }
 
-const toPasted = async ({ git }) => {
-  const root = "https://raw.githubusercontent.com/wiki";
-  const wiki = `${root}/${git.owner}/${git.repo}/Home.md`;
+const toPasted = async (url) => {
+  const wiki = `${url}/Home.md`;
   const text = await (await fetch(wiki)).text();
   return fromB64urlQuery(text);
 }
 
 class WikiMailer {
 
-  constructor({ git }) {
+  constructor({ host, git }) {
     this.git = {
       owner: git.owner,
       repo: git.repo
     };
+    this.host = host;
     this.done = true;
     this.handlers = {
       'wiki': [],
@@ -39,7 +39,7 @@ class WikiMailer {
     const dt = 1000; // 1 second
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
-      const pasted = await toPasted({ git });
+      const pasted = await toPasted(this.host);
       if (isPastedToken(pasted)) {
         const { token: data, pub } = pasted;
         this.handle('token', { data, pub });

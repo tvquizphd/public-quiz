@@ -39,58 +39,6 @@
 .table-wrapper td {
   display: contents;
 }
-.loading-wrapper {
-  display: grid;
-  position: relative;
-  grid-template-columns: minmax(30vw, 300px);
-  align-content: space-evenly;
-  grid-template-rows: auto;
-  justify-items: stretch;
-  align-items: center;
-}
-.loading-wrapper > .loading, 
-.loading-wrapper > .loaded {
-  background:
-    linear-gradient(to right, transparent, rgb(140,44,0), transparent),
-    url("noise.svg");
-  filter: contrast(200%) brightness(400%);
-  image-rendering: pixelated;
-  background-size: 200% auto;
-  pointer-events: none;
-  border-radius: 1em;
-  text-align: center;
-  opacity: 0.666;
-}
-.loading-wrapper > .loaded {
-  background-position: 50% 0%;
-  color: white;
-}
-.loading-wrapper > .loading {
-  -webkit-animation: Animation 4s linear infinite;
-  -moz-animation: Animation 4s linear infinite;
-  animation: Animation 4s linear infinite;
-}
-@-webkit-keyframes Animation {
-    0%{background-position:0% 0%; color: black}
-    30%{background-position:60% 0%; color: white}
-    50%{background-position:100% 0%; color: black}
-    70%{background-position:140% 0%; color: black}
-    100%{background-position:200% 0%; color: black}
-}
-@-moz-keyframes Animation {
-    0%{background-position:0% 0%; color: black}
-    30%{background-position:60% 0%; color: white}
-    50%{background-position:100% 0%; color: black}
-    70%{background-position:140% 0%; color: black}
-    100%{background-position:200% 0%; color: black}
-}
-@keyframes Animation { 
-    0%{background-position:0% 0%; color: black}
-    30%{background-position:60% 0%; color: white}
-    50%{background-position:100% 0%; color: black}
-    70%{background-position:140% 0%; color: black}
-    100%{background-position:200% 0%; color: black}
-}
 .scroll-wrapper {
   box-shadow: 0 0 0.25em 0.25em #cfcce5;
   scroll-snap-type: y mandatory;
