@@ -149,12 +149,12 @@ const updateWiki = async (input: UpdateInput) => {
     binary: 'git',
     baseDir: tmp_dir
   }
-  const github = simpleGit(git_opts);
   if (fs.existsSync(tmp_dir)){
     const rf = { recursive: true, force: true };
     fs.rmSync(tmp_dir, rf);
   }
   fs.mkdirSync(tmp_dir);
+  const github = simpleGit(git_opts);
   const { owner, email } = input.git;
   await github.clone(repo_url);
   await github.cwd(wiki_dir);
