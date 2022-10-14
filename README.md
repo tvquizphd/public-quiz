@@ -5,9 +5,9 @@
 
 Follow these steps from [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
-1. Copy temporary public key for ECIES encryption.
-2. Paste key to your repo's wiki's `Home.md`.
-3. Use new one-time code on GitHub as directed.
+1. Copy a temporary public key for ECIES encryption.
+2. Paste to this repo's wiki's `Home.md` to trigger registration.
+3. Use new one-time code on GitHub as to authorize the OAuth App.
 4. Choose a secure master password.
 
 The page will generate a link to visit on each login.
