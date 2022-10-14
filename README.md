@@ -5,7 +5,7 @@
 
 Follow these steps from [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
-1. Copy temporary public key for [ECIES][ECIES] encryption.
+1. Copy temporary public key for ECIES encryption.
 2. Paste key to your repo's wiki's `Home.md`.
 3. Use new one-time code on GitHub as directed.
 4. Choose a secure master password.
@@ -67,7 +67,6 @@ On each pushed tag, the `build` workflow will:
 - Create a pull request for compiled (`tsc`) packaged (`pkg`) linux executable
 - Upload the `docs` directory to GitHub Pages.
 
-[ECIES]: https://en.wikipedia.org/wiki/Integrated_Encryption_Scheme
 [PAKE]: https://blog.cloudflare.com/opaque-oblivious-passwords/
 [OPRF]: https://www.npmjs.com/package/oprf#security-guarantees
 [Argon2]: https://github.com/p-h-c/phc-winner-argon2
