@@ -1,8 +1,7 @@
 ## Registration
 
-- Allow [GitHub Pages](../../settings/pages) sourced from GitHub Actions.
-- Create a [personal OAuth App](https://github.com/settings/developers).
-- Set the OAuth App's `CLIENT_ID` as this repository's description.
+- Add [GitHub Pages](../../settings/pages) sourced from GitHub Actions to this repository.
+- Set [personal OAuth App](https://github.com/settings/developers) client ID as this repository's description.
 
 Follow these steps from [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
