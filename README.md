@@ -16,13 +16,13 @@ The page will generate a link to visit on each login.
 
 Master passwords never leave your browser. After ~60s, login by [key exchange][PAKE]:
 
-- Authenticates your password against the [output of a pseudorandom function][OPRF]
-- Returns a single-session [AES-GCM][GCM] key for authenticated encryption
+- Authenticates your password against the [output of a pseudorandom function][OPRF].
+- Returns a single-session [AES-GCM][GCM] key for authenticated encryption.
 
 Then, all queries or mutations related to your passwords:
 
 - Are encrypted/decrypted locally with the [Argon2][Argon2] hash of your password.
-- Move to/from GitHub Actions encrypted with a session key in a GitHub Environment.
+- Move to/from GitHub Actions encrypted with your single-session AES-GCM] key.
 
 ## Local Testing
 
