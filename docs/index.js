@@ -177,6 +177,7 @@ const runReef = (host, mainId, passFormId) => {
           });
         });
         wikiMailer.addHandler('token', (pasted) => {
+          localStorage.removeItem(LOCAL_KEY);
           DATA.phase = Math.max(3, DATA.phase);
           const decrypt_in = { ...pasted, priv };
           decryptPublic(decrypt_in).then((token) => {
