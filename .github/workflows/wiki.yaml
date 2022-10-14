@@ -44,7 +44,7 @@ jobs:
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${secrets.GITHUB_TOKEN}" \
+          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
           $ROOT/repos/$REPO/pages);
           PAGES_URL=$(jq -r '.html_url' <<< $JSON);
           TEXT=$(curl $PAGES_URL/Home.md);
@@ -59,7 +59,7 @@ jobs:
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${secrets.GITHUB_TOKEN}" \
+          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
           $ROOT/repos/$REPO);
           CLIENT=$(jq -r '.description' <<< $JSON);
           echo "Using OAuth App $CLIENT";
@@ -86,7 +86,7 @@ jobs:
           curl \
           -X PUT \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${secrets.GITHUB_TOKEN}" \
+          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
           $ROOT/repos/$REPO/environments/$STAGE
         name: Ensure existing environment
         env:
