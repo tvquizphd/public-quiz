@@ -3,7 +3,7 @@
 - Add [GitHub Pages](../../settings/pages) sourced from GitHub Actions to this repository.
 - Set [personal OAuth App](https://github.com/settings/developers) client ID as this repository's description.
 
-Follow these steps from [pass.tvquizphd.com](https://pass.tvquizphd.com):
+Follow these steps on [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
 1. Copy a temporary public key for ECIES encryption.
 2. Paste to this repo's wiki's `Home.md` to trigger registration.
