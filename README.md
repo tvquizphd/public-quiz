@@ -22,7 +22,7 @@ Master passwords never leave your browser. After ~60s, login by [key exchange][P
 Then, all queries or mutations related to your passwords:
 
 - Are encrypted/decrypted locally with the [Argon2][Argon2] hash of your password.
-- Move to/from GitHub Actions encrypted with your single-session AES-GCM] key.
+- Move to/from GitHub Actions encrypted with your single-session AES-GCM key.
 
 ## Local Testing
 
