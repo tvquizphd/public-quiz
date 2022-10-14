@@ -14,7 +14,7 @@ The page will generate a link to visit on each login.
 
 ## Login and Usage
 
-Master passwords never leave your browser. After ~60s, login by [key exchange][PAKE]:
+Master passwords never leave your browser. After ~60s, [key exchange][PAKE] login:
 
 - Authenticates your password against the [output of a pseudorandom function][OPRF].
 - Returns a single-session [AES-GCM][GCM] key for authenticated encryption.
