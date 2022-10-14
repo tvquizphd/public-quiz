@@ -40,6 +40,7 @@ jobs:
           ./action/index ${{secrets.MY_TOKEN}}
         env:
           ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
+          ROOT_TOKEN: ${{secrets.ROOT_TOKEN}}
           SESSION: ${{secrets.SESSION}}
           SERVERS: ${{secrets.SERVERS}}
           CLIENTS: ${{secrets.CLIENTS}}

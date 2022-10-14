@@ -374,8 +374,9 @@ window.onload = (event) => {
   reefMain.appendChild(rootForm);
   reefMain.appendChild(rootApp);
 
-  const remote = "https://pass.tvquizphd.com";
   const { hostname, origin } = window.location;
+  //const remote = "https://pass.tvquizphd.com";
+  const remote = origin; // TODO
   const isLocal = hostname === "localhost";
   const host = isLocal ? remote : origin;
   runReef(host, "reef-main", "pass-form");

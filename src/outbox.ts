@@ -8,8 +8,10 @@ import { opId } from "./util/lookup";
 import type { Git, Trio } from "./util/types";
 
 export interface Creds {
-  secret?: string,
-  name: string
+  name: string,
+  login: boolean,
+  registered: boolean,
+  secret?: string
 }
 export interface OkCreds extends Creds {
   secret: string;
@@ -23,7 +25,10 @@ type Inputs = HasTrio & {
 }
 
 function isOkCreds(c: Creds): c is OkCreds {
-  return !!(c as OkCreds).secret;
+  if (c.login) {
+    return !!(c as OkCreds).secret;
+  }
+  return c.registered;
 }
 
 const serialize_trio = ({ trio }: HasTrio) => {

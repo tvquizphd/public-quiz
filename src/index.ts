@@ -6,6 +6,7 @@ import { isOkCreds } from "./outbox";
 import { outbox } from "./outbox";
 import { verify } from "./verify";
 import { inbox } from "./inbox";
+import path from 'node:path';
 import dotenv from "dotenv";
 import fs from "fs";
 
@@ -40,11 +41,17 @@ async function lockDeployment(git: Git) {
     const message = "Missing 1st arg: MY_TOKEN";
     return { success: false, message };
   }
+  const tok = "ROOT_TOKEN";
+  const pep = "ROOT_PEPPER";
   const git = {
     owner: "tvquizphd",
     owner_token: args[0],
     repo: "public-quiz-device",
     email: "tvquizphd@gmail.com"
+  }
+  const wiki_config = {
+    home: "Home.md",
+    tmp: "tmp-wiki"
   }
   const delay = 1;
   if (!prod) {
@@ -62,15 +69,16 @@ async function lockDeployment(git: Git) {
       return { success: false, message };
     }
   }
-  if (args.length >= 2) {
+  const login = args.length < 2;
+  const register = !login;
+  if (register) {
     const msg_a = "with new public key!";
     console.log(`Activating ${msg_a}`);
+    const client_id = args[1];
     try {
-      await activate({
-        git,
-        delay,
-        client_id: args[1]
-      });
+      const act_args = { git, tok, delay, client_id, wiki_config };
+      const msg = await activate(act_args);
+      console.log(`${msg}\n`);
     }
     catch (e: any) {
       console.error(e?.message);
@@ -78,27 +86,30 @@ async function lockDeployment(git: Git) {
       return { success: false, message };
     }
   }
-  const pep = "ROOT_PEPPER";
-  const creds: Creds = {
-    name: "SESSION"
+  const creds: Creds = { 
+    login,
+    name: "SESSION",
+    registered: false
   };
   const session = process.env[creds.name] || '';
   const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
   const inbox_args = { git, sec, delay, session };
+  const login_args = { git, tok, pep, login, delay };
   try {
     const { trio } = await inbox(inbox_args);
     while (!isOkCreds(creds)) {
       console.log("\nVerifying your credentials:");
-      const done = await verify({ git, pep, delay });
-      if (done) {
-        creds.secret = done;
-      }
+      const session = await verify(login_args);
+      creds.registered = true;
+      creds.secret = session;
     }
-    console.log("\nVerified your credentials.");
-    const outbox_args = { git, trio, delay, creds };
-    const exported = await outbox(outbox_args);
-    if (exported) {
-      console.log("\nExported your secrets.");
+    if (login && !!creds.secret) {
+      console.log("\nVerified your credentials.");
+      const outbox_args = { git, trio, delay, creds };
+      const exported = await outbox(outbox_args);
+      if (exported) {
+        console.log("\nExported your secrets.");
+      }
     }
   }
   catch (e: any) {
@@ -107,7 +118,7 @@ async function lockDeployment(git: Git) {
     return { success: false, message };
   }
   if (!prod) {
-    const env_all = [creds.name, pep, ...sec];
+    const env_all = [creds.name, pep, tok, ...sec];
     const env_vars = env_all.filter((v) => {
       return process.env[v];
     });
@@ -118,6 +129,14 @@ async function lockDeployment(git: Git) {
     try {
       fs.writeFileSync('.env', new_env);
       console.log('Wrote new .env file.');
+    } catch (e: any) {
+      console.error(e?.message);
+    }
+    try {
+      const { home } = wiki_config;
+      const dev_file = path.join(process.cwd(), 'docs', home);
+      fs.writeFileSync(dev_file, "");
+      console.log(`Cleared ${home}`);
     } catch (e: any) {
       console.error(e?.message);
     }

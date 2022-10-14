@@ -15,8 +15,10 @@ import type { NameInterface } from "./config/sock";
 import type { Op, Pepper } from '@nthparty/opaque';
 
 type ConfigIn = {
+  login: boolean,
   delay: number,
   pep: string,
+  tok: string,
   git: Git
 }
 interface COS {
@@ -33,7 +35,7 @@ type HasPepper = Record<"pepper", Pepper>
 interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
-type Output = string | void;
+type Output = string;
 interface Resolver {
   (o: Output): void;
 }
@@ -96,12 +98,14 @@ const toOpaqueSock = async (inputs: SockInputs) => {
 }
 
 const verify: Verify = (config_in) => {
+  const { git, tok, pep, login, delay } = config_in;
   const namespace: Namespace = configureNamespace();
   const opaque: NameInterface = namespace.opaque;
-  const { git, pep, delay } = config_in;
   const user = "root";
   const times = 1000;
-  const op_inputs = { git, delay, namespace };
+  const owner_token = process.env[tok] || '';
+  const op_git = { ...git, owner_token };
+  const op_inputs = { git: op_git, delay, namespace };
   return new Promise((resolve: Resolver) => {
     toOpaqueSock(op_inputs).then(({ Opaque, Sock }) => {
       const pepper_inputs = {
@@ -111,6 +115,10 @@ const verify: Verify = (config_in) => {
       // Authenticate server with opaque sequence
       const op = findOp(opaque, "registered");
       toPepper(pepper_inputs).then(({ pepper }) => {
+        if (!login) {
+          const finish = () => resolve("");
+          Sock.sock.project.finish().finally(finish);
+        }
         const auth = Opaque.serverAuthenticate(user, pepper, op);
         auth.then((session: string) => {
           const finish = () => resolve(session);

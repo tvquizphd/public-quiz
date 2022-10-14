@@ -1,4 +1,4 @@
-name: deploy pages and wiki 
+name: deploy pages and wiki
 permissions:
   pages: write
   id-token: write
@@ -9,7 +9,7 @@ on:
       - '*'
 jobs:
   copy:
-    concurrency: 
+    concurrency:
       group: pages-and-wiki
       cancel-in-progress: true
     environment:
@@ -39,34 +39,41 @@ jobs:
   filter:
     runs-on: ubuntu-latest
     steps:
-      - name: Ensure user has starred repository
-        id: star
+      - name: Ensure empty Home.md
+        id: home
         run: |
-          STATUS=`curl -Is \
+          JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" \
-          $ROOT/user/starred/$REPO | grep HTTP | cut -d ' ' -f2`;
-          echo "Authenticated user star status is $STATUS";
-          echo "::set-output name=approved::$STATUS";
+          -H "Authorization: Bearer ${secrets.GITHUB_TOKEN}" \
+          $ROOT/repos/$REPO/pages);
+          PAGES_URL=$(jq -r '.html_url' <<< $JSON);
+          CONTENTS=$(curl $PAGES_URL/Home.md);
+          echo "Home.md contains $CONTENTS";
+          echo "::set-output name=contents::$STATUS";
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
-      - name: Unstar repository
+      - name: Read repo description
+        id: repo
         run: |
-          curl -X DELETE \
+          JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{secrets.MY_TOKEN}}" \
-          $ROOT/user/starred/$REPO;
+          -H "Authorization: Bearer ${secrets.GITHUB_TOKEN}" \
+          $ROOT/repos/$REPO);
+          CLIENT=$(jq -r '.description' <<< $JSON);
+          echo "Using OAuth App $CLIENT";
+          echo "::set-output name=client::$CLIENT";
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
     outputs:
-      approved: ${{ steps.star.outputs.approved }}
+      contents: ${{ steps.home.outputs.contents }}
+      client: ${{ steps.repo.outputs.client }}
     environment:
         name: secret-tv-access
   activate:
     needs: [filter]
-    if: needs.filter.outputs.approved == '204'
+    if: needs.filter.outputs.contents == ''
     concurrency:
       group: secret-tv-access
       cancel-in-progress: true
@@ -75,8 +82,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: |
-          echo ${{needs.filter.outputs.approved}}
+          curl \
+          -X PUT \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${secrets.GITHUB_TOKEN}" \
+          $ROOT/repos/$REPO/environments/$STAGE
+        name: Ensure existing environment
+        env:
+          ROOT: "https://api.github.com"
+          REPO: ${{ github.repository }}
+          STAGE: "secret-tv-access"
       - uses: actions/checkout@v3
       - name: Run executable
         run: |
-          ./action/index ${{secrets.MY_TOKEN}} ${{secrets.CLIENT_ID}}
+          ./action/index ${{secrets.MY_TOKEN}} $CLIENT_ID
+        env:
+          CLIENT_ID: ${{ needs.filter.outputs.client }}

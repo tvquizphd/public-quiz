@@ -1,6 +1,7 @@
+import { simpleGit } from 'simple-git';
 import { needKeys } from "./util/keys";
 import { printSeconds } from "./util/time";
-import { simpleGit, CleanOptions } from 'simple-git';
+import { addSecret, isProduction } from "./util/secrets";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { encryptQueryMaster } from "./util/encrypt";
 import * as eccrypto from "eccrypto";
@@ -16,8 +17,14 @@ type HasData = {
 }
 type ConfigureInputs = {
   git: Git,
+  tok: string,
   delay: number,
-  client_id: string
+  client_id: string,
+  wiki_config: WikiConfig
+}
+type WikiConfig = {
+  home: string,
+  tmp: string
 }
 type HasInterval = {
   interval: number
@@ -38,6 +45,11 @@ type AuthSuccess = {
 }
 type AuthVerdict = AuthError | AuthSuccess;
 type AskOutputs = HasInterval | AuthSuccess;
+type GitOutput = {
+  repo_url: string,
+  tmp_dir: string,
+  tmp_file: string
+}
 
 interface Configure {
   (i: ConfigureInputs): Promise<AskInputs>;
@@ -56,27 +68,39 @@ type Pasted = {
 }
 type HasPubMaster = Pasted & HasMaster;
 type TokenInputs = AuthSuccess & HasPubMaster;
-type HasGit = {
-  git: Git
+type TokenOutputs = {
+  encrypted: string,
+  secret: string
 }
 type ToEncryptPublic = HasPubMaster & {
   plain_text: string,
   label: string
 } 
+type GitInput = {
+  wiki_config: WikiConfig
+  prod: boolean,
+  git: Git,
+}
+type UpdateInput = GitInput & {
+  encrypted: string
+}
 interface ToPagesSite {
-  (i: HasGit) : Promise<string>
+  (i: GitInput) : Promise<string>
 }
 interface ToPasted {
-  (i: string) : Promise<Partial<Pasted>>
+  (s: string, p: boolean) : Promise<Partial<Pasted>>
 }
 interface AwaitPasted {
-  (i: HasGit) : Promise<Pasted>
+  (i: GitInput) : Promise<Pasted>
 }
 interface HandleToken {
-  (i: TokenInputs): Promise<string>
+  (i: TokenInputs): Promise<TokenOutputs>
 }
 interface EncryptPublic {
   (i: ToEncryptPublic): Promise<string>
+}
+interface UseGit {
+  (i: GitInput): GitOutput
 }
 const SCOPES = [
   'repo_deployment', 'project'
@@ -105,42 +129,48 @@ const encryptPublic: EncryptPublic = async (inputs) => {
   return toB64urlQuery({ [label]: data, pub });
 }
 
-const useGit = (git: Git, fname: string) => {
-  const cwd = process.cwd();
+const useGit: UseGit = ({ git, wiki_config }) => {
   const { owner, owner_token, repo } = git;
+  const { tmp, home } = wiki_config;
   const wiki = `${repo}.wiki`;
   const login = `${owner}:${owner_token}@github.com`;
   const repo_url = `https://${login}/${owner}/${wiki}.git`;
-  const tmp_dir = path.relative(cwd, 'tmp-wiki');
-  const tmp_file = path.join(tmp_dir, wiki, fname);
-  const rf = { recursive: true, force: true };
-  if (fs.existsSync(tmp_dir)){
-    fs.rmSync(tmp_dir, rf);
-  }
-  fs.mkdirSync(tmp_dir);
+  const tmp_dir = path.relative(process.cwd(), tmp);
+  const tmp_file = path.join(tmp_dir, wiki, home);
   return { repo_url, tmp_dir, tmp_file };
 }
 
-const updateWiki = async (git: Git, data: string) => {
-  const fname = "Home.md";
-  const { repo_url, tmp_dir, tmp_file } = useGit(git, fname);
+const updateWiki = async (input: UpdateInput) => {
+  const { repo_url, tmp_dir, tmp_file } = useGit(input);
   const wiki_dir = path.dirname(tmp_file);
+  const { home } = input.wiki_config;
+  const { prod } = input;
   const git_opts = {
     binary: 'git',
     baseDir: tmp_dir
   }
-  const { owner, email } = git;
   const github = simpleGit(git_opts);
-  await github.clean(CleanOptions.FORCE);
+  if (fs.existsSync(tmp_dir)){
+    const rf = { recursive: true, force: true };
+    fs.rmSync(tmp_dir, rf);
+  }
+  fs.mkdirSync(tmp_dir);
+  const { owner, email } = input.git;
   await github.clone(repo_url);
   await github.cwd(wiki_dir);
   await github.addConfig("user.name", owner, false, "local");
   await github.addConfig("user.email", email, false, "local");
-  await github.add([ fname ]);
-  fs.writeFileSync(tmp_file, data);
-  const msg = `Updated ${fname}`;
-  await github.commit(msg, [ fname ]);
-  await github.push();
+  await github.add([ home ]);
+  fs.writeFileSync(tmp_file, input.encrypted);
+  const msg = `Updated ${home}`;
+  if (prod) {
+    await github.commit(msg, [ home ]);
+    await github.push();
+  }
+  else {
+    const dev_file = path.join(process.cwd(), 'docs', home);
+    fs.copyFileSync(tmp_file, dev_file);
+  }
 }
 
 const toPrivate = () => {
@@ -280,38 +310,45 @@ const handleToken: HandleToken = async (inputs) => {
   }
   console.log('Authorized by User');
   const { master_key, access_token } = inputs;
-  const e_token_query = await encryptPublic({
+  const encrypted = await encryptPublic({
     pub, master_key, label: "token",
     plain_text: access_token 
   });
   console.log('Encrypted GitHub access token');
-  return e_token_query;
+  return { encrypted, secret: access_token };
 }
 
-const toPagesSite: ToPagesSite = async ({ git }) => {
-  const { owner_token: auth, owner, repo } = git;
+const toPagesSite: ToPagesSite = async (input) => {
+  const { owner_token: auth, owner, repo } = input.git;
+  const { home } = input.wiki_config;
   const octokit = new Octokit({ auth });
   const opts = { owner, repo };
   const api_url = `/repos/${owner}/${repo}/pages`;
   const out = await octokit.request(`GET ${api_url}`, opts);
-  return out.data.html_url;
+  return out.data.html_url + `/${home}`;
 }
 
-const toPasted: ToPasted = async (url) => {
-  const wiki = `${url}/Home.md`;
-  const text = await (await fetch(wiki)).text();
+const toPasted: ToPasted = async (src, prod) => {
+  if (prod) {
+    const text = await (await fetch(src)).text();
+    return fromB64urlQuery(text) as Partial<Pasted>;
+  }
+  const encoding = 'utf-8';
+  const text = fs.readFileSync(src, { encoding }).replace(/\n$/, '');
   return fromB64urlQuery(text) as Partial<Pasted>;
 }
 
-const awaitPasted: AwaitPasted = async ({ git }) => {
+const awaitPasted: AwaitPasted = async (input) => {
   let tries = 0;
   const delay = 1;
   const dt = delay * 1000;
   const max_tries = 15*60/delay;
-  const url = await toPagesSite({ git });
+  const { tmp_file } = useGit(input);
+  const url = await toPagesSite(input);
+  const src = input.prod ? url : tmp_file;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const pasted = await toPasted(url);
+    const pasted = await toPasted(src, input.prod);
     if (isPasted(pasted)) {
       return pasted;
     }
@@ -328,31 +365,37 @@ const derive = async (priv: Uint8Array, pub: Uint8Array) => {
 }
 
 const activate = (config_in: ConfigureInputs) => {
-  const { git } = config_in;
+  const { git, tok, wiki_config } = config_in;
+  const prod = isProduction(process);
+  const opts = { git, prod, wiki_config };
   return new Promise((resolve, reject) => {
-    awaitPasted({git}).then(async (pasted) => {
+    awaitPasted(opts).then(async (pasted) => {
       const { priv, pub } =  await toKeyPair();
       const master_key = await derive(priv, pasted.pub);
       const outputs = await configureDevice(config_in);
       console.log('Device Configured');
       const { user_code } = outputs;
-      const e_code_query = await encryptPublic({
+      const encrypted = await encryptPublic({
         pub, master_key, label: "code",
         plain_text: user_code 
       });
       // Create activation link
-      await updateWiki(git, e_code_query);
+      await updateWiki({ ...opts, encrypted });
       console.log("Posted code to wiki");
       // Wait for user to visit link
       askUser(outputs).then((verdict) => {
         const token_in = { ...verdict, pub, master_key };
-        handleToken(token_in).then((token_out) => {
-          updateWiki(git, token_out).then(() => {
+        handleToken(token_in).then(async (token_out) => {
+          const { encrypted, secret } = token_out;
+          try {
+            await addSecret({ git, secret, name: tok });
+            await updateWiki({ ...opts, encrypted });
             resolve('Posted token to wiki');
-          }).catch((e: any) => {
-            console.error('Unable to update private repo.');
+          }
+          catch (e: any) {
+            console.error('Unable to update wiki.');
             reject(e);
-          })
+          }
         }).catch((e: any) => {
           console.error('Error issuing token or verifier.');
           reject(e);

@@ -1,7 +1,9 @@
 import type { Git, Trio } from "./util/types";
 export interface Creds {
-    secret?: string;
     name: string;
+    login: boolean;
+    registered: boolean;
+    secret?: string;
 }
 export interface OkCreds extends Creds {
     secret: string;
