@@ -129,10 +129,13 @@ const updateWiki = async (git: Git, data: string) => {
     binary: 'git',
     baseDir: tmp_dir
   }
+  const { owner, email } = git;
   const github = simpleGit(git_opts);
   await github.clean(CleanOptions.FORCE);
   await github.clone(repo_url);
   await github.cwd(wiki_dir);
+  await github.addConfig("user.name", owner, false, "local");
+  await github.addConfig("user.email", email, false, "local");
   await github.add([ fname ]);
   fs.writeFileSync(tmp_file, data);
   const msg = `Updated ${fname}`;

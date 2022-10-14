@@ -43,7 +43,8 @@ async function lockDeployment(git: Git) {
   const git = {
     owner: "tvquizphd",
     owner_token: args[0],
-    repo: "public-quiz-device"
+    repo: "public-quiz-device",
+    email: "tvquizphd@gmail.com"
   }
   const delay = 1;
   if (!prod) {
