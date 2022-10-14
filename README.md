@@ -5,7 +5,7 @@
 
 Follow these steps from [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
-1. Copy one-time-use [public key][ECIES].
+1. Copy temporary public key for [ECIES][ECIES] encryption.
 2. Paste key to your repo's wiki's `Home.md`.
 3. Use new one-time code on GitHub as directed.
 4. Choose a secure master password.
