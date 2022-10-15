@@ -4,6 +4,9 @@
   "plugins": [
     "@typescript-eslint"
   ],
+  "ignorePatterns": [
+    "**/*.js"
+  ],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/recommended"

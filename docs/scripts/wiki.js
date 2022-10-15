@@ -35,7 +35,6 @@ class WikiMailer {
   }
 
   async mainLoop () {
-    const { git } = this;
     const dt = 1000; // 1 second
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
