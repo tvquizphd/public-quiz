@@ -1,4 +1,4 @@
-import { toKey } from "./toKey";
+import { toKey } from "./toKey.js";
 import { 
   fromB64urlQuery, toB64urlQuery
 } from "project-sock";

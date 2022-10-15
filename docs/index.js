@@ -4,11 +4,11 @@ import {
 import { graphql } from "@octokit/graphql";
 import * as eccrypto from "eccrypto/browser";
 import { WikiMailer } from "./scripts/wiki.js";
-import { decryptQueryMaster } from "./scripts/decrypt";
-import { encryptSecrets } from "./scripts/encrypt";
-import { configureNamespace } from "./config/sock";
-import { findOp, toSock } from "./scripts/finders";
-import OP from "./scripts/opaque";
+import { decryptQueryMaster } from "./scripts/decrypt.js";
+import { encryptSecrets } from "./scripts/encrypt.js";
+import { configureNamespace } from "./config/sock.js";
+import { findOp, toSock } from "./scripts/finders.js";
+import OP from "./scripts/opaque.js";
 import { Buffer } from "buffer"
 /*
  * Globals needed on window object:

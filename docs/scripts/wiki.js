@@ -1,4 +1,4 @@
-import { fromB64urlQuery } from "https://cdn.skypack.dev/project-sock";
+import { fromB64urlQuery } from "project-sock";
 
 function isPastedPub(p) {
   const n_keys = Object.keys(p).length;

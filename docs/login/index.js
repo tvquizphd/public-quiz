@@ -1,12 +1,12 @@
 import { graphql } from "@octokit/graphql";
 import { deploy } from "project-sock";
-import OP from "../scripts/opaque";
-import { findOp, toSock } from "../scripts/finders";
-import { configureNamespace } from "../config/sock";
-import { decryptQuery } from "../scripts/decrypt";
-import { itemButtonTag } from "../scripts/ascii";
-import { Mailer } from "../scripts/mailer";
-import { DBTrio } from "../scripts/dbtrio";
+import OP from "../scripts/opaque.js";
+import { findOp, toSock } from "../scripts/finders.js";
+import { configureNamespace } from "../config/sock.js";
+import { decryptQuery } from "../scripts/decrypt.js";
+import { itemButtonTag } from "../scripts/ascii.js";
+import { Mailer } from "../scripts/mailer.js";
+import { DBTrio } from "../scripts/dbtrio.js";
 /*
  * Globals needed on window object:
  *

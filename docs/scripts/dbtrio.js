@@ -1,4 +1,4 @@
-import { SEP, AsciiTables } from "./ascii";
+import { SEP, AsciiTables } from "./ascii.js";
 
 class DBTrio {
 

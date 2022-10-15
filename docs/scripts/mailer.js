@@ -1,10 +1,10 @@
 import { 
   fromB64urlQuery, toB64urlQuery 
 } from "project-sock";
-import { DBTrio } from "./dbtrio";
-import { findSub, opId } from "./finders";
-import { decryptQueryMaster } from "./scripts/decrypt";
-import { encryptQueryMaster } from "./scripts/encrypt";
+import { DBTrio } from "./dbtrio.js";
+import { findSub, opId } from "./finders.js";
+import { decryptQueryMaster } from "./decrypt.js";
+import { encryptQueryMaster } from "./encrypt.js";
 
 const waiter = (n, delay, check_status) => {
   const tries = [...new Array(n + 1).keys()];
