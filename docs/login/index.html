@@ -10,30 +10,39 @@
 </head>
 <body>
 <div id="reef-main"></div>
+<!-- Polyfill for modules browsers without import maps support -->
+<script async src="https://ga.jspm.io/npm:es-module-shims@1.6.1/dist/es-module-shims.js"></script>
+<script type="importmap">
+{
+  "imports": {
+    "@octokit/graphql": "https://ga.jspm.io/npm:@octokit/graphql@5.0.3/dist-web/index.js",
+    "oprf": "https://ga.jspm.io/npm:oprf@2.0.0/build/oprf.js",
+    "project-sock": "https://ga.jspm.io/npm:project-sock@1.0.0-beta.4.0/src/index.js"
+  },
+  "scopes": {
+    "https://ga.jspm.io/": {
+      "@octokit/endpoint": "https://ga.jspm.io/npm:@octokit/endpoint@7.0.3/dist-web/index.js",
+      "@octokit/request": "https://ga.jspm.io/npm:@octokit/request@6.2.2/dist-web/index.js",
+      "@octokit/request-error": "https://ga.jspm.io/npm:@octokit/request-error@3.0.2/dist-web/index.js",
+      "buffer": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/buffer.js",
+      "crypto": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/crypto.js",
+      "deprecation": "https://ga.jspm.io/npm:deprecation@2.3.1/dist-node/index.js",
+      "fs": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/fs.js",
+      "is-plain-object": "https://ga.jspm.io/npm:is-plain-object@5.0.0/dist/is-plain-object.mjs",
+      "libsodium-sumo": "https://ga.jspm.io/npm:libsodium-sumo@0.7.10/dist/modules-sumo/libsodium-sumo.js",
+      "libsodium-wrappers-sumo": "https://ga.jspm.io/npm:libsodium-wrappers-sumo@0.7.10/dist/modules-sumo/libsodium-wrappers.js",
+      "node-fetch": "https://ga.jspm.io/npm:node-fetch@2.6.7/browser.js",
+      "once": "https://ga.jspm.io/npm:once@1.4.0/once.js",
+      "path": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/path.js",
+      "process": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/process.js",
+      "universal-user-agent": "https://ga.jspm.io/npm:universal-user-agent@6.0.0/dist-node/index.js",
+      "wrappy": "https://ga.jspm.io/npm:wrappy@1.0.2/wrappy.js"
+    }
+  }
+}
+</script>
 <script src="https://cdn.jsdelivr.net/npm/reefjs@12/dist/reef.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/argon2-browser@1.18.0/dist/argon2-bundled.min.js"></script>
-<script type="module">
-  import { 
-    toProjectSock, fromB64urlQuery, toB64urlQuery, toNamespace, deploy
-  } from "https://cdn.skypack.dev/project-sock";
-  import { graphql } from "https://cdn.skypack.dev/@octokit/graphql";
-  window.fromB64urlQuery = fromB64urlQuery;
-  window.toB64urlQuery = toB64urlQuery;
-  window.toProjectSock = toProjectSock;
-  window.toNamespace = toNamespace;
-  window.graphql = graphql;
-  window.deploy = deploy;
-</script>
-<script src="../config/sock.js"></script>
-<script src="../scripts/oprf.js"></script>
-<script src="../scripts/opaque.js"></script>
-<script src="../scripts/toKey.js"></script>
-<script src="../scripts/decrypt.js"></script>
-<script src="../scripts/encrypt.js"></script>
-<script src="../scripts/finders.js"></script>
-<script src="../scripts/ascii.js"></script>
-<script src="../scripts/dbtrio.js"></script>
-<script src="../scripts/mailer.js"></script>
-<script src="./index.js" async></script>
+<script type="module" src="./index.js" async></script>
 </body>
 </html>

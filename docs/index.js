@@ -1,20 +1,26 @@
+import { 
+  fromB64urlQuery, toB64urlQuery, deploy
+} from "project-sock";
+import { graphql } from "@octokit/graphql";
 import * as eccrypto from "eccrypto/browser";
 import { WikiMailer } from "./scripts/wiki.js";
+import { decryptQueryMaster } from "./scripts/decrypt";
+import { encryptSecrets } from "./scripts/encrypt";
+import { configureNamespace } from "./config/sock";
+import { findOp, toSock } from "./scripts/finders";
+import OP from "./scripts/opaque";
 import { Buffer } from "buffer"
 /*
  * Globals needed on window object:
  *
- * reef, encryptSecrets 
- * OP, deploy, graphql 
- * configureNamespace
- * decryptQueryMaster,
- * fromB64urlQuery, toB64urlQuery
+ * reef 
  */
-const LOCAL_KEY = "private"
+
+const LOCAL_KEY = "private";
 
 const toPrivate = () => {
   const old_priv_str = localStorage.getItem(LOCAL_KEY);
-  if (!!old_priv_str) {
+  if (old_priv_str) {
     return fromB64urlQuery(old_priv_str).priv;
   }
   const priv = new Uint8Array(eccrypto.generatePrivate());
@@ -61,8 +67,7 @@ const clearOpaqueClient = (Sock, { commands }) => {
 }
 
 async function toOpaqueSock(inputs) {
-  const { opaque, delay } = inputs;
-  const dt = 1000 * delay + 500;
+  const { opaque } = inputs;
   const Sock = await toSock(inputs, "opaque");
   await clearOpaqueClient(Sock, opaque);
   return Sock;
@@ -125,7 +130,7 @@ async function encryptWithPassword (event, DATA) {
 
 const runReef = (host, mainId, passFormId) => {
 
-  let {store, component} = reef;
+  let {store, component} = window.reef;
 
   const KEY_PAIR = toKeyPair();
   const local = host !== location.origin;
@@ -164,7 +169,7 @@ const runReef = (host, mainId, passFormId) => {
       navigator.clipboard.writeText(innerText).then(() => {
         wikiMailer.start();
         DATA.phase = Math.max(1, DATA.phase);
-        wikiMailer.addHandler('wiki', (pasted) => {
+        wikiMailer.addHandler('wiki', () => {
           DATA.phase = Math.max(2, DATA.phase);
         });
         wikiMailer.addHandler('code', (pasted) => {
@@ -198,7 +203,6 @@ const runReef = (host, mainId, passFormId) => {
         DATA.login = `${DATA.host}/login${query}`;
         DATA.phase = 4;
       }).catch((e) => {
-        throw e;
         console.error(e?.message);
         DATA.failure = true;
       });
@@ -323,7 +327,7 @@ const runReef = (host, mainId, passFormId) => {
   }
 
   function appTemplate () {
-      const { phase, code } = DATA;
+      const { phase } = DATA;
       const { owner, repo } = DATA.git;
       const root = "https://github.com/";
       const repo_url = [owner, repo].join('/');
@@ -366,7 +370,7 @@ const runReef = (host, mainId, passFormId) => {
   document.addEventListener('click', clickHandler);
 }
 
-window.onload = (event) => {
+window.onload = () => {
   const rootApp = document.createElement("div");
   const rootForm = document.createElement("div");
   const reefMain = document.getElementById("reef-main");

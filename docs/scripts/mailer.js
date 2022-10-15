@@ -1,10 +1,10 @@
-/*
- * Globals needed on window object:
- *
- * DBTrio 
- * fromB64urlQuery, toB64urlQuery
- * decryptQueryMaster, encryptQueryMaster
- */
+import { 
+  fromB64urlQuery, toB64urlQuery 
+} from "project-sock";
+import { DBTrio } from "./dbtrio";
+import { findSub, opId } from "./finders";
+import { decryptQueryMaster } from "./scripts/decrypt";
+import { encryptQueryMaster } from "./scripts/encrypt";
 
 const waiter = (n, delay, check_status) => {
   const tries = [...new Array(n + 1).keys()];
@@ -31,6 +31,8 @@ class Mailer {
     this.mk = inputs.master_key;
     this.delay = inputs.delay;
     this.mbs = inputs.mbs;
+    this.DATA = inputs.DATA;
+    const { DATA } = inputs; 
     this.dbt = new DBTrio({ DATA });
     const { project } = this.mbs.sock;
     const check_stop = (p) => p.done;
@@ -88,7 +90,6 @@ class Mailer {
   }
 
   stop(now, tries) {
-    const { project } = this.mbs.sock;
     if (this.check_stop()) {
       return Promise.resolve(true);
     }
@@ -116,17 +117,12 @@ class Mailer {
     const { dbt, from_master, from_session } = this;
     const d_args = { from_master, from_session };
     await dbt.decrypt(d_args, message);
-    return DATA.tables;
+    return this.DATA.tables;
   }
 
   async read_mail() {
     const sub = "from_secret";
-    const wait_extra_ms = 3000;
     const { mbs, mailbox } = this;
-    const proj = mbs.sock.project;
-    const dt = this.delay * 1000 + 2000;
-    const commands = [findSub(mailbox, sub)];
-    const clear_args = { commands, done: true };
     const { subcommand } = findSub(mailbox, sub);
     const op_id = opId(mailbox, subcommand);
     return await mbs.get(op_id, subcommand);
@@ -152,4 +148,4 @@ class Mailer {
   }
 }
 
-window.Mailer = Mailer;
+export { Mailer };

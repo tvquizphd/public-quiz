@@ -1,8 +1,4 @@
-/*
- * Globals needed on window object:
- *
- * toProjectSock
- */
+import { toProjectSock } from "project-sock";
 
 // TODO: package and distribute
 
@@ -38,7 +34,4 @@ async function toSock(inputs, key) {
   return await toProjectSock(sock_inputs);
 }
 
-window.opId = opId;
-window.toSock = toSock;
-window.findOp = findOp;
-window.findSub = findSub;
+export { opId, toSock, findOp, findSub };

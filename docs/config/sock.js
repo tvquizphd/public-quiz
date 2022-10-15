@@ -1,3 +1,5 @@
+import { toNamespace } from "project-sock";
+
 const configureNamespace = () => {
   const sep = "__";
 
@@ -38,4 +40,4 @@ const configureNamespace = () => {
   })
 }
 
-window.configureNamespace = configureNamespace;
+export { configureNamespace };

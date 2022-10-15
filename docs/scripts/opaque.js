@@ -1,3 +1,5 @@
+import OPRF from "oprf";
+
 const UTIL = (sodium, oprf) => {
   const sodiumAeadEncrypt = (key, plaintext) => {
     let raw_ciphertext = sodium.crypto_aead_chacha20poly1305_encrypt(plaintext, null, null, new Uint8Array(8), key);
@@ -224,8 +226,7 @@ const OPAQUE = (io, sodium, oprf) => {
   };
 };
 
-window.OP = (io) => {
-  const { OPRF } = window;
+const OP = (io) => {
   const oprf = new OPRF();
   const { sodium } = oprf;
   const opaque = OPAQUE(io, sodium, oprf);
@@ -235,3 +236,5 @@ window.OP = (io) => {
     resolve(opaque);
   });
 };
+
+export default OP;

@@ -1,14 +1,22 @@
+import { graphql } from "@octokit/graphql";
+import { deploy } from "project-sock";
+import OP from "../scripts/opaque";
+import { findOp, toSock } from "../scripts/finders";
+import { configureNamespace } from "../config/sock";
+import { decryptQuery } from "../scripts/decrypt";
+import { itemButtonTag } from "../scripts/ascii";
+import { Mailer } from "../scripts/mailer";
+import { DBTrio } from "../scripts/dbtrio";
 /*
  * Globals needed on window object:
  *
- * reef, decryptQuery
- * OP, deploy, graphql, DBTrio 
+ * reef 
  * configureNamespace
- * itemButtonTag
  */
 
 function addErrors(errors) {
-  if (window.DATA) {
+  const { DATA } = window;
+  if (DATA) {
     const new_errors = errors.reduce((o_0, error) =>{
       return error.scopes.reduce((o_1, scope) => {
         return { ...o_1, [scope]: [...o_1[scope], error] };
@@ -74,32 +82,17 @@ const clearOpaqueClient = (Sock, { commands }) => {
 }
 
 async function toOpaqueSock(inputs) {
-  const { opaque, delay } = inputs;
-  const dt = 1000 * delay + 500;
+  const { opaque } = inputs;
   const Sock = await toSock(inputs, "opaque");
   await clearOpaqueClient(Sock, opaque);
   return Sock;
-}
-
-const get_now = (Sock, config, sub, dt) => {
-  const timeout = "timeout";
-  const cmd = findSub(config, sub);
-  return new Promise((resolve, reject) => {
-    const { text, subcommand } = cmd;
-    const { project } = Sock.sock;
-    setTimeout(() => {
-      project.waitMap.delete(text);
-      reject(new Error(timeout));
-    }, dt);
-    const op_id = opId(config, subcommand);
-    Sock.get(op_id, subcommand).then(resolve).catch(reject);
-  });
 }
 
 /**
  * Decrypt with password
  */
 async function decryptWithPassword (event) {
+  const { DATA } = window;
   event.preventDefault();
   addErrors(await outage());
   DATA.loading.socket = true;
@@ -142,6 +135,7 @@ async function decryptWithPassword (event) {
     session_key,
     master_key,
     delay,
+    DATA,
     mbs
   }
   DATA.loading.mailer = false;
@@ -164,6 +158,7 @@ const API = {
   focus: null,
   get dbt() {
     const { mailer } = API;
+    const { DATA } = window;
     if (mailer instanceof Mailer) {
       return mailer.dbt;
     }
@@ -176,10 +171,10 @@ const EMPTY_TABLES = [ [], [], [] ];
 
 const runReef = (mainId, passFormId) => {
 
-  const {store, component} = reef;
+  const {store, component} = window.reef;
 
   // Create reactive data store
-  window.DATA = store({
+  const DATA = store({
       failure: false,
       local: false,
       errors: {
@@ -197,6 +192,7 @@ const runReef = (mainId, passFormId) => {
       newRows: [...EMPTY_NEW],
       tables: [...EMPTY_TABLES]
   });
+  window.DATA = DATA;
 
   function uploadDatabase() {
       const { mailer } = API;
@@ -240,7 +236,7 @@ const runReef = (mainId, passFormId) => {
       }
   }
 
-  function renderHandler(event) {
+  function renderHandler() {
     if (API.focus) {
       const { id, position } = API.focus;
       const elem = document.getElementById(id)
@@ -248,7 +244,7 @@ const runReef = (mainId, passFormId) => {
       elem.focus();
       elem.setSelectionRange(...position);
     }
-  };
+  }
 
   function resetScroll (fn) {
     const wrappers = document.querySelectorAll('.scroll-wrapper');
@@ -359,7 +355,7 @@ const runReef = (mainId, passFormId) => {
       }
       this.dbt = new DBTrio({ DATA });
       return `<div class="full-width">
-        ${dbt.render("table-wrapper")}
+        ${this.dbt.render("table-wrapper")}
       </div>`;
     })(DATA);
   }
@@ -420,7 +416,7 @@ const runReef = (mainId, passFormId) => {
     if (location.hostname !== "localhost") {
       return errorDisplay;
     }
-    const { local } = DATA;
+    const { local } = window.DATA;
     const close = `</button>`;
     const labels = ['GitHub', 'Local'];
     const buttons = [false, true].map((i) => {
@@ -476,7 +472,7 @@ const runReef = (mainId, passFormId) => {
 
 }
 
-window.onload = (event) => {
+window.onload = () => {
   const rootApp = document.createElement("div");
   const rootForm = document.createElement("div");
   const reefMain = document.getElementById("reef-main");

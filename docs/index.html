@@ -12,13 +12,13 @@
 <div id="reef-main"></div>
 <!-- Polyfill for modules browsers without import maps support -->
 <script async src="https://ga.jspm.io/npm:es-module-shims@1.6.1/dist/es-module-shims.js"></script>
-
 <script type="importmap">
 {
   "imports": {
     "@octokit/graphql": "https://ga.jspm.io/npm:@octokit/graphql@5.0.3/dist-web/index.js",
     "buffer": "https://ga.jspm.io/npm:buffer@6.0.3/index.js",
     "eccrypto/browser": "https://ga.jspm.io/npm:eccrypto@1.1.6/browser.js",
+    "oprf": "https://ga.jspm.io/npm:oprf@2.0.0/build/oprf.js",
     "project-sock": "https://ga.jspm.io/npm:project-sock@1.0.0-beta.4.0/src/index.js"
   },
   "scopes": {
@@ -33,15 +33,19 @@
       "crypto": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/crypto.js",
       "deprecation": "https://ga.jspm.io/npm:deprecation@2.3.1/dist-node/index.js",
       "elliptic": "https://ga.jspm.io/npm:elliptic@6.5.4/lib/dev.elliptic.js",
+      "fs": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/fs.js",
       "hash.js": "https://ga.jspm.io/npm:hash.js@1.1.7/lib/hash.js",
       "hmac-drbg": "https://ga.jspm.io/npm:hmac-drbg@1.0.1/lib/hmac-drbg.js",
       "ieee754": "https://ga.jspm.io/npm:ieee754@1.2.1/index.js",
       "inherits": "https://ga.jspm.io/npm:inherits@2.0.4/inherits_browser.js",
       "is-plain-object": "https://ga.jspm.io/npm:is-plain-object@5.0.0/dist/is-plain-object.mjs",
+      "libsodium-sumo": "https://ga.jspm.io/npm:libsodium-sumo@0.7.10/dist/modules-sumo/libsodium-sumo.js",
+      "libsodium-wrappers-sumo": "https://ga.jspm.io/npm:libsodium-wrappers-sumo@0.7.10/dist/modules-sumo/libsodium-wrappers.js",
       "minimalistic-assert": "https://ga.jspm.io/npm:minimalistic-assert@1.0.1/index.js",
       "minimalistic-crypto-utils": "https://ga.jspm.io/npm:minimalistic-crypto-utils@1.0.1/lib/utils.js",
       "node-fetch": "https://ga.jspm.io/npm:node-fetch@2.6.7/browser.js",
       "once": "https://ga.jspm.io/npm:once@1.4.0/once.js",
+      "path": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/path.js",
       "process": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/process.js",
       "universal-user-agent": "https://ga.jspm.io/npm:universal-user-agent@6.0.0/dist-node/index.js",
       "wrappy": "https://ga.jspm.io/npm:wrappy@1.0.2/wrappy.js"
@@ -51,25 +55,6 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/reefjs@12/dist/reef.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/argon2-browser@1.18.0/dist/argon2-bundled.min.js"></script>
-<script src="./config/sock.js"></script>
-<script src="./scripts/oprf.js"></script>
-<script src="./scripts/opaque.js"></script>
-<script src="./scripts/toKey.js"></script>
-<script src="./scripts/decrypt.js"></script>
-<script src="./scripts/encrypt.js"></script>
-<script src="./scripts/finders.js"></script>
-<script type="module">
-  import { 
-    toProjectSock, fromB64urlQuery, toB64urlQuery, toNamespace, deploy
-  } from "project-sock";
-  import { graphql } from "@octokit/graphql";
-  window.fromB64urlQuery = fromB64urlQuery;
-  window.toB64urlQuery = toB64urlQuery;
-  window.toProjectSock = toProjectSock;
-  window.toNamespace = toNamespace;
-  window.graphql = graphql;
-  window.deploy = deploy;
-</script>
 <script type="module" src="./index.js"></script>
 </body>
 </html>

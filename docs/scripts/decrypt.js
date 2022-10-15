@@ -1,3 +1,6 @@
+import { toKey } from "./toKey";
+import { fromB64urlQuery } from "project-sock";
+
 const decrypt = (key, ev, iv, tag) => {
   const alg = 'AES-GCM';
   const tagLength = tag.length * 8;
@@ -18,7 +21,7 @@ const decryptSecret = async ({ key, data }) => {
   return decrypt(master, ...buffers);
 }
 
-window.decryptQueryMaster = async (inputs) => {
+const decryptQueryMaster = async (inputs) => {
   const { master_key: key, search } = inputs;
   const { data } = fromB64urlQuery(search);
   const out = await decryptSecret({ data, key });
@@ -28,7 +31,7 @@ window.decryptQueryMaster = async (inputs) => {
   }
 }
 
-window.decryptQuery = async (search, pass) => {
+const decryptQuery = async (search, pass) => {
   const inputs = fromB64urlQuery(search);
   const { salt, key } = inputs;
   const argonOpts = {
@@ -38,7 +41,9 @@ window.decryptQuery = async (search, pass) => {
     mem: 4096,
     hashLen: 32,
   };
-  const { hash } = await argon2.hash(argonOpts);
+  const { hash } = await window.argon2.hash(argonOpts);
   const master_key = await decryptKey({ hash, key });
   return decryptQueryMaster({ search, master_key });
 }
+
+export { decryptQuery, decryptQueryMaster };

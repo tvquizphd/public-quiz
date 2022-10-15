@@ -1,3 +1,8 @@
+import { toKey } from "./toKey";
+import { 
+  fromB64urlQuery, toB64urlQuery
+} from "project-sock";
+
 const toNumBytes = (n) => {
   const c = window.crypto;
   return c.getRandomValues(new Uint8Array(n));
@@ -33,7 +38,7 @@ const encryptSecret = async (inputs) => {
 }
 
 const digest = async (pass) => {
-  const { hash, argon2d } = argon2;
+  const { hash } = window.argon2;
   const salt = toNumBytes(16);
   const argonOpts = {
     pass,
@@ -62,7 +67,7 @@ const textToBytes = (t) => {
   return new TextEncoder().encode(t);
 }
 
-window.encryptSecrets = async (inputs) => {
+const encryptSecrets = async (inputs) => {
   // Creation of hash from password
   const inputs_0 = { pass: inputs.password };
   const digest = await digestNewPass(inputs_0);
@@ -77,10 +82,12 @@ window.encryptSecrets = async (inputs) => {
   };
 }
 
-window.encryptQueryMaster = async (inputs) => {
+const encryptQueryMaster = async (inputs) => {
   const t = inputs.plain_text;
   const key = inputs.master_key;
   const secret = new TextEncoder().encode(t);
   const data = await encryptSecret({ secret, key });
   return toB64urlQuery({ data });
 }
+
+export { encryptSecrets, encryptQueryMaster };
