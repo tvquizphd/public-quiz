@@ -5,6 +5,8 @@ on:
 jobs:
   filter:
     runs-on: ubuntu-latest
+    permissions:
+      repo_deployment: read
     steps:
       - name: Ensuring existing deployment
         id: deployment
@@ -25,6 +27,8 @@ jobs:
   login:
     needs: [filter]
     if: needs.filter.outputs.approved == 'development'
+    permissions:
+      contents: read
     concurrency:
       group: secret-tv-access
       cancel-in-progress: true

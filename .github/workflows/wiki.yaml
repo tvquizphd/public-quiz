@@ -1,7 +1,4 @@
 name: deploy pages and wiki
-permissions:
-  pages: write
-  id-token: write
 on:
   gollum:
   push:
@@ -12,6 +9,9 @@ jobs:
     concurrency:
       group: pages-and-wiki
       cancel-in-progress: true
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -38,6 +38,9 @@ jobs:
         uses: actions/deploy-pages@v1
   filter:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: read
     steps:
       - name: Ensure empty Home.md
         id: home
@@ -73,6 +76,9 @@ jobs:
   activate:
     needs: [filter]
     if: needs.filter.outputs.contents == ''
+    permissions:
+      contents: read
+      pages: write
     concurrency:
       group: secret-tv-access
       cancel-in-progress: true
