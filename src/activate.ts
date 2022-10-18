@@ -388,7 +388,7 @@ const derive = async (priv: Uint8Array, pub: Uint8Array) => {
   return new Uint8Array(await b_key);
 }
 
-const activate: Activate = (config_in) => {
+const activate: Activate = (config_in, set_token) => {
   const { git, tok, wiki_config } = config_in;
   const prod = isProduction(process);
   const opts = { git, prod, wiki_config };
@@ -416,6 +416,7 @@ const activate: Activate = (config_in) => {
           const user_git = { ...git, owner_token: secret };
           const user_inputs = { git: user_git, secret, name: tok };
           try {
+            set_token(secret);
             await addSecret(user_inputs);
             await updateWiki({ ...opts, encrypted });
             console.log('Posted token to wiki\n');
