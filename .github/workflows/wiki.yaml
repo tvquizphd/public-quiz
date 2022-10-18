@@ -44,7 +44,7 @@ jobs:
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          -H "Authorization: Bearer ${{github.token}}" \
           $ROOT/repos/$REPO/pages);
           PAGES_URL=$(jq -r '.html_url' <<< $JSON);
           TEXT=$(curl $PAGES_URL/Home.md);
@@ -59,7 +59,7 @@ jobs:
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          -H "Authorization: Bearer ${{github.token}}" \
           $ROOT/repos/$REPO);
           CLIENT=$(jq -r '.description' <<< $JSON);
           echo "Using OAuth App $CLIENT";
@@ -70,23 +70,19 @@ jobs:
     outputs:
       contents: ${{ steps.home.outputs.contents }}
       client: ${{ steps.repo.outputs.client }}
-    environment:
-        name: secret-tv-access
   activate:
     needs: [filter]
     if: needs.filter.outputs.contents == ''
     concurrency:
       group: secret-tv-access
       cancel-in-progress: true
-    environment:
-        name: secret-tv-access
     runs-on: ubuntu-latest
     steps:
       - run: |
           curl \
           -X PUT \
           -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{secrets.GITHUB_TOKEN}}" \
+          -H "Authorization: Bearer ${{github.token}}" \
           $ROOT/repos/$REPO/environments/$STAGE
         name: Ensure existing environment
         env:
@@ -96,6 +92,6 @@ jobs:
       - uses: actions/checkout@v3
       - name: Run executable
         run: |
-          ./action/index ${{secrets.MY_TOKEN}} $CLIENT_ID
+          ./action/index ${{github.token}} $CLIENT_ID
         env:
           CLIENT_ID: ${{ needs.filter.outputs.client }}
