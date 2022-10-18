@@ -17,7 +17,7 @@ jobs:
           $ROOT/repos/$REPO/deployments?environment=$STAGE);
           OUTPUT=$(jq -r '.[0].environment' <<< $JSON);
           echo "deployment environment is $OUTPUT";
-          echo "::set-output name=approved::$OUTPUT";
+          echo "approved=$OUTPUT" >> $GITHUB_OUTPUT
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}

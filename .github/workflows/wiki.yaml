@@ -53,7 +53,7 @@ jobs:
           TEXT=$(curl $PAGES_URL/Home.md);
           CONTENTS=$(tr -d "\n" <<< $TEXT);
           echo "Home.md contains $CONTENTS";
-          echo "::set-output name=contents::$CONTENTS";
+          echo "contents=$CONTENTS" >> $GITHUB_OUTPUT
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
@@ -66,7 +66,7 @@ jobs:
           $ROOT/repos/$REPO);
           CLIENT=$(jq -r '.description' <<< $JSON);
           echo "Using OAuth App $CLIENT";
-          echo "::set-output name=client::$CLIENT";
+          echo "client=$CLIENT" >> $GITHUB_OUTPUT
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
