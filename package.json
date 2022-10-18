@@ -7,8 +7,9 @@
     "action": "./action/index",
     "build": "pnpm tsc && pnpm pkg",
     "develop": "ts-node src/index.ts",
-    "lint:src": "pnpm eslint src --ext .ts",
-    "lint:docs": "pnpm eslint docs --ext .js",
+    "lint": "pnpm eslint src docs",
+    "lint:docs": "pnpm eslint docs",
+    "lint:src": "pnpm eslint src",
     "pkg": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir ./action dist/index.js"
   },
   "repository": {

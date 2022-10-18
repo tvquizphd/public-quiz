@@ -169,14 +169,14 @@ const API = {
 const EMPTY_NEW = [ [""], [""], ["","",""] ];
 const EMPTY_TABLES = [ [], [], [] ];
 
-const runReef = (mainId, passFormId) => {
+const runReef = (hasLocal, mainId, passFormId) => {
 
   const {store, component} = window.reef;
 
   // Create reactive data store
   const DATA = store({
+      local: hasLocal,
       failure: false,
-      local: false,
       errors: {
         socket: [],
         mailer: [],
@@ -353,9 +353,9 @@ const runReef = (mainId, passFormId) => {
       if (DATA.local === false) {
         return `<div></div>`;
       }
-      this.dbt = new DBTrio({ DATA });
+      const { dbt } = API;
       return `<div class="full-width">
-        ${this.dbt.render("table-wrapper")}
+        ${dbt.render("table-wrapper")}
       </div>`;
     })(DATA);
   }
@@ -413,7 +413,7 @@ const runReef = (mainId, passFormId) => {
 
   function debugTemplate() {
     const errorDisplay = errorDisplayTemplate();
-    if (location.hostname !== "localhost") {
+    if (!hasLocal) {
       return errorDisplay;
     }
     const { local } = window.DATA;
@@ -472,7 +472,7 @@ const runReef = (mainId, passFormId) => {
 
 }
 
-window.onload = () => {
+export default () => {
   const rootApp = document.createElement("div");
   const rootForm = document.createElement("div");
   const reefMain = document.getElementById("reef-main");
@@ -480,5 +480,7 @@ window.onload = () => {
   rootForm.id = "root-form";
   reefMain.appendChild(rootForm);
   reefMain.appendChild(rootApp);
-  runReef("reef-main", "pass-form");
+  const { hostname } = window.location;
+  const hasLocal = hostname === "localhost";
+  runReef(hasLocal, "reef-main", "pass-form");
 };

@@ -1,5 +1,5 @@
 import { 
-  fromB64urlQuery, toB64urlQuery, deploy
+  toB64urlQuery, deploy
 } from "project-sock";
 import { graphql } from "@octokit/graphql";
 import * as eccrypto from "eccrypto/browser";
@@ -16,16 +16,8 @@ import { Buffer } from "buffer"
  * reef 
  */
 
-const LOCAL_KEY = "private";
-
 const toPrivate = () => {
-  const old_priv_str = localStorage.getItem(LOCAL_KEY);
-  if (old_priv_str) {
-    return fromB64urlQuery(old_priv_str).priv;
-  }
-  const priv = new Uint8Array(eccrypto.generatePrivate());
-  localStorage.setItem(LOCAL_KEY, toB64urlQuery({ priv }));
-  return priv;
+  return new Uint8Array(eccrypto.generatePrivate());
 }
 
 const toKeyPair = () => {
@@ -182,7 +174,6 @@ const runReef = (host, mainId, passFormId) => {
           });
         });
         wikiMailer.addHandler('token', (pasted) => {
-          localStorage.removeItem(LOCAL_KEY);
           DATA.phase = Math.max(3, DATA.phase);
           const decrypt_in = { ...pasted, priv };
           decryptPublic(decrypt_in).then((token) => {
@@ -258,7 +249,12 @@ const runReef = (host, mainId, passFormId) => {
       return passTemplate();
     })();
     if (login !== null) {
-      const login_link = `<a href="${login}">${login}</a>`
+      const link_props = [
+        `href="${login}"`,
+        'target="_blank"',
+        'rel="noopener noreferrer"'
+      ].join(" ");
+      const login_link = `<a ${link_props}>${login}</a>`
       return `
       <div class="uncontained">
         <p>You are now registered! Use this link from now on:</p>
@@ -319,7 +315,12 @@ const runReef = (host, mainId, passFormId) => {
     if (isCopyPhase()) {
       const { code } = DATA;
       const device = `${root}login/device/`;
-      const device_link = `to <a href="${device}">GitHub</a>.`;
+      const link_props = [
+        `href="${device}"`,
+        'target="_blank"',
+        'rel="noopener noreferrer"'
+      ].join(" ");
+      const device_link = `to <a ${link_props}>GitHub</a>.`;
       const button = '<button class="b-add">Copy</button>';
       return [button, ...toSpans(code, device_link)];
     }
@@ -332,7 +333,12 @@ const runReef = (host, mainId, passFormId) => {
       const root = "https://github.com/";
       const repo_url = [owner, repo].join('/');
       const wiki = `${root}${repo_url}/wiki/Home`;
-      const wiki_link = `<a href="${wiki}">the Wiki</a>`;
+      const link_props = [
+        `href="${wiki}"`,
+        'target="_blank"',
+        'rel="noopener noreferrer"'
+      ].join(" ");
+      const wiki_link = `<a ${link_props}">the Wiki</a>`;
       const item_spans = [
         toSpans("Copy temporary public key."),
         toSpans(`Paste into ${wiki_link} Home.md.`),
@@ -370,7 +376,7 @@ const runReef = (host, mainId, passFormId) => {
   document.addEventListener('click', clickHandler);
 }
 
-window.onload = () => {
+export default () => {
   const rootApp = document.createElement("div");
   const rootForm = document.createElement("div");
   const reefMain = document.getElementById("reef-main");

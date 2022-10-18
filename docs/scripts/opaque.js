@@ -48,7 +48,7 @@ const UTIL = (sodium, oprf) => {
     return new Uint8Array(32).fill(n);
   };
 
-  const KE = (p, x, P, X, X1) => {
+  const KE = (p, x, P, X, _X1) => {
     const kx = oprf.scalarMult(X, x);
     const kp = oprf.scalarMult(P, p);
     const k = genericHash(sodium.crypto_core_ristretto255_add(kx, kp));
@@ -150,7 +150,6 @@ const OPAQUE = (io, sodium, oprf) => {
       throw new Error('client_authenticated_2 false');
     }
 
-    const Pu = util.sodiumAeadDecrypt(rw, c.Pu);
     const Ps = util.sodiumAeadDecrypt(rw, c.Ps);
     const Xs = await get('Xs');
     const K = util.KE(pu, xu, Ps, Xs, Xu);
@@ -231,9 +230,8 @@ const OP = (io) => {
   const { sodium } = oprf;
   const opaque = OPAQUE(io, sodium, oprf);
 
-  return new Promise(async (resolve) => {
-    await oprf.ready;
-    resolve(opaque);
+  return new Promise((resolve) => {
+    oprf.ready.then(() => resolve(opaque));
   });
 };
 

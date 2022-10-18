@@ -81,6 +81,7 @@ async function lockDeployment(git: Git) {
       console.log(`${msg}\n`);
     }
     catch (e: any) {
+      console.error(e);
       console.error(e?.message);
       const message = "Unable to activate";
       return { success: false, message };

@@ -102,6 +102,9 @@ interface EncryptPublic {
 interface UseGit {
   (i: GitInput): GitOutput
 }
+interface CloneGit {
+  (i: GitInput): Promise<void> 
+}
 const SCOPES = [
   'repo_deployment', 'project'
 ];
@@ -140,11 +143,8 @@ const useGit: UseGit = ({ git, wiki_config }) => {
   return { repo_url, tmp_dir, tmp_file };
 }
 
-const updateWiki = async (input: UpdateInput) => {
-  const { repo_url, tmp_dir, tmp_file } = useGit(input);
-  const wiki_dir = path.dirname(tmp_file);
-  const { home } = input.wiki_config;
-  const { prod } = input;
+const cloneGit: CloneGit = async (input) => {
+  const { repo_url, tmp_dir } = useGit(input);
   const git_opts = {
     binary: 'git',
     baseDir: tmp_dir
@@ -155,8 +155,20 @@ const updateWiki = async (input: UpdateInput) => {
   }
   fs.mkdirSync(tmp_dir);
   const github = simpleGit(git_opts);
-  const { owner, email } = input.git;
   await github.clone(repo_url);
+}
+
+const updateWiki = async (input: UpdateInput) => {
+  const { tmp_dir, tmp_file } = useGit(input);
+  const wiki_dir = path.dirname(tmp_file);
+  const { home } = input.wiki_config;
+  const { prod } = input;
+  const git_opts = {
+    binary: 'git',
+    baseDir: tmp_dir
+  }
+  const github = simpleGit(git_opts);
+  const { owner, email } = input.git;
   await github.cwd(wiki_dir);
   await github.addConfig("user.name", owner, false, "local");
   await github.addConfig("user.email", email, false, "local");
@@ -330,11 +342,13 @@ const toPagesSite: ToPagesSite = async (input) => {
 
 const toPasted: ToPasted = async (src, prod) => {
   if (prod) {
-    const text = await (await fetch(src)).text();
+    const txt = await (await fetch(src)).text();
+    const text = txt.replaceAll('\n', '');
     return fromB64urlQuery(text) as Partial<Pasted>;
   }
   const encoding = 'utf-8';
-  const text = fs.readFileSync(src, { encoding }).replace(/\n$/, '');
+  const txt = fs.readFileSync(src, { encoding });
+  const text = txt.replaceAll('\n', '');
   return fromB64urlQuery(text) as Partial<Pasted>;
 }
 
@@ -346,6 +360,7 @@ const awaitPasted: AwaitPasted = async (input) => {
   const { tmp_file } = useGit(input);
   const url = await toPagesSite(input);
   const src = input.prod ? url : tmp_file;
+  await cloneGit(input);
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     const pasted = await toPasted(src, input.prod);
