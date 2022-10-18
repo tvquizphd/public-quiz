@@ -1,5 +1,5 @@
 import { 
-  toB64urlQuery, deploy
+  fromB64urlQuery, toB64urlQuery, deploy
 } from "project-sock";
 import { graphql } from "@octokit/graphql";
 import * as eccrypto from "eccrypto/browser";
@@ -17,7 +17,14 @@ import { Buffer } from "buffer"
  */
 
 const toPrivate = () => {
-  return new Uint8Array(eccrypto.generatePrivate());
+  const LOCAL_KEY = "private-session-key";
+  const old_priv_str = sessionStorage.getItem(LOCAL_KEY);
+  if (old_priv_str) {
+    return fromB64urlQuery(old_priv_str).priv;
+  }
+  const priv = new Uint8Array(eccrypto.generatePrivate());
+  sessionStorage.setItem(LOCAL_KEY, toB64urlQuery({ priv }));
+  return priv;
 }
 
 const toKeyPair = () => {
@@ -338,7 +345,7 @@ const runReef = (host, mainId, passFormId) => {
         'target="_blank"',
         'rel="noopener noreferrer"'
       ].join(" ");
-      const wiki_link = `<a ${link_props}">the Wiki</a>`;
+      const wiki_link = `<a ${link_props}>the Wiki</a>`;
       const item_spans = [
         toSpans("Copy temporary public key."),
         toSpans(`Paste into ${wiki_link} Home.md.`),
