@@ -112,7 +112,7 @@ interface Activate {
   (i: ConfigureInputs): Promise<Cleanup>
 }
 const SCOPES = [
-  'repo_deployment', 'public_repo', 'project'
+  'repo_deployment', 'read:public_key', 'project'
 ];
 
 function hasData(d: Partial<HasData>): d is HasData {
