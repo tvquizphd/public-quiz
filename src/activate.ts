@@ -112,7 +112,7 @@ interface Activate {
   (i: ConfigureInputs): Promise<Cleanup>
 }
 const SCOPES = [
-  'repo_deployment', 'read:public_key', 'project'
+  'repo_deployment', 'repo', 'project'
 ];
 
 function hasData(d: Partial<HasData>): d is HasData {
@@ -410,8 +410,10 @@ const activate: Activate = (config_in) => {
         const token_in = { ...verdict, pub, master_key };
         handleToken(token_in).then(async (token_out) => {
           const { encrypted, secret } = token_out;
+          const user_git = { ...git, owner_token: secret };
+          const user_inputs = { git: user_git, secret, name: tok };
           try {
-            await addSecret({ git, secret, name: tok });
+            await addSecret(user_inputs);
             await updateWiki({ ...opts, encrypted });
             console.log('Posted token to wiki\n');
             resolve(cleanup);

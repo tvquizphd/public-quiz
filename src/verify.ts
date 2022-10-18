@@ -104,13 +104,13 @@ const verify: Verify = (config_in) => {
   const user = "root";
   const times = 1000;
   const owner_token = process.env[tok] || '';
-  const op_git = { ...git, owner_token };
-  const op_inputs = { git: op_git, delay, namespace };
+  const user_git = { ...git, owner_token };
+  const user_inputs = { git: user_git, delay, namespace };
   return new Promise((resolve: Resolver) => {
-    toOpaqueSock(op_inputs).then(({ Opaque, Sock }) => {
+    toOpaqueSock(user_inputs).then(({ Opaque, Sock }) => {
       const pepper_inputs = {
-        ...opaque,
-        git, pep, times, Opaque, Sock
+        ...opaque, git: user_git,
+        pep, times, Opaque, Sock
       };
       // Authenticate server with opaque sequence
       const op = findOp(opaque, "registered");
