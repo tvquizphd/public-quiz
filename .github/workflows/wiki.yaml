@@ -83,8 +83,6 @@ jobs:
     concurrency:
       group: secret-tv-access
       cancel-in-progress: true
-    environment:
-      name: secret-tv-access
     runs-on: ubuntu-latest
     steps:
       - run: |
