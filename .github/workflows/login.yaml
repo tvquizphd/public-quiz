@@ -28,6 +28,7 @@ jobs:
     needs: [filter]
     if: needs.filter.outputs.approved == 'development'
     permissions:
+      deployments: write
       contents: read
     concurrency:
       group: secret-tv-access
