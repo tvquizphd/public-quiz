@@ -10,5 +10,11 @@ declare type WikiConfig = {
     home: string;
     tmp: string;
 };
-declare const activate: (config_in: ConfigureInputs) => Promise<unknown>;
+interface Cleanup {
+    (): Promise<void>;
+}
+interface Activate {
+    (i: ConfigureInputs): Promise<Cleanup>;
+}
+declare const activate: Activate;
 export { activate };

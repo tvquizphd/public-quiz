@@ -105,6 +105,12 @@ interface UseGit {
 interface CloneGit {
   (i: GitInput): Promise<void> 
 }
+interface Cleanup {
+  (): Promise<void>
+}
+interface Activate {
+  (i: ConfigureInputs): Promise<Cleanup>
+}
 const SCOPES = [
   'repo_deployment', 'project'
 ];
@@ -379,10 +385,12 @@ const derive = async (priv: Uint8Array, pub: Uint8Array) => {
   return new Uint8Array(await b_key);
 }
 
-const activate = (config_in: ConfigureInputs) => {
+const activate: Activate = (config_in) => {
   const { git, tok, wiki_config } = config_in;
   const prod = isProduction(process);
   const opts = { git, prod, wiki_config };
+  const clean_opts = { ...opts, encrypted: "" };
+  const cleanup = () => updateWiki(clean_opts);
   return new Promise((resolve, reject) => {
     awaitPasted(opts).then(async (pasted) => {
       const { priv, pub } =  await toKeyPair();
@@ -405,7 +413,8 @@ const activate = (config_in: ConfigureInputs) => {
           try {
             await addSecret({ git, secret, name: tok });
             await updateWiki({ ...opts, encrypted });
-            resolve('Posted token to wiki');
+            console.log('Posted token to wiki\n');
+            resolve(cleanup);
           }
           catch (e: any) {
             console.error('Unable to update wiki.');

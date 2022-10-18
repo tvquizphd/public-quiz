@@ -69,6 +69,7 @@ async function lockDeployment(git: Git) {
       return { success: false, message };
     }
   }
+  let cleanup = () => Promise.resolve();
   const login = args.length < 2;
   const register = !login;
   if (register) {
@@ -77,8 +78,7 @@ async function lockDeployment(git: Git) {
     const client_id = args[1];
     try {
       const act_args = { git, tok, delay, client_id, wiki_config };
-      const msg = await activate(act_args);
-      console.log(`${msg}\n`);
+      cleanup = await activate(act_args);
     }
     catch (e: any) {
       console.error(e);
@@ -114,10 +114,12 @@ async function lockDeployment(git: Git) {
     }
   }
   catch (e: any) {
+    await cleanup();
     console.error(e?.message);
     const message = "Unable to verify";
     return { success: false, message };
   }
+  await cleanup();
   if (!prod) {
     const env_all = [creds.name, pep, tok, ...sec];
     const env_vars = env_all.filter((v) => {
