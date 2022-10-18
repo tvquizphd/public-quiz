@@ -18,7 +18,6 @@ type ConfigIn = {
   login: boolean,
   delay: number,
   pep: string,
-  tok: string,
   git: Git
 }
 interface COS {
@@ -98,19 +97,16 @@ const toOpaqueSock = async (inputs: SockInputs) => {
 }
 
 const verify: Verify = (config_in) => {
-  const { git, tok, pep, login, delay } = config_in;
+  const { git, pep, login, delay } = config_in;
   const namespace: Namespace = configureNamespace();
   const opaque: NameInterface = namespace.opaque;
   const user = "root";
   const times = 1000;
-  const owner_token = process.env[tok] || '';
-  const user_git = { ...git, owner_token };
-  const user_inputs = { git: user_git, delay, namespace };
+  const user_inputs = { git, delay, namespace };
   return new Promise((resolve: Resolver) => {
     toOpaqueSock(user_inputs).then(({ Opaque, Sock }) => {
       const pepper_inputs = {
-        ...opaque, git: user_git,
-        pep, times, Opaque, Sock
+        ...opaque, git, pep, times, Opaque, Sock
       };
       // Authenticate server with opaque sequence
       const op = findOp(opaque, "registered");

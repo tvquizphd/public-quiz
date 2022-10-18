@@ -70,6 +70,7 @@ async function lockDeployment(git: Git) {
     }
   }
   let cleanup = () => Promise.resolve();
+  const set_token = (t: string) => git.owner_token = t;
   const login = args.length < 2;
   const register = !login;
   if (register) {
@@ -78,7 +79,7 @@ async function lockDeployment(git: Git) {
     const client_id = args[1];
     try {
       const act_args = { git, tok, delay, client_id, wiki_config };
-      cleanup = await activate(act_args);
+      cleanup = await activate(act_args, set_token);
     }
     catch (e: any) {
       console.error(e);
@@ -86,6 +87,14 @@ async function lockDeployment(git: Git) {
       const message = "Unable to activate";
       return { success: false, message };
     }
+  }
+  else {
+    const token = process.env[tok];
+    if (!token) {
+      const message = "Environment is missing User Token";
+      return { success: false, message };
+    }
+    set_token(token);
   }
   const creds: Creds = { 
     login,
@@ -95,7 +104,7 @@ async function lockDeployment(git: Git) {
   const session = process.env[creds.name] || '';
   const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
   const inbox_args = { git, sec, delay, session };
-  const login_args = { git, tok, pep, login, delay };
+  const login_args = { git, pep, login, delay };
   try {
     const { trio } = await inbox(inbox_args);
     while (!isOkCreds(creds)) {

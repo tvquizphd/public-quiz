@@ -77,7 +77,6 @@ jobs:
     needs: [filter]
     if: needs.filter.outputs.contents == ''
     permissions:
-      deployments: write
       contents: write
       pages: write
     concurrency:

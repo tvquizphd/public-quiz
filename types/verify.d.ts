@@ -3,7 +3,6 @@ declare type ConfigIn = {
     login: boolean;
     delay: number;
     pep: string;
-    tok: string;
     git: Git;
 };
 declare type Output = string;

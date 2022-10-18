@@ -13,8 +13,11 @@ declare type WikiConfig = {
 interface Cleanup {
     (): Promise<void>;
 }
+interface SetToken {
+    (s: string): void;
+}
 interface Activate {
-    (i: ConfigureInputs): Promise<Cleanup>;
+    (i: ConfigureInputs, s: SetToken): Promise<Cleanup>;
 }
 declare const activate: Activate;
 export { activate };
