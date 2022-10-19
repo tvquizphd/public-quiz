@@ -69,8 +69,8 @@ async function lockDeployment(git: Git) {
       return { success: false, message };
     }
   }
-  let cleanup = () => Promise.resolve();
-  const set_token = (t: string) => git.owner_token = t;
+  let cleanup = () => Promise.resolve(true);
+  //const set_token = (t: string) => git.owner_token = t;
   const login = args.length < 2;
   const register = !login;
   if (register) {
@@ -78,8 +78,8 @@ async function lockDeployment(git: Git) {
     console.log(`Activating ${msg_a}`);
     const client_id = args[1];
     try {
-      const act_args = { git, tok, delay, client_id, wiki_config };
-      cleanup = await activate(act_args, set_token);
+      const act_args = { prod, git, delay, client_id, wiki_config };
+      cleanup = await activate(tok, act_args);
     }
     catch (e: any) {
       console.error(e);
@@ -94,7 +94,7 @@ async function lockDeployment(git: Git) {
       const message = "Environment is missing User Token";
       return { success: false, message };
     }
-    set_token(token);
+    //set_token(token);
   }
   const creds: Creds = { 
     login,

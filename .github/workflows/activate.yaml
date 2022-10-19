@@ -1,0 +1,33 @@
+name: activation step
+permissions:
+  contents: read
+on:
+  workflow_call:
+    inputs:
+      client:
+        required: true
+        type: string
+      step:
+        required: true
+        type: number
+    secrets:
+      token:
+        required: true
+jobs:
+  activate-step:
+    environment:
+      name: secret-tv-access
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - id: step
+        name: Run activation step
+        run: |
+          ./action/index $TOKEN $CLIENT $STEP
+          echo "text=$STEP_OUTPUT" >> $GITHUB_OUTPUT
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLIENT: ${{ inputs.client }}
+          STEP: ${{ inputs.step }}
+    outputs:
+      text: ${{ steps.step.outputs.text }}

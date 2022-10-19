@@ -1,23 +1,36 @@
 import type { Git } from "./util/types";
-declare type ConfigureInputs = {
+declare type HasClient = {
+    client_id: string;
+};
+declare type BasicInputs = {
+    wiki_config: WikiConfig;
+    git: Git;
+};
+declare type CoreInputs = BasicInputs & {
+    prod: boolean;
+    delay: number;
+};
+declare type MainInputs = CoreInputs & HasClient;
+declare type MainTokenInputs = HasClient & {
     git: Git;
     tok: string;
-    delay: number;
-    client_id: string;
-    wiki_config: WikiConfig;
 };
 declare type WikiConfig = {
     home: string;
     tmp: string;
 };
-interface Cleanup {
-    (): Promise<void>;
+interface ActivateCode {
+    (i: MainInputs): Promise<boolean>;
 }
-interface SetToken {
-    (s: string): void;
+interface ActivateToken {
+    (i: MainTokenInputs): Promise<boolean>;
+}
+interface Cleanup {
+    (): Promise<boolean>;
 }
 interface Activate {
-    (i: ConfigureInputs, s: SetToken): Promise<Cleanup>;
+    (t: string, i: MainInputs): Promise<Cleanup>;
 }
 declare const activate: Activate;
-export { activate };
+declare const activation: (ActivateCode | ActivateToken)[];
+export { activation, activate };

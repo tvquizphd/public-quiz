@@ -1,7 +1,7 @@
 import { simpleGit } from 'simple-git';
 import { needKeys } from "./util/keys";
 import { printSeconds } from "./util/time";
-import { addSecret, isProduction } from "./util/secrets";
+import { addSecret } from "./util/secrets";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { encryptQueryMaster } from "./util/encrypt";
 import * as eccrypto from "eccrypto";
@@ -15,12 +15,21 @@ import type { Encrypted } from "./util/encrypt";
 type HasData = {
   data: Encrypted
 }
-type ConfigureInputs = {
+type HasClient = {
+  client_id: string
+}
+type BasicInputs = {
+  wiki_config: WikiConfig,
+  git: Git
+}
+type CoreInputs = BasicInputs & {
+  prod: boolean,
+  delay: number
+}
+type MainInputs = CoreInputs & HasClient;
+type MainTokenInputs = HasClient & {
   git: Git,
-  tok: string,
-  delay: number,
-  client_id: string,
-  wiki_config: WikiConfig
+  tok: string
 }
 type WikiConfig = {
   home: string,
@@ -29,7 +38,7 @@ type WikiConfig = {
 type HasInterval = {
   interval: number
 }
-type AskInputs = ConfigureInputs & HasInterval & {
+type AskInputs = HasInterval & HasClient & {
   user_code: string,
   device_code: string
 }; 
@@ -52,7 +61,7 @@ type GitOutput = {
 }
 
 interface Configure {
-  (i: ConfigureInputs): Promise<AskInputs>;
+  (i: HasClient): Promise<string>;
 }
 interface AskUser {
   (i: AskInputs): Promise<AuthSuccess>;
@@ -76,22 +85,17 @@ type ToEncryptPublic = HasPubMaster & {
   plain_text: string,
   label: string
 } 
-type GitInput = {
-  wiki_config: WikiConfig
-  prod: boolean,
-  git: Git,
-}
-type UpdateInput = GitInput & {
+type UpdateStepInput = {
   encrypted: string
 }
 interface ToPagesSite {
-  (i: GitInput) : Promise<string>
+  (i: CoreInputs) : Promise<string>
 }
 interface ToPasted {
   (s: string, p: boolean) : Promise<Partial<Pasted>>
 }
 interface AwaitPasted {
-  (i: GitInput) : Promise<Pasted>
+  (i: CoreInputs) : Promise<Pasted>
 }
 interface HandleToken {
   (i: TokenInputs): Promise<TokenOutputs>
@@ -100,19 +104,22 @@ interface EncryptPublic {
   (i: ToEncryptPublic): Promise<string>
 }
 interface UseGit {
-  (i: GitInput): GitOutput
+  (i: CoreInputs): GitOutput
 }
 interface CloneGit {
-  (i: GitInput): Promise<void> 
+  (i: CoreInputs): Promise<void> 
+}
+interface ActivateCode {
+  (i: MainInputs): Promise<boolean>
+}
+interface ActivateToken {
+  (i: MainTokenInputs): Promise<boolean>
 }
 interface Cleanup {
-  (): Promise<void>
-}
-interface SetToken {
-  (s: string): void
+  (): Promise<boolean>
 }
 interface Activate {
-  (i: ConfigureInputs, s: SetToken): Promise<Cleanup>
+  (t: string, i: MainInputs): Promise<Cleanup>
 }
 const SCOPES = [
   'repo', 'project'
@@ -167,31 +174,8 @@ const cloneGit: CloneGit = async (input) => {
   await github.clone(repo_url);
 }
 
-const updateWiki = async (input: UpdateInput) => {
-  const { tmp_dir, tmp_file } = useGit(input);
-  const wiki_dir = path.dirname(tmp_file);
-  const { home } = input.wiki_config;
-  const { prod } = input;
-  const git_opts = {
-    binary: 'git',
-    baseDir: tmp_dir
-  }
-  const github = simpleGit(git_opts);
-  const { owner, email } = input.git;
-  await github.cwd(wiki_dir);
-  await github.addConfig("user.name", owner, false, "local");
-  await github.addConfig("user.email", email, false, "local");
-  await github.add([ home ]);
-  fs.writeFileSync(tmp_file, input.encrypted);
-  const msg = `Updated ${home}`;
-  if (prod) {
-    await github.commit(msg, [ home ]);
-    await github.push();
-  }
-  else {
-    const dev_file = path.join(process.cwd(), 'docs', home);
-    fs.copyFileSync(tmp_file, dev_file);
-  }
+const updateStepOutput = (input: UpdateStepInput) => {
+  process.env.STEP_OUTPUT = input.encrypted;
 }
 
 const toPrivate = () => {
@@ -239,7 +223,7 @@ class PollingFails extends Error {
   }
 }
 
-const getConfigurable = (inputs: ConfigureInputs) => {
+const getConfigurable = (inputs: HasClient) => {
   const { client_id } = inputs;
   const scope = SCOPES.join(',');
   const keys = { client_id, scope }
@@ -258,7 +242,7 @@ const configureDevice: Configure = async (inputs) => {
   const keys = 'interval device_code user_code';
   const result = await step2.json();
   needKeys(result, keys.split(' '));
-  return {...inputs, ...result};
+  return result;
 };
 
 const getAskable = (inputs: AskInputs) => {
@@ -363,7 +347,7 @@ const toPasted: ToPasted = async (src, prod) => {
 
 const awaitPasted: AwaitPasted = async (input) => {
   let tries = 0;
-  const delay = 1;
+  const { delay } = input;
   const dt = delay * 1000;
   const max_tries = 15*60/delay;
   const { tmp_file } = useGit(input);
@@ -388,59 +372,128 @@ const derive = async (priv: Uint8Array, pub: Uint8Array) => {
   return new Uint8Array(await b_key);
 }
 
-const activate: Activate = (config_in, set_token) => {
-  const { git, tok, wiki_config } = config_in;
-  const prod = isProduction(process);
-  const opts = { git, prod, wiki_config };
-  const clean_opts = { ...opts, encrypted: "" };
-  const cleanup = () => updateWiki(clean_opts);
-  return new Promise((resolve, reject) => {
-    awaitPasted(opts).then(async (pasted) => {
-      const { priv, pub } =  await toKeyPair();
-      const master_key = await derive(priv, pasted.pub);
-      const outputs = await configureDevice(config_in);
-      console.log('Device Configured');
-      const { user_code } = outputs;
-      const encrypted = await encryptPublic({
-        pub, master_key, label: "code",
-        plain_text: user_code 
-      });
-      // Create activation link
-      await updateWiki({ ...opts, encrypted });
-      console.log("Posted code to wiki");
-      // Wait for user to visit link
-      askUser(outputs).then((verdict) => {
-        const token_in = { ...verdict, pub, master_key };
-        handleToken(token_in).then(async (token_out) => {
-          const { encrypted, secret } = token_out;
-          const user_git = { ...git, owner_token: secret };
-          const user_inputs = { git: user_git, secret, name: tok };
-          try {
-            set_token(secret);
-            await addSecret(user_inputs);
-            await updateWiki({ ...opts, encrypted });
-            console.log('Posted token to wiki\n');
-            resolve(cleanup);
-          }
-          catch (e: any) {
-            console.error('Unable to update wiki.');
-            reject(e);
-          }
-        }).catch((e: any) => {
-          console.error('Error issuing token or verifier.');
-          reject(e);
-        });
-      }).catch((e: any) => {
-      console.error('Not authorized by the user.');
-        reject(e);
-      });
-    }).catch((e: any) => {
-      console.error('Unable to read public key.');
-      reject(e);
-    })
-  });
+const activateCode: ActivateCode = async (main_in) => {
+  const { client_id, ...core_in} = main_in;
+  const en: ToEncryptPublic = {
+    master_key: new Uint8Array(),
+    pub: new Uint8Array(),
+    plain_text: "",
+    label: "code"
+  };
+  try {
+    const pasted = await awaitPasted(core_in); 
+    const { priv, pub } =  await toKeyPair();
+    en.plain_text = await configureDevice({ client_id });
+    en.master_key = await derive(priv, pasted.pub);
+    en.pub = pub;
+  }
+  catch (e: any) {
+    console.error('Unable to read public key.');
+    console.error(e?.message);
+    return false;
+  }
+  try {
+    const encrypted = await encryptPublic(en);
+    updateStepOutput({ encrypted });
+    console.log("Encrypted code.\n");
+  }
+  catch (e: any) {
+    console.error('Error using public key.');
+    console.error(e?.message);
+    return false;
+  }
+  return true;
 }
 
+const activateToken: ActivateToken = async (inputs) => {
+  const { git, tok, client_id } = inputs;
+  const master_key = new Uint8Array();
+  const pub = new Uint8Array();
+  const ask: AskInputs = {
+    device_code: "",
+    user_code: "",
+    interval: 1,
+    client_id
+  };
+  const token_in: TokenInputs = {
+    master_key, pub,
+    access_token: "",
+    token_type: "",
+    scope: ""
+  }; 
+  try {
+    const verdict = await askUser(ask);
+    token_in.access_token = verdict.access_token;
+    token_in.token_type = verdict.token_type;
+    token_in.scope = verdict.scope;
+  }
+  catch (e: any) {
+    console.error('Not authorized by the user.');
+    console.error(e?.message);
+    return false;
+  }
+  const token_out: TokenOutputs = {
+    encrypted: "",
+    secret: "" 
+  }
+  try {
+    const result = await handleToken(token_in);
+    token_out.encrypted = result.encrypted;
+    token_out.secret = result.secret;
+  }
+  catch (e: any) {
+    console.error('Error issuing token.');
+    console.error(e?.message);
+    return false;
+  }
+  const add_inputs = { 
+    git: { 
+      ...git,
+      owner_token: token_out.secret
+    },
+    secret: token_out.secret,
+    name: tok
+  };
+  try {
+    //set_token(secret);
+    await addSecret(add_inputs);
+    updateStepOutput(token_out);
+    console.log("Encrypted user token.\n");
+    return true;
+  }
+  catch (e: any) {
+    console.error('Unable to add secret.');
+    console.error(e?.message);
+    return false;
+  }
+}
+
+const cleanup: Cleanup = () => {
+  const encrypted = "";
+  try {
+    updateStepOutput({ encrypted });
+    return Promise.resolve(true);
+  }
+  catch (e: any) {
+    console.error(e?.message);
+    return Promise.resolve(false);
+  }
+}
+
+const activate: Activate = async (tok, main_in) => {
+  const { git, client_id } = main_in;
+  await activateCode(main_in);
+  await activateToken({ tok, git, client_id });
+  return cleanup;
+}
+
+const activation = [
+  activateCode,
+  activateToken,
+  cleanup
+];
+
 export {
+  activation,
   activate
 }
