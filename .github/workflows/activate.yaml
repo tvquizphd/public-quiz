@@ -7,9 +7,9 @@ on:
       client:
         required: true
         type: string
-      step:
-        required: true
-        type: number
+      encrypted:
+        required: false
+        type: string
     secrets:
       token:
         required: true
@@ -23,11 +23,15 @@ jobs:
       - id: step
         name: Run activation step
         run: |
-          ./action/index $TOKEN $CLIENT $STEP
+          ./action/index $TOKEN $CLIENT_ID $ENCRYPTED
+          STEP_OUTPUT=$(head -n 1 secret.txt) 
+          STEP_ENCRYPTED=$(tail -n 1 secret.txt) 
           echo "text=$STEP_OUTPUT" >> $GITHUB_OUTPUT
+          echo "secret=$STEP_ENCRYPTED" >> $GITHUB_OUTPUT
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLIENT: ${{ inputs.client }}
-          STEP: ${{ inputs.step }}
+          ENCRYPTED: ${{ inputs.encrypted }}
+          CLIENT_ID: ${{ inputs.client }}
+          TOKEN: ${{ secrets.token }}
     outputs:
+      encrypted: ${{ steps.step.outputs.secret }}
       text: ${{ steps.step.outputs.text }}

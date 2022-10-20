@@ -4,6 +4,9 @@ import { printSeconds } from "./util/time";
 import { addSecret } from "./util/secrets";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { encryptQueryMaster } from "./util/encrypt";
+import { encryptSecrets } from "./util/encrypt";
+import { decryptQuery } from "./util/decrypt";
+import { isBytes } from "./util/decrypt";
 import * as eccrypto from "eccrypto";
 import { Octokit } from "octokit";
 import path from 'node:path';
@@ -18,19 +21,24 @@ type HasData = {
 type HasClient = {
   client_id: string
 }
-type BasicInputs = {
-  wiki_config: WikiConfig,
+type HasGit = {
   git: Git
 }
-type CoreInputs = BasicInputs & {
+type BasicInputs = HasClient & HasGit; 
+type CoreInputs = HasGit & {
+  wiki_config: WikiConfig,
   prod: boolean,
   delay: number
 }
-type MainInputs = CoreInputs & HasClient;
-type MainTokenInputs = HasClient & {
-  git: Git,
-  tok: string
+type AskInputs = HasClient & {
+  interval: number,
+  device_code: string
 }
+type MainCodeInputs = BasicInputs & CoreInputs;
+type MainTokenInputs = BasicInputs & {
+  code_outputs: CodeOutputs,
+  tok: string,
+};
 type WikiConfig = {
   home: string,
   tmp: string
@@ -38,10 +46,12 @@ type WikiConfig = {
 type HasInterval = {
   interval: number
 }
-type AskInputs = HasInterval & HasClient & {
-  user_code: string,
+type HasDevice = {
   device_code: string
-}; 
+}
+type Configuration = HasInterval & HasDevice & {
+  user_code: string,
+}
 type AuthError = {
   error: string;
   error_description: string;
@@ -61,7 +71,7 @@ type GitOutput = {
 }
 
 interface Configure {
-  (i: HasClient): Promise<string>;
+  (i: HasClient): Promise<Configuration>;
 }
 interface AskUser {
   (i: AskInputs): Promise<AuthSuccess>;
@@ -76,7 +86,8 @@ type Pasted = {
   pub: Uint8Array 
 }
 type HasPubMaster = Pasted & HasMaster;
-type TokenInputs = AuthSuccess & HasPubMaster;
+type CodeOutputs = HasDevice & HasPubMaster;
+type TokenInputs = AuthSuccess & CodeOutputs;
 type TokenOutputs = {
   encrypted: string,
   secret: string
@@ -85,8 +96,14 @@ type ToEncryptPublic = HasPubMaster & {
   plain_text: string,
   label: string
 } 
-type UpdateStepInput = {
-  encrypted: string
+type Obj = Record<string, any>;
+export type SecretInputs = Git | CodeOutputs;
+type GitInputs = HasGit & {
+  secret: string  
+}
+export type SecretOutputs = {
+  for_pages: string,
+  for_next: string,
 }
 interface ToPagesSite {
   (i: CoreInputs) : Promise<string>
@@ -110,17 +127,21 @@ interface CloneGit {
   (i: CoreInputs): Promise<void> 
 }
 interface ActivateCode {
-  (i: MainInputs): Promise<boolean>
+  (i: MainCodeInputs): Promise<SecretOutputs>
 }
 interface ActivateToken {
-  (i: MainTokenInputs): Promise<boolean>
+  (i: MainTokenInputs): Promise<SecretOutputs>
 }
-interface Cleanup {
-  (): Promise<boolean>
+interface GitEncrypt {
+  (i: GitInputs): Promise<string>
 }
-interface Activate {
-  (t: string, i: MainInputs): Promise<Cleanup>
+interface GitDecrypt {
+  (i: GitInputs): Promise<SecretInputs>
 }
+type Activation = [
+  ActivateCode, ActivateToken 
+];
+
 const SCOPES = [
   'repo', 'project'
 ];
@@ -174,10 +195,6 @@ const cloneGit: CloneGit = async (input) => {
   await github.clone(repo_url);
 }
 
-const updateStepOutput = (input: UpdateStepInput) => {
-  process.env.STEP_OUTPUT = input.encrypted;
-}
-
 const toPrivate = () => {
   return eccrypto.generatePrivate();
 }
@@ -215,6 +232,31 @@ function isAuthSuccess(a: AskOutputs): a is AuthSuccess {
   return true;
 }
 
+function isGit(a: SecretInputs): a is Git {
+  const keys = 'repo owner email owner_token';
+  const g = a as Git;
+  try {
+    needKeys(g, keys.split(' '));
+  }
+  catch (e: any) {
+    return false;
+  }
+  return true;
+}
+
+function isCodeOutputs(a: SecretInputs): a is CodeOutputs {
+  const g = a as CodeOutputs;
+  if (isBytes(g.pub) && isBytes(g.master_key)) {
+    return typeof g.device_code == "string";
+  }
+  return false
+}
+
+function isSecretInputs(a: Obj): a is SecretInputs {
+  const g = a as SecretInputs;
+  return isCodeOutputs(g) || isGit(g);
+}
+
 class PollingFails extends Error {
   constructor(error: AuthError) {
     const message = error.error_description;
@@ -235,8 +277,7 @@ const getConfigurable = (inputs: HasClient) => {
 }
 
 const configureDevice: Configure = async (inputs) => {
-  const step0 = getConfigurable(inputs);
-  const { configurable, headers } = step0;
+  const { configurable, headers } = getConfigurable(inputs);
   const step1 = { headers, method: 'POST' };
   const step2 = await fetch(configurable, step1); 
   const keys = 'interval device_code user_code';
@@ -259,44 +300,40 @@ const getAskable = (inputs: AskInputs) => {
   return { askable, headers };
 }
 
-const askUserOnce: AskUserOnce = (inputs, timestamp) => {
-  const step0 = getAskable(inputs);
-  const { askable, headers } = step0;
+const askUserOnce: AskUserOnce = async (inputs, timestamp) => {
+  const { interval } = inputs;
+  const dt = 1000 * interval + 100;
+  const { askable, headers } = getAskable(inputs);
+  await new Promise(r => setTimeout(r, dt));
   const step1 = { headers, method: 'POST' };
-  const dt = 1000 * inputs.interval + 100;
-  return new Promise((resolve) => {
-    setTimeout(async () => { 
-      const step2 = await fetch(askable, step1); 
-      const result: AuthVerdict = await step2.json();
-      if (isAuthError(result)) {
-        if (isBadAuthError(result)) {
-          throw new PollingFails(result);
-        }
-        const message = result.error_description;
-        console.warn(`${timestamp}: ${message}`);
-        if (isGoodAuthError(result)) {
-          const { interval } = result;
-          resolve({...inputs, interval});
-        }
-        resolve(inputs);
-      }
-      else {
-        resolve(result);
-      }
-    }, dt);
-  });
+  const step2 = await fetch(askable, step1); 
+  const result: AuthVerdict = await step2.json();
+  if (isAuthError(result)) {
+    if (isBadAuthError(result)) {
+      throw new PollingFails(result);
+    }
+    const message = result.error_description;
+    console.warn(`${timestamp}: ${message}`);
+    if (isGoodAuthError(result)) {
+      const { interval } = result;
+      return { interval };
+    }
+    return { interval };
+  }
+  else {
+    return result;
+  }
 }
 
 const askUser: AskUser = async (inputs) => {
   let total_time = 0;
-  let interval = inputs.interval;
-  console.log(`Polling interval ${interval}+ s`);
-  let result: AskOutputs = { interval };
+  console.log(`Polling interval ${inputs.interval}+ s`);
+  let result: AskOutputs = { interval: inputs.interval };
   while (!isAuthSuccess(result)) {
-    total_time += interval;
-    if (interval != result.interval) {
-      console.log(`Polling interval now ${interval}+ s`);
-      interval = result.interval;
+    total_time += inputs.interval;
+    if (inputs.interval != result.interval) {
+      inputs.interval = result.interval;
+      console.log(`Polling interval now ${inputs.interval}+ s`);
     }
     const timestamp = printSeconds(total_time);
     result = await askUserOnce(inputs, timestamp);
@@ -374,126 +411,134 @@ const derive = async (priv: Uint8Array, pub: Uint8Array) => {
 
 const activateCode: ActivateCode = async (main_in) => {
   const { client_id, ...core_in} = main_in;
-  const en: ToEncryptPublic = {
-    master_key: new Uint8Array(),
-    pub: new Uint8Array(),
-    plain_text: "",
-    label: "code"
+  const { git } = core_in;
+  let enp: ToEncryptPublic; 
+  let secret: string;
+  const outputs = {
+    for_pages: "",
+    for_next: "",
   };
   try {
     const pasted = await awaitPasted(core_in); 
     const { priv, pub } =  await toKeyPair();
-    en.plain_text = await configureDevice({ client_id });
-    en.master_key = await derive(priv, pasted.pub);
-    en.pub = pub;
+    const config = await configureDevice({ client_id });
+    const master_key = await derive(priv, pasted.pub);
+    const device_code = config.device_code;
+    const plain_text = config.user_code;
+    secret = toB64urlQuery({ pub, master_key, device_code });
+    enp = {
+      master_key, pub, plain_text, label: "code"
+    }
   }
   catch (e: any) {
     console.error('Unable to read public key.');
-    console.error(e?.message);
-    return false;
+    throw e;
   }
   try {
-    const encrypted = await encryptPublic(en);
-    updateStepOutput({ encrypted });
+    const encrypted = await encryptPublic(enp);
     console.log("Encrypted code.\n");
+    outputs.for_pages = encrypted;
   }
   catch (e: any) {
     console.error('Error using public key.');
-    console.error(e?.message);
-    return false;
+    throw e;
   }
-  return true;
+  try {
+    const encrypted = await gitEncrypt({ git, secret });
+    console.log("Encrypted secret output.\n");
+    outputs.for_next = encrypted;
+  }
+  catch (e: any) {
+    console.error('Error encrypting secret.');
+    throw e;
+  }
+  return outputs;
+}
+
+const gitEncrypt: GitEncrypt = async (inputs) => {
+  const ens = {
+    password: inputs.git.owner_token,
+    secret_text: inputs.secret
+  };
+  const encrypted = await encryptSecrets(ens);
+  return toB64urlQuery(encrypted);
+}
+
+const gitDecrypt: GitDecrypt = async (inputs) => {
+  const pass = inputs.git.owner_token;
+  const secret = inputs.secret.replaceAll('\n', '');
+  const { plain_text } = await decryptQuery(secret, pass);
+  const decoded = fromB64urlQuery(plain_text);
+  if (isSecretInputs(decoded)) {
+    return decoded;
+  }
+  throw new Error('Poorly formated secret input.');
 }
 
 const activateToken: ActivateToken = async (inputs) => {
-  const { git, tok, client_id } = inputs;
-  const master_key = new Uint8Array();
-  const pub = new Uint8Array();
-  const ask: AskInputs = {
-    device_code: "",
-    user_code: "",
-    interval: 1,
-    client_id
-  };
-  const token_in: TokenInputs = {
-    master_key, pub,
-    access_token: "",
-    token_type: "",
-    scope: ""
-  }; 
+  const { tok, code_outputs, client_id } = inputs;
+  let token_in: TokenInputs;
+  let token_out: TokenOutputs;
+  const { device_code } = code_outputs;
+  const ask = { client_id, device_code, interval: 5 };
+  const outputs = {
+    for_pages: "",
+    for_next: "",
+  }
   try {
     const verdict = await askUser(ask);
-    token_in.access_token = verdict.access_token;
-    token_in.token_type = verdict.token_type;
-    token_in.scope = verdict.scope;
+    token_in = { ...verdict, ...code_outputs };
   }
   catch (e: any) {
     console.error('Not authorized by the user.');
-    console.error(e?.message);
-    return false;
-  }
-  const token_out: TokenOutputs = {
-    encrypted: "",
-    secret: "" 
+    throw e;
   }
   try {
-    const result = await handleToken(token_in);
-    token_out.encrypted = result.encrypted;
-    token_out.secret = result.secret;
+    token_out = await handleToken(token_in);
   }
   catch (e: any) {
     console.error('Error issuing token.');
-    console.error(e?.message);
-    return false;
+    throw e;
   }
+  const user_git = { 
+    ...inputs.git,
+    owner_token: token_out.secret
+  };
   const add_inputs = { 
-    git: { 
-      ...git,
-      owner_token: token_out.secret
-    },
-    secret: token_out.secret,
-    name: tok
+    name: tok,
+    git: user_git,
+    secret: token_out.secret
   };
   try {
-    //set_token(secret);
     await addSecret(add_inputs);
-    updateStepOutput(token_out);
     console.log("Encrypted user token.\n");
-    return true;
+    outputs.for_pages = token_out.encrypted;
   }
   catch (e: any) {
     console.error('Unable to add secret.');
-    console.error(e?.message);
-    return false;
+    throw e;
   }
-}
-
-const cleanup: Cleanup = () => {
-  const encrypted = "";
   try {
-    updateStepOutput({ encrypted });
-    return Promise.resolve(true);
+    const { git } = inputs;
+    const secret = toB64urlQuery(user_git);
+    const encrypted = await gitEncrypt({ git, secret });
+    console.log("Encrypted secret git token.\n");
+    outputs.for_next = encrypted;
   }
   catch (e: any) {
-    console.error(e?.message);
-    return Promise.resolve(false);
+    console.error('Error encrypting secret git token.');
+    throw e;
   }
+  return outputs;
 }
 
-const activate: Activate = async (tok, main_in) => {
-  const { git, client_id } = main_in;
-  await activateCode(main_in);
-  await activateToken({ tok, git, client_id });
-  return cleanup;
-}
-
-const activation = [
+const activation: Activation = [
   activateCode,
   activateToken,
-  cleanup
 ];
 
 export {
+  isGit,
+  gitDecrypt,
   activation,
-  activate
 }

@@ -113,7 +113,7 @@ async function encryptWithPassword (event, DATA) {
     secret_text: token,
   }
   const delay = 1;
-  await triggerGithubAction(false, git);
+  await triggerGithubAction(DATA.local, git);
   const result = await encryptSecrets(to_encrypt);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
@@ -127,20 +127,20 @@ async function encryptWithPassword (event, DATA) {
   return result;
 }
 
-const runReef = (host, mainId, passFormId) => {
+const runReef = (isLocal, mainId, passFormId) => {
 
+  const host = window.location.origin; //TODO
   let {store, component} = window.reef;
 
   const KEY_PAIR = toKeyPair();
-  const local = host !== location.origin;
 
   // Create reactive data store
   let DATA = store({
+    local: isLocal,
     failure: false,
     login: null,
     code: null,
     phase: 0,
-    local,
     host,
     git: {
       token: null,
@@ -393,9 +393,6 @@ export default () => {
   reefMain.appendChild(rootApp);
 
   const { hostname, origin } = window.location;
-  //const remote = "https://pass.tvquizphd.com";
-  const remote = origin; // TODO
   const isLocal = hostname === "localhost";
-  const host = isLocal ? remote : origin;
-  runReef(host, "reef-main", "pass-form");
+  runReef(isLocal, "reef-main", "pass-form");
 };

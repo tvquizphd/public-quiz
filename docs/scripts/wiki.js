@@ -16,7 +16,7 @@ function isPastedToken(p) {
 const toPasted = async (url) => {
   const wiki = `${url}/Home.md`;
   const text = await (await fetch(wiki)).text();
-  return fromB64urlQuery(text);
+  return fromB64urlQuery(text.replaceAll('\n',''));
 }
 
 class WikiMailer {

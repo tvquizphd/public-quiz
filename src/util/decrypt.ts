@@ -1,5 +1,6 @@
 import { fromB64urlQuery } from "project-sock";
 import { createDecipheriv } from 'crypto';
+import { digestPass } from './password';
 import { needKeys } from "./keys";
 
 import type { Encrypted } from "./encrypt";
@@ -7,6 +8,10 @@ import type { Encrypted } from "./encrypt";
 type DSI = {
   key: Uint8Array,
   data: Encrypted,
+}
+type DKI = {
+  hash: Uint8Array,
+  key: Encrypted,
 }
 export type QMI = {
   master_key: Uint8Array,
@@ -19,6 +24,13 @@ type QM = {
 interface Decrypt {
   (k: Uint8Array, ev: Uint8Array, iv: Uint8Array, tag: Uint8Array): Buffer;
 }
+interface DecryptQuery {
+  (s: string, pass: string): Promise<QM>
+}
+
+function isBytes(o: any): o is Uint8Array {
+  return ArrayBuffer.isView(o);
+}
 
 const hasEncryptionKeys = (v: any): v is Encrypted => {
   try {
@@ -27,7 +39,8 @@ const hasEncryptionKeys = (v: any): v is Encrypted => {
   catch {
     return false;
   }
-  return true;
+  const values = [v.ev, v.iv, v.tag];
+  return values.every(isBytes);
 }
 
 const decrypt: Decrypt = (key, ev, iv, tag) => {
@@ -44,6 +57,10 @@ const decryptSecret = ({ key, data }: DSI) => {
   return decrypt(key, data.ev, data.iv, data.tag);
 }
 
+const decryptKey = ({ hash, key }: DKI) => {
+  return decrypt(hash, key.ev, key.iv, key.tag);
+}
+
 const decryptQueryMaster = (inputs: QMI): QM => {
   const { master_key: key, search } = inputs;
   const { data } = fromB64urlQuery(search);
@@ -54,9 +71,20 @@ const decryptQueryMaster = (inputs: QMI): QM => {
       plain_text: new TextDecoder().decode(out)
     }
   }
-  throw new Error("Could not decrypt query");
+  throw new Error("Invalid encryption data");
+}
+
+const decryptQuery: DecryptQuery = async (search, pass) => {
+  const inputs = fromB64urlQuery(search);
+  const { salt, key } = inputs;
+  if (hasEncryptionKeys(key) && isBytes(salt)) {
+    const { hash } = await digestPass({ pass, salt });
+    const master_key = await decryptKey({ hash, key });
+    return decryptQueryMaster({ search, master_key });
+  }
+  throw new Error("Invalid decryption key or salt");
 }
 
 export {
-  decryptQueryMaster
+  isBytes, decryptQueryMaster, decryptQuery
 }

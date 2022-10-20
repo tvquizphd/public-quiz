@@ -1,9 +1,11 @@
 import { toB64urlQuery, fromB64urlQuery } from "project-sock";
 import { configureNamespace } from "./config/sock";
 import { opId, findOp } from "./util/lookup";
+import { outbox, isOkCreds } from "./outbox";
 import { addSecret } from "./util/secrets";
 import { needKeys } from "./util/keys";
 import { toSock } from "./util/socket";
+import { inbox } from "./inbox";
 import OP from '@nthparty/opaque';
 
 import type { Git } from "./util/types";
@@ -13,6 +15,8 @@ import type { Namespace } from "./config/sock";
 import type { SockInputs } from "./util/socket";
 import type { NameInterface } from "./config/sock";
 import type { Op, Pepper } from '@nthparty/opaque';
+import type { Inputs as InIn } from "./inbox";
+import type { Creds } from "./outbox";
 
 type ConfigIn = {
   login: boolean,
@@ -35,11 +39,18 @@ interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
 type Output = string;
+type Inputs = {
+  inbox_in: InIn,
+  log_in: ConfigIn
+}
 interface Resolver {
   (o: Output): void;
 }
 interface Verify {
   (i: ConfigIn): Promise<Output>
+}
+interface Verifier {
+  (i: Inputs): Promise<void>
 }
 
 const isPepper = (t: TreeAny): t is Pepper => {
@@ -126,4 +137,29 @@ const verify: Verify = (config_in) => {
   });
 }
 
-export { verify };
+const verifier: Verifier = async (inputs) => {
+  const { inbox_in, log_in } = inputs;
+  const { trio } = await inbox(inbox_in);
+  const creds: Creds = { 
+    login: log_in.login,
+    name: inbox_in.ses,
+    registered: false
+  };
+  while (!isOkCreds(creds)) {
+    console.log("\nVerifying your credentials:");
+    const session = await verify(log_in);
+    creds.registered = true;
+    creds.secret = session;
+  }
+  if (creds.login && !!creds.secret) {
+    const { git, delay } = inbox_in;
+    console.log("\nVerified your credentials.");
+    const outbox_in = { git, delay, creds, trio };
+    const exported = await outbox(outbox_in);
+    if (exported) {
+      console.log("\nExported your secrets.");
+    }
+  }
+}
+
+export { verifier };

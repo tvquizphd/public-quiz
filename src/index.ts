@@ -1,22 +1,35 @@
+import { isGit, gitDecrypt, activation } from "./activate";
 import { isProduction } from "./util/secrets";
 import { graphql } from "@octokit/graphql";
 import { undeploy } from "project-sock";
-import { activate } from "./activate";
-import { isOkCreds } from "./outbox";
-import { outbox } from "./outbox";
-import { verify } from "./verify";
-import { inbox } from "./inbox";
-import path from 'node:path';
+import { verifier } from "./verify";
 import dotenv from "dotenv";
 import fs from "fs";
 
-import type { Creds } from "./outbox";
 import type { Git, Trio } from "./util/types";
+import type { SecretInputs } from "./activate"
+import type { SecretOutputs } from "./activate"
 
+type Duo = [string, string];
 type Result = {
   success: boolean;
   message: string;
 }
+interface WriteSecretText {
+  (i: Partial<SecretOutputs>): void;
+}
+
+function isTrio(args: string[]): args is Trio {
+  return args.length === 3;
+} 
+
+function isDuo(args: string[]): args is Duo {
+  return args.length === 2;
+} 
+
+function isOne(args: string[]): args is [string] {
+  return args.length === 1;
+} 
 
 async function lockDeployment(git: Git) {
   const { repo, owner } = git;
@@ -34,6 +47,15 @@ async function lockDeployment(git: Git) {
   console.log("No active action to undeploy");
 }
 
+const writeSecretText: WriteSecretText = (inputs) => {
+  const out_file = "secret.txt";
+  const for_pages = inputs?.for_pages || "";
+  const for_next = inputs?.for_next || "";
+  const out_env = [for_pages, for_next];
+  fs.writeFileSync(out_file, out_env.join('\n'));
+  console.log(`Wrote to ${out_file}\n`);
+}
+
 (async (): Promise<Result> => {
   const prod = isProduction(process);
   const args = process.argv.slice(2);
@@ -41,8 +63,11 @@ async function lockDeployment(git: Git) {
     const message = "Missing 1st arg: MY_TOKEN";
     return { success: false, message };
   }
+  const ses = "SESSION"
   const tok = "ROOT_TOKEN";
   const pep = "ROOT_PEPPER";
+  const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
+  const env_all = [ses, tok, pep, ...sec];
   const git = {
     owner: "tvquizphd",
     owner_token: args[0],
@@ -69,68 +94,83 @@ async function lockDeployment(git: Git) {
       return { success: false, message };
     }
   }
-  let cleanup = () => Promise.resolve(true);
-  //const set_token = (t: string) => git.owner_token = t;
-  const login = args.length < 2;
-  const register = !login;
-  if (register) {
-    const msg_a = "with new public key!";
-    console.log(`Activating ${msg_a}`);
-    const client_id = args[1];
+  const login = isOne(args);
+  const v_in = { git, delay };
+  const inbox_in = { ...v_in, sec, ses };
+  const log_in = { ...v_in, pep, login };
+  if (login) {
     try {
-      const act_args = { prod, git, delay, client_id, wiki_config };
-      cleanup = await activate(tok, act_args);
+      await verifier({ inbox_in, log_in });
+      console.log('Verified user.\n');
     }
     catch (e: any) {
-      console.error(e);
       console.error(e?.message);
-      const message = "Unable to activate";
+      const message = "Unable to verify";
       return { success: false, message };
     }
   }
-  else {
-    const token = process.env[tok];
-    if (!token) {
-      const message = "Environment is missing User Token";
-      return { success: false, message };
+  else if (isDuo(args) || isTrio(args)) {
+    const basic = { git, client_id: args[1] };
+    const [toCode, toToken] = activation;
+    if (isDuo(args)) {
+      try {
+        console.log(`Generating initial GitHub code.`);
+        const core = { prod, delay, wiki_config };
+        const out = await toCode({ ...basic, ...core });
+        console.log("Created GitHub code.\n");
+        writeSecretText(out);
+      }
+      catch (e: any) {
+        console.error(e?.message);
+        const message = "Unable to make GitHub code.";
+        return { success: false, message };
+      }
     }
-    //set_token(token);
-  }
-  const creds: Creds = { 
-    login,
-    name: "SESSION",
-    registered: false
-  };
-  const session = process.env[creds.name] || '';
-  const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
-  const inbox_args = { git, sec, delay, session };
-  const login_args = { git, pep, login, delay };
-  try {
-    const { trio } = await inbox(inbox_args);
-    while (!isOkCreds(creds)) {
-      console.log("\nVerifying your credentials:");
-      const session = await verify(login_args);
-      creds.registered = true;
-      creds.secret = session;
-    }
-    if (login && !!creds.secret) {
-      console.log("\nVerified your credentials.");
-      const outbox_args = { git, trio, delay, creds };
-      const exported = await outbox(outbox_args);
-      if (exported) {
-        console.log("\nExported your secrets.");
+    else {
+      let secret_in: SecretInputs;
+      try {
+        const decrypt_in = {git, secret: args[2]};
+        secret_in = await gitDecrypt(decrypt_in);
+      }
+      catch(e: any) {
+        console.error(e?.message);
+        const message = "Bad 3rd argument";
+        return { success: false, message };
+      }
+      if (isGit(secret_in)) {
+        console.log(`Using GitHub Token.`);
+        try {
+          log_in.git = secret_in;
+          inbox_in.git = secret_in;
+          await verifier({ inbox_in, log_in });
+          console.log('Verified user.');
+        }
+        catch (e: any) {
+          writeSecretText({});
+          console.error(e?.message);
+          const message = "Unable to verify";
+          return { success: false, message };
+        }
+        writeSecretText({});
+      }
+      else {
+        console.log(`Creating GitHub Token.`);
+        try {
+          const code_outputs = secret_in;
+          const core = { code_outputs, tok };
+          const out = await toToken({ ...basic, ...core });
+          console.log("Created GitHub token.\n");
+          writeSecretText(out);
+        }
+        catch (e: any) {
+          console.error(e?.message);
+          const message = "Unable to make GitHub token.";
+          return { success: false, message };
+        }
       }
     }
   }
-  catch (e: any) {
-    await cleanup();
-    console.error(e?.message);
-    const message = "Unable to verify";
-    return { success: false, message };
-  }
-  await cleanup();
   if (!prod) {
-    const env_all = [creds.name, pep, tok, ...sec];
     const env_vars = env_all.filter((v) => {
       return process.env[v];
     });
@@ -144,18 +184,10 @@ async function lockDeployment(git: Git) {
     } catch (e: any) {
       console.error(e?.message);
     }
-    try {
-      const { home } = wiki_config;
-      const dev_file = path.join(process.cwd(), 'docs', home);
-      fs.writeFileSync(dev_file, "");
-      console.log(`Cleared ${home}`);
-    } catch (e: any) {
-      console.error(e?.message);
-    }
   }
-  const message = "Verification complete";
+  const message = "Action complete!\n";
   return { success: true, message };
-})().then(async (result: Result) => {
+})().then((result: Result) => {
   if (result.success) {
     return console.log(result.message);
   }

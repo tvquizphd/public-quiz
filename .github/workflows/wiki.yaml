@@ -42,7 +42,6 @@ jobs:
     uses: ./.github/workflows/activate.yaml
     with:
       client: ${{ needs.setup.outputs.client }}
-      step: 0
     secrets:
       token: ${{ github.token }}
   push-code:
@@ -51,15 +50,28 @@ jobs:
     with:
       contents: ${{ needs.get-code.outputs.text }}
   get-token:
-    needs: [push-code]
+    needs: [setup, get-code, push-code]
     uses: ./.github/workflows/activate.yaml
     with:
       client: ${{ needs.setup.outputs.client }}
-      step: 1
+      encrypted: ${{ needs.get-code.outputs.encrypted }}
     secrets:
       token: ${{ github.token }}
   push-token:
     needs: [get-token]
     uses: ./.github/workflows/pages.yaml
     with:
-      contents: ${{ needs.get-code.outputs.text }}
+      contents: ${{ needs.get-token.outputs.text }}
+  register:
+    needs: [setup, get-token, push-token]
+    uses: ./.github/workflows/activate.yaml
+    with:
+      client: ${{ needs.setup.outputs.client }}
+      encrypted: ${{ needs.get-token.outputs.encrypted }}
+    secrets:
+      token: ${{ github.token }}
+  cleanup:
+    needs: [register]
+    uses: ./.github/workflows/pages.yaml
+    with:
+      contents: ${{ needs.register.outputs.text }}
