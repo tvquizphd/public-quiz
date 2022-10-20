@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   client:
-    setup:
+    steps:
       - name: Create Environment
         run: |
           curl \
