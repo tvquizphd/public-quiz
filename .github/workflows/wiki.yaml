@@ -1,64 +1,29 @@
-name: deploy pages and wiki
+name: wiki 
 on:
   gollum:
-  push:
-    tags:
-      - '*'
+permissions:
+  pages: write
+  contents: read
+  id-token: write
+concurrency:
+  group: secret-tv-access
+  cancel-in-progress: true
 jobs:
-  copy:
-    concurrency:
-      group: pages-and-wiki
-      cancel-in-progress: true
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Setup Pages
-        uses: actions/configure-pages@v2
-      - name: Copy Wiki Home
+  client:
+    setup:
+      - name: Create Environment
         run: |
-          git clone $ROOT/$REPO.wiki.git
-          cp ${REPO#*/}.wiki/$FILE docs
-        env:
-          FILE: "Home.md"
-          ROOT: "https://github.com"
-          REPO: ${{ github.repository }}
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
-        with:
-          path: 'docs'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v1
-  filter:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pages: read
-    steps:
-      - name: Ensure empty Home.md
-        id: home
-        run: |
-          JSON=$(curl \
+          curl \
+          -X PUT \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REPO/pages);
-          PAGES_URL=$(jq -r '.html_url' <<< $JSON);
-          TEXT=$(curl $PAGES_URL/Home.md);
-          CONTENTS=$(tr -d "\n" <<< $TEXT);
-          echo "Home.md contains $CONTENTS";
-          echo "contents=$CONTENTS" >> $GITHUB_OUTPUT
+          $ROOT/repos/$REPO/environments/$STAGE
         env:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
-      - name: Read repo description
-        id: repo
+          STAGE: "secret-tv-access"
+      - id: client
+        name: Read client ID
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
@@ -71,33 +36,42 @@ jobs:
           ROOT: "https://api.github.com"
           REPO: ${{ github.repository }}
     outputs:
-      contents: ${{ steps.home.outputs.contents }}
-      client: ${{ steps.repo.outputs.client }}
-  activate:
-    needs: [filter]
-    if: needs.filter.outputs.contents == ''
-    permissions:
-      contents: write
-      pages: write
-    concurrency:
-      group: secret-tv-access
-      cancel-in-progress: true
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          curl \
-          -X PUT \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REPO/environments/$STAGE
-        name: Ensure existing environment
-        env:
-          ROOT: "https://api.github.com"
-          REPO: ${{ github.repository }}
-          STAGE: "secret-tv-access"
-      - uses: actions/checkout@v3
-      - name: Run executable
-        run: |
-          ./action/index ${{github.token}} $CLIENT_ID
-        env:
-          CLIENT_ID: ${{ needs.filter.outputs.client }}
+      client: ${{ steps.client.outputs.client }}
+  get-code:
+    needs: [setup]
+    uses: ./.github/workflows/activate.yaml
+    with:
+      client: ${{ needs.setup.outputs.client }}
+    secrets:
+      token: ${{ github.token }}
+  push-code:
+    needs: [get-code]
+    uses: ./.github/workflows/pages.yaml
+    with:
+      contents: ${{ needs.get-code.outputs.text }}
+  get-token:
+    needs: [setup, get-code, push-code]
+    uses: ./.github/workflows/activate.yaml
+    with:
+      client: ${{ needs.setup.outputs.client }}
+      encrypted: ${{ needs.get-code.outputs.encrypted }}
+    secrets:
+      token: ${{ github.token }}
+  push-token:
+    needs: [get-token]
+    uses: ./.github/workflows/pages.yaml
+    with:
+      contents: ${{ needs.get-token.outputs.text }}
+  register:
+    needs: [setup, get-token, push-token]
+    uses: ./.github/workflows/activate.yaml
+    with:
+      client: ${{ needs.setup.outputs.client }}
+      encrypted: ${{ needs.get-token.outputs.encrypted }}
+    secrets:
+      token: ${{ github.token }}
+  cleanup:
+    needs: [register]
+    uses: ./.github/workflows/pages.yaml
+    with:
+      contents: ${{ needs.register.outputs.text }}

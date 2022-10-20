@@ -12,8 +12,8 @@ import type { Encrypted } from "./util/encrypt";
 
 type HasPlain = Record<"plain_text", string>;
 type HasSec = Record<"sec", Trio>;
-type Inputs = HasSec & {
-  session: string,
+export type Inputs = HasSec & {
+  ses: string,
   delay: number,
   git: Git
 }
@@ -85,7 +85,7 @@ const saveSecrets = async (inputs: SaveInputs) => {
 const inbox: Inbox = async (inputs) => {
   const wait_extra_ms = 2000;
   const namespace = configureNamespace();
-  const { git, sec, delay, session } = inputs;
+  const { git, sec, delay, ses } = inputs;
   const dt = 1000 * delay + wait_extra_ms;
   const timeout = "timeout";
   // Check for existing saved secrets
@@ -97,6 +97,7 @@ const inbox: Inbox = async (inputs) => {
     project.done = true;
     console.log('Closed inbox.')
   };
+  const session = process.env[ses] || '';
   const master_buffer = Buffer.from(session, "hex");
   const master_key = new Uint8Array(master_buffer);
   const promise = new Promise((resolve, reject) => {

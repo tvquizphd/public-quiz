@@ -6,5 +6,10 @@ declare type QM = {
     master_key: Uint8Array;
     plain_text: string;
 };
+interface DecryptQuery {
+    (s: string, pass: string): Promise<QM>;
+}
+declare function isBytes(o: any): o is Uint8Array;
 declare const decryptQueryMaster: (inputs: QMI) => QM;
-export { decryptQueryMaster };
+declare const decryptQuery: DecryptQuery;
+export { isBytes, decryptQueryMaster, decryptQuery };

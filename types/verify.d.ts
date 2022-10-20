@@ -1,13 +1,17 @@
 import type { Git } from "./util/types";
+import type { Inputs as InIn } from "./inbox";
 declare type ConfigIn = {
     login: boolean;
     delay: number;
     pep: string;
     git: Git;
 };
-declare type Output = string;
-interface Verify {
-    (i: ConfigIn): Promise<Output>;
+declare type Inputs = {
+    inbox_in: InIn;
+    log_in: ConfigIn;
+};
+interface Verifier {
+    (i: Inputs): Promise<void>;
 }
-declare const verify: Verify;
-export { verify };
+declare const verifier: Verifier;
+export { verifier };

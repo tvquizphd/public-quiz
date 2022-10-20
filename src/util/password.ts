@@ -2,17 +2,29 @@ import { fromB64urlQuery } from 'project-sock';
 import { hash, argon2d } from 'argon2';
 
 import { needKeys } from "./keys";
+import type { Options } from 'argon2';
 
-export type Digest = {
-  hash: Uint8Array,
-  salt: Uint8Array,
+type HasSalt = {
+  salt: Uint8Array
 }
+type HasHash = {
+  hash: Uint8Array
+}
+export type Digest = HasSalt & HasHash;
 export type Pass = Record<"pass", string>;
+export type SaltedPass = HasSalt & Pass;
+type ArgonOpts = Partial<Options> & {
+  raw: false
+};
+type Opts = Partial<HasSalt>;
 interface Digester {
-  (t: string): Promise<Digest>
+  (t: string, o: Opts): Promise<Digest>
+}
+interface DigestNewPass {
+  (p: Pass): Promise<Digest>
 }
 interface DigestPass {
-  (p: Pass): Promise<Digest>
+  (p: SaltedPass): Promise<Digest>
 }
 
 const isDigest = (v: any): v is Digest => {
@@ -29,8 +41,14 @@ const toUniformUrl = (str: string): string => {
   return str.replaceAll('+','-').replaceAll('/','_');
 }
 
-const digest: Digester = async (text) => {
-  const options = { type: argon2d };
+const digest: Digester = async (text, opts) => {
+  const options: ArgonOpts = { 
+    type: argon2d,
+    raw: false
+  };
+  if (opts.salt) {
+    options.salt = Buffer.from(opts.salt);
+  }
   const url = await hash(text, options);
   const [s64, h64] = url.split('$').slice(-2);
   const coded = `?salt=:${s64}&hash=:${h64}`;
@@ -42,11 +60,16 @@ const digest: Digester = async (text) => {
   throw new Error("Could not digest password");
 }
 
-const digestNewPass: DigestPass = async ({ pass }) => {
+const digestNewPass: DigestNewPass = async ({ pass }) => {
   const text = pass.normalize('NFC');
-  return await digest(text);
+  return await digest(text, {});
+}
+
+const digestPass: DigestPass = async ({ pass, salt }) => {
+  const text = pass.normalize('NFC');
+  return await digest(text, { salt });
 }
 
 export {
-  digestNewPass
+  digestNewPass, digestPass
 };

@@ -1,0 +1,30 @@
+name: deploy pages
+on:
+  workflow_call:
+    inputs:
+      contents:
+        required: true
+        type: string
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Setup pages 
+        uses: actions/configure-pages@v2
+      - name: Copy contents to Home.md
+        run: |
+          echo $CONTENTS > docs/Home.md
+        env:
+          CONTENTS: ${{ inputs.contents }}
+      - name: Upload docs
+        uses: actions/upload-pages-artifact@v1
+        with:
+          path: 'docs'
+      - id: deployment
+        name: Deploy docs
+        uses: actions/deploy-pages@v1

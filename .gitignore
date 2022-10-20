@@ -108,5 +108,6 @@ dist
 *.swo
 
 tmp-wiki
+secret.zsh
 secret.txt
 .DS_Store

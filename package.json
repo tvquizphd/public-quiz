@@ -5,11 +5,11 @@
   "scripts": {
     "tsc": "tsc",
     "action": "./action/index",
-    "build": "pnpm tsc && pnpm pkg",
+    "build": "tsc && pnpm pkg",
+    "lint": "eslint src docs",
+    "lint:src": "eslint src",
+    "lint:docs": "eslint docs",
     "develop": "ts-node src/index.ts",
-    "lint": "pnpm eslint src docs",
-    "lint:docs": "pnpm eslint docs",
-    "lint:src": "pnpm eslint src",
     "pkg": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir ./action dist/index.js"
   },
   "repository": {
