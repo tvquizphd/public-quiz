@@ -451,7 +451,6 @@ const activateCode: ActivateCode = async (main_in) => {
 }
 
 const gitEncrypt: GitEncrypt = async (inputs) => {
-  return inputs.secret;
   const ens = {
     password: inputs.git.owner_token,
     secret_text: inputs.secret
