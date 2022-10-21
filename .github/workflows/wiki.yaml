@@ -41,39 +41,102 @@ jobs:
       client: ${{ steps.client.outputs.client }}
   get-code:
     needs: [setup]
-    uses: ./.github/workflows/activate.yaml
-    with:
-      client: ${{ needs.setup.outputs.client }}
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: step
+        run: |
+          ./action/index $TOKEN $CLIENT_ID
+          TEXT=$(head -n 1 secret.txt) 
+          NEXT=$(tail -n 1 secret.txt) 
+          echo "text=$TEXT" >> $GITHUB_OUTPUT
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+        env:
+          CLIENT_ID: ${{ needs.setup.outputs.client }}
+          TOKEN: ${{ github.token }}
+    outputs:
+      next: ${{ steps.step.outputs.next }}
+      text: ${{ steps.step.outputs.text }}
+    environment:
+      name: secret-tv-access
+    runs-on: ubuntu-latest
   push-code:
     needs: [get-code]
-    uses: ./.github/workflows/pages.yaml
-    with:
-      contents: ${{ needs.get-code.outputs.text }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/configure-pages@v2
+      - run: echo $TEXT > docs/Home.md
+        env:
+          TEXT: ${{ needs.get-code.outputs.text }}
+      - uses: actions/upload-pages-artifact@v1
+        with: { path : 'docs' }
+      - id: deployment
+        uses: actions/deploy-pages@v1
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
   get-token:
     needs: [setup, get-code, push-code]
-    uses: ./.github/workflows/activate.yaml
-    with:
-      client: ${{ needs.setup.outputs.client }}
-      encrypted: ${{ needs.get-code.outputs.encrypted }}
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: step
+        run: |
+          ./action/index $TOKEN $CLIENT_ID $ENCRYPTED
+          TEXT=$(head -n 1 secret.txt) 
+          NEXT=$(tail -n 1 secret.txt) 
+          echo "text=$TEXT" >> $GITHUB_OUTPUT
+          echo "next=$NEXT" >> $GITHUB_OUTPUT
+        env:
+          ENCRYPTED: ${{ needs.get-code.outputs.next }} 
+          CLIENT_ID: ${{ needs.setup.outputs.client }}
+          TOKEN: ${{ github.token }}
+    outputs:
+      next: ${{ steps.step.outputs.next }}
+      text: ${{ steps.step.outputs.text }}
+    environment:
+      name: secret-tv-access
+    runs-on: ubuntu-latest
   push-token:
     needs: [get-token]
-    uses: ./.github/workflows/pages.yaml
-    with:
-      contents: ${{ needs.get-token.outputs.text }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/configure-pages@v2
+      - run: echo $TEXT > docs/Home.md
+        env:
+          TEXT: ${{ needs.get-token.outputs.text }}
+      - uses: actions/upload-pages-artifact@v1
+        with: { path : 'docs' }
+      - id: deployment
+        uses: actions/deploy-pages@v1
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
   register:
     needs: [setup, get-token, push-token]
-    uses: ./.github/workflows/activate.yaml
-    with:
-      client: ${{ needs.setup.outputs.client }}
-      encrypted: ${{ needs.get-token.outputs.encrypted }}
-    secrets:
-      token: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v3
+      - id: step
+        run: |
+          ./action/index $TOKEN $CLIENT_ID $ENCRYPTED
+        env:
+          ENCRYPTED: ${{ needs.get-token.outputs.next }} 
+          CLIENT_ID: ${{ needs.setup.outputs.client }}
+          TOKEN: ${{ github.token }}
+    environment:
+      name: secret-tv-access
+    runs-on: ubuntu-latest
   cleanup:
     needs: [register]
-    uses: ./.github/workflows/pages.yaml
-    with:
-      contents: ${{ needs.register.outputs.text }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/configure-pages@v2
+      - run: echo "" > docs/Home.md
+      - uses: actions/upload-pages-artifact@v1
+        with: { path : 'docs' }
+      - id: deployment
+        uses: actions/deploy-pages@v1
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
