@@ -5,6 +5,7 @@ permissions:
   pages: write
   contents: read
   id-token: write
+  deployments: write
 concurrency:
   group: secret-tv-access
   cancel-in-progress: true
