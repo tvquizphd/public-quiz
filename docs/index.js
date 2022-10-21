@@ -392,7 +392,7 @@ export default () => {
   reefMain.appendChild(rootForm);
   reefMain.appendChild(rootApp);
 
-  const { hostname, origin } = window.location;
+  const { hostname } = window.location;
   const isLocal = hostname === "localhost";
   runReef(isLocal, "reef-main", "pass-form");
 };

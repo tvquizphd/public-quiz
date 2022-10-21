@@ -15,7 +15,13 @@ function isPastedToken(p) {
 
 const toPasted = async (url) => {
   const wiki = `${url}/Home.md`;
-  const text = await (await fetch(wiki)).text();
+  const headers = {
+    "Cache-Control": "no-store",
+    "Pragma": "no-cache"
+  };
+  const opts = { headers };
+  const result = await fetch(wiki, opts);
+  const text = await (result).text();
   return fromB64urlQuery(text.replaceAll('\n',''));
 }
 

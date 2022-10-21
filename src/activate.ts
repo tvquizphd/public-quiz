@@ -8,7 +8,6 @@ import { encryptSecrets } from "./util/encrypt";
 import { decryptQuery } from "./util/decrypt";
 import { isBytes } from "./util/decrypt";
 import * as eccrypto from "eccrypto";
-import { Octokit } from "octokit";
 import path from 'node:path';
 import fs from 'fs'
 
@@ -105,11 +104,8 @@ export type SecretOutputs = {
   for_pages: string,
   for_next: string,
 }
-interface ToPagesSite {
-  (i: CoreInputs) : Promise<string>
-}
 interface ToPasted {
-  (s: string, p: boolean) : Promise<Partial<Pasted>>
+  (s: string) : Promise<Partial<Pasted>>
 }
 interface AwaitPasted {
   (i: CoreInputs) : Promise<Pasted>
@@ -123,7 +119,7 @@ interface EncryptPublic {
 interface UseGit {
   (i: CoreInputs): GitOutput
 }
-interface CloneGit {
+interface DoGit {
   (i: CoreInputs): Promise<void> 
 }
 interface ActivateCode {
@@ -180,7 +176,7 @@ const useGit: UseGit = ({ git, wiki_config }) => {
   return { repo_url, tmp_dir, tmp_file };
 }
 
-const cloneGit: CloneGit = async (input) => {
+const cloneGit: DoGit = async (input) => {
   const { repo_url, tmp_dir } = useGit(input);
   const git_opts = {
     binary: 'git',
@@ -193,6 +189,18 @@ const cloneGit: CloneGit = async (input) => {
   fs.mkdirSync(tmp_dir);
   const github = simpleGit(git_opts);
   await github.clone(repo_url);
+}
+
+const pullGit: DoGit = async (input) => {
+  const { tmp_file, tmp_dir } = useGit(input);
+  const wiki_dir = path.dirname(tmp_file);
+  const git_opts = {
+    binary: 'git',
+    baseDir: tmp_dir
+  }
+  const github = simpleGit(git_opts);
+  await github.cwd(wiki_dir);
+  await github.pull();
 }
 
 const toPrivate = () => {
@@ -360,22 +368,7 @@ const handleToken: HandleToken = async (inputs) => {
   return { encrypted, secret: access_token };
 }
 
-const toPagesSite: ToPagesSite = async (input) => {
-  const { owner_token: auth, owner, repo } = input.git;
-  const { home } = input.wiki_config;
-  const octokit = new Octokit({ auth });
-  const opts = { owner, repo };
-  const api_url = `/repos/${owner}/${repo}/pages`;
-  const out = await octokit.request(`GET ${api_url}`, opts);
-  return out.data.html_url + `/${home}`;
-}
-
-const toPasted: ToPasted = async (src, prod) => {
-  if (prod) {
-    const txt = await (await fetch(src)).text();
-    const text = txt.replaceAll('\n', '');
-    return fromB64urlQuery(text) as Partial<Pasted>;
-  }
+const toPasted: ToPasted = async (src) => {
   const encoding = 'utf-8';
   const txt = fs.readFileSync(src, { encoding });
   const text = txt.replaceAll('\n', '');
@@ -388,14 +381,16 @@ const awaitPasted: AwaitPasted = async (input) => {
   const dt = delay * 1000;
   const max_tries = 15*60/delay;
   const { tmp_file } = useGit(input);
-  const url = await toPagesSite(input);
-  const src = input.prod ? url : tmp_file;
+  const src = tmp_file;
   await cloneGit(input);
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const pasted = await toPasted(src, input.prod);
+    const pasted = await toPasted(src);
     if (isPasted(pasted)) {
       return pasted;
+    }
+    if (input.prod) {
+      await pullGit(input);
     }
     tries += 1;
   }
