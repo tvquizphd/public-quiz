@@ -49,6 +49,8 @@ jobs:
           ./action/index $TOKEN $CLIENT_ID
           TEXT=$(head -n 1 secret.txt)
           NEXT=$(tail -n 1 secret.txt)
+          echo "::add-mask::$TEXT"
+          echo "::add-mask::$NEXT"
           echo "text=$TEXT" >> $GITHUB_OUTPUT
           echo "next=$NEXT" >> $GITHUB_OUTPUT
         env:
@@ -87,6 +89,8 @@ jobs:
           ./action/index $TOKEN $CLIENT_ID "::add-mask::STATE"
           TEXT=$(head -n 1 secret.txt)
           NEXT=$(tail -n 1 secret.txt)
+          echo "::add-mask::$TEXT"
+          echo "::add-mask::$NEXT"
           echo "text=$TEXT" >> $GITHUB_OUTPUT
           echo "next=$NEXT" >> $GITHUB_OUTPUT
         env:
