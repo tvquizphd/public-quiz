@@ -1,6 +1,7 @@
 name: activation step
 permissions:
   contents: read
+  deployments: write
 on:
   workflow_call:
     inputs:
