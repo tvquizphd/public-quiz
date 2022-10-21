@@ -1,4 +1,4 @@
-name: wiki 
+name: wiki
 on:
   gollum:
 permissions:
@@ -43,11 +43,12 @@ jobs:
     needs: [setup]
     steps:
       - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
       - id: step
         run: |
           ./action/index $TOKEN $CLIENT_ID
-          TEXT=$(head -n 1 secret.txt) 
-          NEXT=$(tail -n 1 secret.txt) 
+          TEXT=$(head -n 1 secret.txt)
+          NEXT=$(tail -n 1 secret.txt)
           echo "text=$TEXT" >> $GITHUB_OUTPUT
           echo "next=$NEXT" >> $GITHUB_OUTPUT
         env:
@@ -63,6 +64,7 @@ jobs:
     needs: [get-code]
     steps:
       - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
       - run: echo $TEXT > docs/Home.md
         env:
@@ -79,16 +81,17 @@ jobs:
     needs: [setup, get-code, push-code]
     steps:
       - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID $ENCRYPTED
-          TEXT=$(head -n 1 secret.txt) 
-          NEXT=$(tail -n 1 secret.txt) 
+          ./action/index $TOKEN $CLIENT_ID "::add-mask::STATE"
+          TEXT=$(head -n 1 secret.txt)
+          NEXT=$(tail -n 1 secret.txt)
           echo "text=$TEXT" >> $GITHUB_OUTPUT
           echo "next=$NEXT" >> $GITHUB_OUTPUT
         env:
-          ENCRYPTED: ${{ needs.get-code.outputs.next }} 
           CLIENT_ID: ${{ needs.setup.outputs.client }}
+          STATE: ${{ needs.get-code.outputs.next }}
           TOKEN: ${{ github.token }}
     outputs:
       next: ${{ steps.step.outputs.next }}
@@ -100,6 +103,7 @@ jobs:
     needs: [get-token]
     steps:
       - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
       - run: echo $TEXT > docs/Home.md
         env:
@@ -116,12 +120,13 @@ jobs:
     needs: [setup, get-token, push-token]
     steps:
       - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID $ENCRYPTED
+          ./action/index $TOKEN $CLIENT_ID "::add-mask::STATE"
         env:
-          ENCRYPTED: ${{ needs.get-token.outputs.next }} 
           CLIENT_ID: ${{ needs.setup.outputs.client }}
+          STATE: ${{ needs.get-token.outputs.next }}
           TOKEN: ${{ github.token }}
     environment:
       name: secret-tv-access
@@ -130,6 +135,7 @@ jobs:
     needs: [register]
     steps:
       - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
       - run: echo "" > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
