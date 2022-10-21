@@ -45,7 +45,7 @@ jobs:
     with:
       client: ${{ needs.setup.outputs.client }}
     secrets:
-      token: ${{ github.token }}
+      token: ${{ secrets.GITHUB_TOKEN }}
   push-code:
     needs: [get-code]
     uses: ./.github/workflows/pages.yaml
@@ -58,7 +58,7 @@ jobs:
       client: ${{ needs.setup.outputs.client }}
       encrypted: ${{ needs.get-code.outputs.encrypted }}
     secrets:
-      token: ${{ github.token }}
+      token: ${{ secrets.GITHUB_TOKEN }}
   push-token:
     needs: [get-token]
     uses: ./.github/workflows/pages.yaml
@@ -71,7 +71,7 @@ jobs:
       client: ${{ needs.setup.outputs.client }}
       encrypted: ${{ needs.get-token.outputs.encrypted }}
     secrets:
-      token: ${{ github.token }}
+      token: ${{ secrets.GITHUB_TOKEN }}
   cleanup:
     needs: [register]
     uses: ./.github/workflows/pages.yaml
