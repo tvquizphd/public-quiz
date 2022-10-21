@@ -46,14 +46,13 @@ jobs:
         with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID
+          ./action/index ${{ github.token }} $CLIENT_ID
           TEXT=$(head -n 1 secret.txt)
           NEXT=$(tail -n 1 secret.txt)
           echo "text=$TEXT" >> $GITHUB_OUTPUT
           echo "next=$NEXT" >> $GITHUB_OUTPUT
         env:
           CLIENT_ID: ${{ needs.setup.outputs.client }}
-          TOKEN: ${{ github.token }}
     outputs:
       next: ${{ steps.step.outputs.next }}
       text: ${{ steps.step.outputs.text }}
@@ -84,7 +83,7 @@ jobs:
         with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID $STATE
+          ./action/index ${{ github.token }} $CLIENT_ID $STATE
           TEXT=$(head -n 1 secret.txt)
           NEXT=$(tail -n 1 secret.txt)
           echo "text=$TEXT" >> $GITHUB_OUTPUT
@@ -92,7 +91,6 @@ jobs:
         env:
           STATE: ${{ needs.get-code.outputs.next }}
           CLIENT_ID: ${{ needs.setup.outputs.client }}
-          TOKEN: ${{ github.token }}
     outputs:
       next: ${{ steps.step.outputs.next }}
       text: ${{ steps.step.outputs.text }}
@@ -123,11 +121,10 @@ jobs:
         with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID $STATE
+          ./action/index ${{ github.token }} $CLIENT_ID $STATE
         env:
           STATE: ${{ needs.get-token.outputs.next }}
           CLIENT_ID: ${{ needs.setup.outputs.client }}
-          TOKEN: ${{ github.token }}
     environment:
       name: secret-tv-access
     runs-on: ubuntu-latest
