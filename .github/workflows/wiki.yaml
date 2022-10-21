@@ -84,14 +84,13 @@ jobs:
         with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID $STATE
+          ./action/index $TOKEN $CLIENT_ID "::add-mask::${{ needs.get-code.outputs.next }}"
           TEXT=$(head -n 1 secret.txt)
           NEXT=$(tail -n 1 secret.txt)
           echo "text=$TEXT" >> $GITHUB_OUTPUT
           echo "next=$NEXT" >> $GITHUB_OUTPUT
         env:
           CLIENT_ID: ${{ needs.setup.outputs.client }}
-          STATE: "::add-mask::${{ needs.get-code.outputs.next }}"
           TOKEN: ${{ github.token }}
     outputs:
       next: ${{ steps.step.outputs.next }}
@@ -123,10 +122,9 @@ jobs:
         with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID $STATE
+          ./action/index $TOKEN $CLIENT_ID "::add-mask::${{ needs.get-token.outputs.next }}"
         env:
           CLIENT_ID: ${{ needs.setup.outputs.client }}
-          STATE: "::add-mask::${{ needs.get-token.outputs.next }}"
           TOKEN: ${{ github.token }}
     environment:
       name: secret-tv-access
