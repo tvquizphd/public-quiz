@@ -9,7 +9,7 @@ concurrency:
   group: secret-tv-access
   cancel-in-progress: true
 jobs:
-  client:
+  setup:
     runs-on: ubuntu-latest
     steps:
       - name: Create Environment
