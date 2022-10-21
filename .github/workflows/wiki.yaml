@@ -10,6 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   client:
+    runs-on: ubuntu-latest
     steps:
       - name: Create Environment
         run: |
