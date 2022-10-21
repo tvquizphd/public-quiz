@@ -168,9 +168,6 @@ const runReef = (isLocal, mainId, passFormId) => {
       navigator.clipboard.writeText(innerText).then(() => {
         wikiMailer.start();
         DATA.phase = Math.max(1, DATA.phase);
-        wikiMailer.addHandler('wiki', () => {
-          DATA.phase = Math.max(2, DATA.phase);
-        });
         wikiMailer.addHandler('code', (pasted) => {
           DATA.phase = Math.max(2, DATA.phase);
           const decrypt_in = { ...pasted, priv };

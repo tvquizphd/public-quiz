@@ -1,10 +1,5 @@
 import { fromB64urlQuery } from "project-sock";
 
-function isPastedPub(p) {
-  const n_keys = Object.keys(p).length;
-  return !!p.pub && n_keys === 1;
-}
-
 function isPastedCode(p) {
   return !!p.pub && !!p.code;
 }
@@ -35,7 +30,7 @@ class WikiMailer {
     this.host = host;
     this.done = true;
     this.handlers = {
-      'wiki': [],
+      'token': [],
       'code': []
     };
   }
@@ -49,15 +44,10 @@ class WikiMailer {
         const { token: data, pub } = pasted;
         this.handle('token', { data, pub });
         this.handlers.code = [];
-        this.handlers.wiki = [];
       }
       else if (isPastedCode(pasted)) {
         const { code: data, pub } = pasted;
         this.handle('code', { data, pub });
-        this.handlers.wiki = [];
-      }
-      else if (isPastedPub(pasted)) {
-        this.handle('wiki', pasted);
       }
     }
   }
