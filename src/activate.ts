@@ -4,8 +4,8 @@ import { printSeconds } from "./util/time";
 import { addSecret } from "./util/secrets";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { encryptQueryMaster } from "./util/encrypt";
-//import { encryptSecrets } from "./util/encrypt"; //TODO
-//import { decryptQuery } from "./util/decrypt"; //TODO
+import { encryptSecrets } from "./util/encrypt";
+import { decryptQuery } from "./util/decrypt";
 import { isBytes } from "./util/decrypt";
 import * as eccrypto from "eccrypto";
 import path from 'node:path';
@@ -450,25 +450,20 @@ const activateCode: ActivateCode = async (main_in) => {
   return outputs;
 }
 
-const gitEncrypt: GitEncrypt = async (inputs) => { //TODO
+const gitEncrypt: GitEncrypt = async (inputs) => {
   return inputs.secret;
-  /*
   const ens = {
     password: inputs.git.owner_token,
     secret_text: inputs.secret
   };
   const encrypted = await encryptSecrets(ens);
   return toB64urlQuery(encrypted);
-  */
 }
 
-const gitDecrypt: GitDecrypt = async (inputs) => { //TODO
-  /*
+const gitDecrypt: GitDecrypt = async (inputs) => {
   const pass = inputs.git.owner_token;
   const secret = inputs.secret.replaceAll('\n', '');
   const { plain_text } = await decryptQuery(secret, pass);
-  */
-  const plain_text = inputs.secret.replaceAll('\n', '');
   const decoded = fromB64urlQuery(plain_text);
   if (isSecretInputs(decoded)) {
     return decoded;

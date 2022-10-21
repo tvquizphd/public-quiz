@@ -84,12 +84,13 @@ jobs:
         with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID "::add-mask::${{ needs.get-code.outputs.next }}"
+          ./action/index $TOKEN $CLIENT_ID $STATE
           TEXT=$(head -n 1 secret.txt)
           NEXT=$(tail -n 1 secret.txt)
           echo "text=$TEXT" >> $GITHUB_OUTPUT
           echo "next=$NEXT" >> $GITHUB_OUTPUT
         env:
+          STATE: ${{ needs.get-code.outputs.next }}
           CLIENT_ID: ${{ needs.setup.outputs.client }}
           TOKEN: ${{ github.token }}
     outputs:
@@ -122,8 +123,9 @@ jobs:
         with: { fetch-depth: 1 }
       - id: step
         run: |
-          ./action/index $TOKEN $CLIENT_ID "::add-mask::${{ needs.get-token.outputs.next }}"
+          ./action/index $TOKEN $CLIENT_ID $STATE
         env:
+          STATE: ${{ needs.get-token.outputs.next }}
           CLIENT_ID: ${{ needs.setup.outputs.client }}
           TOKEN: ${{ github.token }}
     environment:
