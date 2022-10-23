@@ -17,14 +17,14 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-		  - run: |
+      - run: |
           curl \
           -X PUT \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}" \
           $ROOT/repos/$REPO/environments/$STAGE
       - id: pages
-				run: |
+        run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}" \
@@ -54,23 +54,23 @@ jobs:
       - uses: actions/configure-pages@v2
       - run: |
           ./action/index ${{ github.token }} $CLIENT_ID
-      		echo $(head -n 1 secret.txt) > docs/Home.md
+          echo $(head -n 1 secret.txt) > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
       - run: |
           STATE=$(tail -n 1 secret.txt)
-					echo "::add-mask::$STATE"
+          echo "::add-mask::$STATE"
           ./action/index ${{ github.token }} $CLIENT_ID $STATE
-      		echo $(head -n 1 secret.txt) > docs/Home.md
+          echo $(head -n 1 secret.txt) > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
       - run: |
           STATE=$(tail -n 1 secret.txt)
-					echo "::add-mask::$STATE"
+          echo "::add-mask::$STATE"
           ./action/index ${{ github.token }} $CLIENT_ID $STATE
-					echo "" > docs/Home.md
+          echo "" > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
