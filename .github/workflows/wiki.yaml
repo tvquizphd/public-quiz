@@ -47,6 +47,8 @@ jobs:
     environment:
       name: github-pages
       url: ${{ needs.setup.outputs.pages }}
+    env:
+      CLIENT_ID: ${{ needs.setup.outputs.client }}
     needs: [setup]
     steps:
       - uses: actions/checkout@v3
@@ -55,21 +57,23 @@ jobs:
       - run: |
           ./action/index ${{ github.token }} $CLIENT_ID
           echo $(head -n 1 secret.txt) > docs/Home.md
+          STATE=$(tail -n 1 secret.txt)
+          echo "::add-mask::$STATE"
+          echo "state=$STATE" >> $GITHUB_ENV
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
       - run: |
-          STATE=$(tail -n 1 secret.txt)
-          echo "::add-mask::$STATE"
-          ./action/index ${{ github.token }} $CLIENT_ID $STATE
+          ./action/index ${{ github.token }} $CLIENT_ID ${{ env.state }}
           echo $(head -n 1 secret.txt) > docs/Home.md
+          STATE=$(tail -n 1 secret.txt)
+          echo "::add-mask::$STATE"
+          echo "state=$STATE" >> $GITHUB_ENV
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
       - run: |
-          STATE=$(tail -n 1 secret.txt)
-          echo "::add-mask::$STATE"
-          ./action/index ${{ github.token }} $CLIENT_ID $STATE
+          ./action/index ${{ github.token }} $CLIENT_ID ${{ env.state }}
           echo "" > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
