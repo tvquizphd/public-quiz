@@ -455,6 +455,8 @@ const gitEncrypt: GitEncrypt = async (inputs) => { //TODO remove
 const gitDecrypt: GitDecrypt = async (inputs) => { //TODO rename
   const plain_text = inputs.secret.replaceAll('\n', '');
   const decoded = fromB64urlQuery(plain_text);
+  console.log('TODO')
+  console.log(Object.keys(decoded))
   if (isSecretInputs(decoded)) {
     return decoded;
   }
