@@ -9,132 +9,68 @@ permissions:
 concurrency:
   group: secret-tv-access
   cancel-in-progress: true
+env:
+  ROOT: "https://api.github.com"
+  REPO: ${{ github.repository }}
+  STAGE: "secret-tv-access"
 jobs:
   setup:
     runs-on: ubuntu-latest
     steps:
-      - name: Create Environment
-        run: |
+		  - run: |
           curl \
           -X PUT \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}" \
           $ROOT/repos/$REPO/environments/$STAGE
-        env:
-          ROOT: "https://api.github.com"
-          REPO: ${{ github.repository }}
-          STAGE: "secret-tv-access"
+      - id: pages
+				run: |
+          JSON=$(curl \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{github.token}}" \
+          $ROOT/repos/$REPO/pages);
+          PAGES_URL=$(jq -r '.html_url' <<< $JSON);
+          echo "pages=$PAGES_URL" >> $GITHUB_OUTPUT
       - id: client
-        name: Read client ID
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}" \
           $ROOT/repos/$REPO);
           CLIENT=$(jq -r '.description' <<< $JSON);
-          echo "Using OAuth App $CLIENT";
           echo "client=$CLIENT" >> $GITHUB_OUTPUT
-        env:
-          ROOT: "https://api.github.com"
-          REPO: ${{ github.repository }}
     outputs:
+      pages: ${{ steps.pages.outputs.pages }}
       client: ${{ steps.client.outputs.client }}
-  get-code:
+  code_and_token:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ needs.setup.outputs.pages }}
     needs: [setup]
     steps:
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
-      - id: step
-        run: |
+      - uses: actions/configure-pages@v2
+      - run: |
           ./action/index ${{ github.token }} $CLIENT_ID
-          TEXT=$(head -n 1 secret.txt)
-          echo "text=$TEXT" >> $GITHUB_OUTPUT
-        env:
-          CLIENT_ID: ${{ needs.setup.outputs.client }}
-    outputs:
-      text: ${{ steps.step.outputs.text }}
-    environment:
-      name: secret-tv-access
-    runs-on: ubuntu-latest
-  push-code:
-    needs: [get-code]
-    steps:
-      - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
-      - uses: actions/configure-pages@v2
-      - run: echo $TEXT > docs/Home.md
-        env:
-          TEXT: ${{ needs.get-code.outputs.text }}
+      		echo $(head -n 1 secret.txt) > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
-      - id: deployment
-        uses: actions/deploy-pages@v1
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-  get-token:
-    needs: [setup, get-code, push-code]
-    steps:
-      - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
-      - id: step
-        run: |
+      - uses: actions/deploy-pages@v1
+      - run: |
+          STATE=$(tail -n 1 secret.txt)
+					echo "::add-mask::$STATE"
           ./action/index ${{ github.token }} $CLIENT_ID $STATE
-          TEXT=$(head -n 1 secret.txt)
-          echo "text=$TEXT" >> $GITHUB_OUTPUT
-        env:
-          STATE: ${{secrets.STATE}}
-          CLIENT_ID: ${{ needs.setup.outputs.client }}
-    outputs:
-      next: ${{ steps.step.outputs.next }}
-      text: ${{ steps.step.outputs.text }}
-    environment:
-      name: secret-tv-access
-    runs-on: ubuntu-latest
-  push-token:
-    needs: [get-token]
-    steps:
-      - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
-      - uses: actions/configure-pages@v2
-      - run: echo $TEXT > docs/Home.md
-        env:
-          TEXT: ${{ needs.get-token.outputs.text }}
+      		echo $(head -n 1 secret.txt) > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
-      - id: deployment
-        uses: actions/deploy-pages@v1
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-  register:
-    needs: [setup, get-token, push-token]
-    steps:
-      - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
-      - id: step
-        run: |
+      - uses: actions/deploy-pages@v1
+      - run: |
+          STATE=$(tail -n 1 secret.txt)
+					echo "::add-mask::$STATE"
           ./action/index ${{ github.token }} $CLIENT_ID $STATE
-        env:
-          STATE: ${{secrets.STATE}}
-          CLIENT_ID: ${{ needs.setup.outputs.client }}
-    environment:
-      name: secret-tv-access
-    runs-on: ubuntu-latest
-  cleanup:
-    needs: [register]
-    steps:
-      - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
-      - uses: actions/configure-pages@v2
-      - run: echo "" > docs/Home.md
+					echo "" > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
-      - id: deployment
-        uses: actions/deploy-pages@v1
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+      - uses: actions/deploy-pages@v1

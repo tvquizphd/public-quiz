@@ -1,5 +1,5 @@
 import { isGit, gitDecrypt, activation } from "./activate";
-import { addSecret, isProduction } from "./util/secrets";
+import { isProduction } from "./util/secrets";
 import { graphql } from "@octokit/graphql";
 import { undeploy } from "project-sock";
 import { verifier } from "./verify";
@@ -16,7 +16,7 @@ type Result = {
   message: string;
 }
 interface WriteSecretText {
-  (g: Git, i: Partial<SecretOutputs>): void;
+  (i: Partial<SecretOutputs>): void;
 }
 
 function isTrio(args: string[]): args is Trio {
@@ -47,14 +47,12 @@ async function lockDeployment(git: Git) {
   console.log("No active action to undeploy");
 }
 
-const writeSecretText: WriteSecretText = (git, inputs) => {
+const writeSecretText: WriteSecretText = (inputs) => {
   const out_file = "secret.txt";
-  const secret = inputs?.for_next || "";
-  const for_pages = inputs?.for_pages || "";
-  fs.writeFileSync(out_file, for_pages);
+  const a = inputs?.for_pages || "";
+  const b = inputs?.for_next || "";
+  fs.writeFileSync(out_file, `${a}\n${b}`);
   console.log(`Wrote to ${out_file}.`);
-  addSecret({ git, secret, name: "STATE" });
-  console.log(`Wrote STATE secret.\n`);
 }
 
 (async (): Promise<Result> => {
@@ -119,7 +117,7 @@ const writeSecretText: WriteSecretText = (git, inputs) => {
         const core = { prod, delay, wiki_config };
         const out = await toCode({ ...basic, ...core });
         console.log("Created GitHub code.\n");
-        writeSecretText(git, out);
+        writeSecretText(out);
       }
       catch (e: any) {
         console.error(e?.message);
@@ -147,12 +145,12 @@ const writeSecretText: WriteSecretText = (git, inputs) => {
           console.log('Verified user.');
         }
         catch (e: any) {
-          writeSecretText(git, {});
+          writeSecretText({});
           console.error(e?.message);
           const message = "Unable to verify";
           return { success: false, message };
         }
-        writeSecretText(git, {});
+        writeSecretText({});
       }
       else {
         console.log(`Creating GitHub Token.`);
@@ -161,7 +159,7 @@ const writeSecretText: WriteSecretText = (git, inputs) => {
           const core = { code_outputs, tok };
           const out = await toToken({ ...basic, ...core });
           console.log("Created GitHub token.\n");
-          writeSecretText(git, out);
+          writeSecretText(out);
         }
         catch (e: any) {
           console.error(e?.message);
