@@ -3,11 +3,11 @@
 - Add [GitHub Pages](../../settings/pages) sourced from GitHub Actions to this repository.
 - Set [personal OAuth App](https://github.com/settings/developers) client ID as this repository's description.
 
-Follow these steps on [pass.tvquizphd.com](https://pass.tvquizphd.com):
+Follow all steps on [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
-1. Copy a temporary public key for ECIES encryption.
-2. Paste to this repo's wiki's `Home.md` to trigger registration.
-3. Use new one-time code on GitHub as to authorize [the OAuth App](https://github.com/settings/applications).
+1. Copy one-time ECIES public key.
+2. Paste key to the wiki's `Home.md`.
+3. Use one-time GitHub code for [OAuth App](https://github.com/settings/applications).
 4. Choose a secure master password.
 
 The page will generate a link to visit on each login.
