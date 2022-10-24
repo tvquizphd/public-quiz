@@ -9,6 +9,10 @@ on:
 jobs:
   environment:
     uses: ./.github/workflows/environment.yaml
+    permissions:
+      pages: write
+      contents: read
+      id-token: write
     with:
       remote: ${{ github.repository }}
       deployment: PRODUCTION-LOGIN
