@@ -1,11 +1,6 @@
 name: wiki
 on:
   gollum:
-permissions:
-  pages: write
-  contents: read
-  id-token: write
-  deployments: write
 concurrency:
   group: PRODUCTION-LOGIN
   cancel-in-progress: true
@@ -16,6 +11,10 @@ env:
 jobs:
   setup:
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      contents: write
+      id-token: write
     steps:
       - run: |
           curl \
@@ -44,6 +43,11 @@ jobs:
       client: ${{ steps.client.outputs.client }}
   code_and_token:
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      contents: read
+      id-token: write
+      deployments: write
     environment:
       name: github-pages
       url: ${{ needs.setup.outputs.pages }}
