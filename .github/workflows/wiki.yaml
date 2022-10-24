@@ -57,7 +57,7 @@ jobs:
       - uses: actions/configure-pages@v2
       - run: |
           echo "" > secret.txt
-          ./action/index NONE $CLIENT_ID
+          ./action/index ${{ github.token }} $CLIENT_ID
           echo $(head -n 1 secret.txt) > docs/Home.md
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -67,7 +67,7 @@ jobs:
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
       - run: |
-          ./action/index NONE $CLIENT_ID "${{ env.state }}"
+          ./action/index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
           echo $(head -n 1 secret.txt) > docs/Home.md
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -77,7 +77,7 @@ jobs:
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
       - run: |
-          ./action/index NONE $CLIENT_ID "${{ env.state }}"
+          ./action/index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
           curl -o "docs/$CSV" "$PAGES/$CSV"
           echo "" > docs/Home.md
       - uses: actions/upload-pages-artifact@v1
