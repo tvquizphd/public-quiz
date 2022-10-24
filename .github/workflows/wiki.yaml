@@ -5,6 +5,7 @@ permissions:
   pages: write
   contents: read
   id-token: write
+  deployments: write
 concurrency:
   group: PRODUCTION-LOGIN
   cancel-in-progress: true
