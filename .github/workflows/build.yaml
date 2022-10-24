@@ -7,6 +7,14 @@ on:
     tags:
       - '*'
 jobs:
+  environment:
+    uses: ./.github/workflows/environment.yaml
+    with:
+      remote: ${{ github.repository }}
+      deployment: PRODUCTION-LOGIN
+    concurrency:
+      group: PRODUCTION-LOGIN
+      cancel-in-progress: true
   build:
     runs-on: ubuntu-latest
     permissions:

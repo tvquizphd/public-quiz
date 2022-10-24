@@ -1,6 +1,7 @@
 import { graphql } from "@octokit/graphql";
 import { deploy } from "project-sock";
 import OP from "../scripts/opaque.js";
+import { toEnv } from "../config/environment.js";
 import { findOp, toSock } from "../scripts/finders.js";
 import { configureNamespace } from "../config/sock.js";
 import { decryptQuery } from "../scripts/decrypt.js";
@@ -49,14 +50,13 @@ async function outage() {
   });
 }
 
-async function triggerGithubAction(local, git) {
+async function triggerGithubAction(local, env, git) {
   if (local) {
     console.log('DEVELOPMENT: please run action locally.');
     return;
   }
   console.log('PRODUCTION: calling GitHub action.');
   const { repo, owner } = git;
-  const metadata = { env: "development" };
   const accept = "application/vnd.github.flash-preview+json";
   const octograph = graphql.defaults({
     headers: {
@@ -64,6 +64,7 @@ async function triggerGithubAction(local, git) {
       authorization: `token ${git.token}`,
     }
   });
+  const metadata = { env };
   const opts = { repo, owner, octograph, metadata };
   try {
     await deploy(opts);
@@ -107,14 +108,15 @@ async function decryptWithPassword (event) {
   const result = await decryptQuery(search, pass);
   const master_key = result.master_key;
   const api_token = result.plain_text;
+  const { env, remote } = await toEnv();
   const git = {
     token: api_token,
-    owner: "tvquizphd",
-    repo: "public-quiz-device"
+    owner: remote[0],
+    repo: remote[1] 
   }
   const delay = 1;
   const times = 1000;
-  await triggerGithubAction(DATA.local, git);
+  await triggerGithubAction(DATA.local, env, git);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
   DATA.loading.socket = false;
@@ -169,8 +171,9 @@ const API = {
 const EMPTY_NEW = [ [""], [""], ["","",""] ];
 const EMPTY_TABLES = [ [], [], [] ];
 
-const runReef = (hasLocal, mainId, passFormId) => {
+const runReef = (hasLocal) => {
 
+  const passFormId = "pass-form";
   const {store, component} = window.reef;
 
   // Create reactive data store
@@ -462,7 +465,7 @@ const runReef = (hasLocal, mainId, passFormId) => {
   }
 
   // Create reactive component
-  component(`#${mainId}`, appTemplate);
+  component(`#reef-main`, appTemplate);
 
   document.addEventListener('reef:render', renderHandler);
   document.addEventListener('submit', submitHandler);
@@ -482,5 +485,5 @@ export default () => {
   reefMain.appendChild(rootApp);
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
-  runReef(hasLocal, "reef-main", "pass-form");
+  runReef(hasLocal);
 };

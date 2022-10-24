@@ -14,6 +14,7 @@ declare type CoreInputs = HasGit & {
 declare type MainCodeInputs = BasicInputs & CoreInputs;
 declare type MainTokenInputs = BasicInputs & {
     code_outputs: CodeOutputs;
+    env: string;
     tok: string;
 };
 declare type WikiConfig = {

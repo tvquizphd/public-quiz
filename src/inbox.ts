@@ -14,6 +14,7 @@ type HasPlain = Record<"plain_text", string>;
 type HasSec = Record<"sec", Trio>;
 export type Inputs = HasSec & {
   ses: string,
+  env: string,
   delay: number,
   git: Git
 }
@@ -21,6 +22,7 @@ type HasSecrets = {
   secrets: Record<string, string>
 }
 type SaveInputs = HasSec & HasSecrets & {
+  env: string,
   git: Git
 }
 type Output = {
@@ -48,7 +50,7 @@ const deserialize_trio: FromTrio = ({ sec, plain_text }) => {
 }
 
 const saveSecrets = async (inputs: SaveInputs) => {
-  const { git, sec, secrets } = inputs;
+  const { git, sec, env, secrets } = inputs;
   try {
     needKeys(secrets, sec);
   }
@@ -62,7 +64,8 @@ const saveSecrets = async (inputs: SaveInputs) => {
   })
   const promises = entries.map(([name, secret]) => {
     return new Promise((resolve, reject) => {
-      addSecret({git, secret, name}).then(() => {
+      const add_args = {git, secret, name, env}
+      addSecret(add_args).then(() => {
         resolve(null);
       }).catch((e) => {
         reject(e);
@@ -85,7 +88,7 @@ const saveSecrets = async (inputs: SaveInputs) => {
 const inbox: Inbox = async (inputs) => {
   const wait_extra_ms = 2000;
   const namespace = configureNamespace();
-  const { git, sec, delay, ses } = inputs;
+  const { git, sec, env, delay, ses } = inputs;
   const dt = 1000 * delay + wait_extra_ms;
   const timeout = "timeout";
   // Check for existing saved secrets
@@ -115,7 +118,7 @@ const inbox: Inbox = async (inputs) => {
     const query_input = { master_key, search };
     const { plain_text } = decryptQueryMaster(query_input);
     const { secrets, trio } = deserialize_trio({ sec, plain_text });
-    const done = await saveSecrets({ git, sec, secrets });
+    const done = await saveSecrets({ git, sec, env, secrets });
     clean_up();
     if (done) {
       console.log("\nImported secrets.");

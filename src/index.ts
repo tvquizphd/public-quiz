@@ -12,8 +12,11 @@ import type { SecretOutputs } from "./activate"
 
 type Duo = [string, string];
 type Result = {
-  success: boolean;
-  message: string;
+  success: boolean,
+  message: string
+}
+type Meta = {
+  env: string
 }
 interface WriteSecretText {
   (i: Partial<SecretOutputs>): void;
@@ -31,9 +34,8 @@ function isOne(args: string[]): args is [string] {
   return args.length === 1;
 } 
 
-async function lockDeployment(git: Git) {
+async function lockDeployment(git: Git, metadata: Meta) {
   const { repo, owner } = git;
-  const metadata = { env: "development" };
   const octograph = graphql.defaults({
     headers: {
       authorization: `token ${git.owner_token}`,
@@ -67,11 +69,20 @@ const writeSecretText: WriteSecretText = (inputs) => {
   const pep = "ROOT_PEPPER";
   const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
   const env_all = [ses, tok, pep, "STATE", ...sec];
+  const remote = process.env.REMOTE?.split("/") || [];
+  const env = process.env.DEPLOYMENT || "";
+  if (!isDuo(remote)) {
+    const message = "Invalid env: REMOTE";
+    return { success: false, message };
+  }
+  if (env.length < 1) {
+    const message = "Invalid env: DEPLOYMENT";
+    return { success: false, message };
+  }
   const git = {
-    owner: "tvquizphd",
+    repo: remote[1],
+    owner: remote[0],
     owner_token: args[0],
-    repo: "public-quiz-device",
-    email: "tvquizphd@gmail.com"
   }
   const wiki_config = {
     home: "Home.md",
@@ -85,7 +96,7 @@ const writeSecretText: WriteSecretText = (inputs) => {
   else {
     console.log('PRODUCTION\n');
     try {
-      await lockDeployment(git);
+      await lockDeployment(git, { env });
     }
     catch (e: any) {
       console.error(e?.message);
@@ -94,7 +105,7 @@ const writeSecretText: WriteSecretText = (inputs) => {
     }
   }
   const login = isOne(args);
-  const v_in = { git, delay };
+  const v_in = { git, env, delay };
   const inbox_in = { ...v_in, sec, ses };
   const log_in = { ...v_in, pep, login };
   if (login) {
@@ -156,7 +167,7 @@ const writeSecretText: WriteSecretText = (inputs) => {
         console.log(`Creating GitHub Token.`);
         try {
           const code_outputs = secret_in;
-          const core = { code_outputs, tok };
+          const core = { code_outputs, tok, env };
           const out = await toToken({ ...basic, ...core });
           console.log("Created GitHub token.\n");
           writeSecretText(out);

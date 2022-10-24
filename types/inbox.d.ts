@@ -2,6 +2,7 @@ import type { Git, Trio } from "./util/types";
 declare type HasSec = Record<"sec", Trio>;
 export declare type Inputs = HasSec & {
     ses: string;
+    env: string;
     delay: number;
     git: Git;
 };

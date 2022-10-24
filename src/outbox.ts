@@ -21,6 +21,7 @@ type HasTrio = Record<"trio", Trio>;
 type Inputs = HasTrio & {
   creds: OkCreds,
   delay: number,
+  env: string,
   git: Git
 }
 
@@ -48,11 +49,11 @@ const outbox = async (inputs: Inputs) => {
   const namespace = configureNamespace();
   const { secret, name } = inputs.creds;
   const master_key = to_bytes(secret);
-  const { git, trio, delay } = inputs;
+  const { git, env, trio, delay } = inputs;
   const sock_inputs = { git, delay, namespace };
   const Sock = await toSock(sock_inputs, "mailbox");
   try {
-    await addSecret({git, secret, name});
+    await addSecret({git, env, secret, name});
   }
   catch (e: any) {
     console.error("Unable to save new session key.");

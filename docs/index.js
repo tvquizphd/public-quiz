@@ -1,11 +1,11 @@
 import { 
-  fromB64urlQuery, toB64urlQuery, deploy
+  fromB64urlQuery, toB64urlQuery 
 } from "project-sock";
-import { graphql } from "@octokit/graphql";
 import * as eccrypto from "eccrypto/browser";
 import { WikiMailer } from "./scripts/wiki.js";
 import { decryptQueryMaster } from "./scripts/decrypt.js";
 import { encryptSecrets } from "./scripts/encrypt.js";
+import { toEnv } from "../config/environment.js";
 import { configureNamespace } from "./config/sock.js";
 import { findOp, toSock } from "./scripts/finders.js";
 import OP from "./scripts/opaque.js";
@@ -72,30 +72,6 @@ async function toOpaqueSock(inputs) {
   return Sock;
 }
 
-async function triggerGithubAction(local, git) {
-  if (local) {
-    console.log('DEVELOPMENT: please run action locally.');
-    return;
-  }
-  console.log('PRODUCTION: calling GitHub action.');
-  const { repo, owner } = git;
-  const metadata = { env: "development" };
-  const accept = "application/vnd.github.flash-preview+json";
-  const octograph = graphql.defaults({
-    headers: {
-      accept,
-      authorization: `token ${git.token}`,
-    }
-  });
-  const opts = { repo, owner, octograph, metadata };
-  try {
-    await deploy(opts);
-  }
-  catch (e) {
-    console.log(e?.message);
-  }
-}
-
 async function encryptWithPassword (event, DATA) {
   event.preventDefault();
   DATA.loading.socket = true;
@@ -113,7 +89,6 @@ async function encryptWithPassword (event, DATA) {
     secret_text: token,
   }
   const delay = 1;
-  await triggerGithubAction(DATA.local, git);
   const result = await encryptSecrets(to_encrypt);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
@@ -127,8 +102,9 @@ async function encryptWithPassword (event, DATA) {
   return result;
 }
 
-const runReef = (isLocal, mainId, passFormId) => {
+const runReef = (hasLocal, remote) => {
 
+  const passFormId = "pass-form";
   const host = window.location.origin; //TODO
   let {store, component} = window.reef;
 
@@ -136,7 +112,7 @@ const runReef = (isLocal, mainId, passFormId) => {
 
   // Create reactive data store
   let DATA = store({
-    local: isLocal,
+    local: hasLocal,
     failure: false,
     login: null,
     code: null,
@@ -144,8 +120,8 @@ const runReef = (isLocal, mainId, passFormId) => {
     host,
     git: {
       token: null,
-      owner: "tvquizphd",
-      repo: "public-quiz-device"
+      owner: remote[0],
+      repo: remote[1]
     },
     loading: {
       socket: false,
@@ -375,7 +351,7 @@ const runReef = (isLocal, mainId, passFormId) => {
   }
 
   // Create reactive component
-  component(`#${mainId}`, appTemplate);
+  component(`#reef-main`, appTemplate);
   document.addEventListener('submit', submitHandler);
   document.addEventListener('click', clickHandler);
 }
@@ -390,6 +366,8 @@ export default () => {
   reefMain.appendChild(rootApp);
 
   const { hostname } = window.location;
-  const isLocal = hostname === "localhost";
-  runReef(isLocal, "reef-main", "pass-form");
+  const hasLocal = hostname === "localhost";
+  toEnv().then(({ remote }) => {
+    runReef(hasLocal, remote);
+  });
 };

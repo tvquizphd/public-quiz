@@ -22,6 +22,7 @@ type ConfigIn = {
   login: boolean,
   delay: number,
   pep: string,
+  env: string,
   git: Git
 }
 interface COS {
@@ -31,6 +32,7 @@ type PepperInputs = NameInterface & {
   Opaque: Op,
   Sock: Socket,
   times: number,
+  env: string,
   pep: string,
   git: Git
 }
@@ -65,7 +67,7 @@ const isPepper = (t: TreeAny): t is Pepper => {
 }
 
 const toPepper: ToPepper = async (inputs) => {
-  const { git, times, pep } = inputs;
+  const { git, env, times, pep } = inputs;
   const { Opaque, Sock } = inputs;
   const secret_str = process.env[pep] || '';
   const pepper = fromB64urlQuery(secret_str);
@@ -81,7 +83,8 @@ const toPepper: ToPepper = async (inputs) => {
     throw new Error('Unable to register Opaque client');
   }
   const secret = toB64urlQuery(reg.pepper);
-  addSecret({git, secret, name: pep}).then(() => {
+  const add_inputs = {git, secret, env, name: pep};
+  addSecret(add_inputs).then(() => {
     console.log('Saved pepper to secrets.');
   }).catch((e: any) => {
     console.error('Can\'t save pepper to secrets.');
@@ -108,7 +111,7 @@ const toOpaqueSock = async (inputs: SockInputs) => {
 }
 
 const verify: Verify = (config_in) => {
-  const { git, pep, login, delay } = config_in;
+  const { git, env, pep, login, delay } = config_in;
   const namespace: Namespace = configureNamespace();
   const opaque: NameInterface = namespace.opaque;
   const user = "root";
@@ -117,7 +120,7 @@ const verify: Verify = (config_in) => {
   return new Promise((resolve: Resolver) => {
     toOpaqueSock(user_inputs).then(({ Opaque, Sock }) => {
       const pepper_inputs = {
-        ...opaque, git, pep, times, Opaque, Sock
+        ...opaque, git, env, pep, times, Opaque, Sock
       };
       // Authenticate server with opaque sequence
       const op = findOp(opaque, "registered");
@@ -152,9 +155,9 @@ const verifier: Verifier = async (inputs) => {
     creds.secret = session;
   }
   if (creds.login && !!creds.secret) {
-    const { git, delay } = inbox_in;
+    const { git, env, delay } = inbox_in;
     console.log("\nVerified your credentials.");
-    const outbox_in = { git, delay, creds, trio };
+    const outbox_in = { git, env, delay, creds, trio };
     const exported = await outbox(outbox_in);
     if (exported) {
       console.log("\nExported your secrets.");

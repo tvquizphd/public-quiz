@@ -2,6 +2,10 @@ name: login
 on:
   deployment:
   workflow_dispatch:
+env:
+  ROOT: "https://api.github.com"
+  REMOTE: ${{ github.repository }}
+  DEPLOYMENT: PRODUCTION-LOGIN
 jobs:
   filter:
     runs-on: ubuntu-latest
@@ -14,27 +18,22 @@ jobs:
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REPO/deployments?environment=$STAGE);
+          $ROOT/repos/$REMOTE/deployments?environment=$DEPLOYMENT);
           OUTPUT=$(jq -r '.[0].environment' <<< $JSON);
           echo "deployment environment is $OUTPUT";
           echo "approved=$OUTPUT" >> $GITHUB_OUTPUT
-        env:
-          ROOT: "https://api.github.com"
-          REPO: ${{ github.repository }}
-          STAGE: "development"
     outputs:
       approved: ${{ steps.deployment.outputs.approved }}
   login:
     needs: [filter]
-    if: needs.filter.outputs.approved == 'development'
+    if: needs.filter.outputs.approved == 'PRODUCTION-LOGIN'
     permissions:
-      deployments: write
       contents: read
     concurrency:
-      group: secret-tv-access
+      group: PRODUCTION-LOGIN
       cancel-in-progress: true
     environment:
-        name: secret-tv-access
+      name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
     steps:
       - run: |

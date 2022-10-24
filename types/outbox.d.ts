@@ -12,6 +12,7 @@ declare type HasTrio = Record<"trio", Trio>;
 declare type Inputs = HasTrio & {
     creds: OkCreds;
     delay: number;
+    env: string;
     git: Git;
 };
 declare function isOkCreds(c: Creds): c is OkCreds;

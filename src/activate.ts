@@ -34,6 +34,7 @@ type AskInputs = HasClient & {
 type MainCodeInputs = BasicInputs & CoreInputs;
 type MainTokenInputs = BasicInputs & {
   code_outputs: CodeOutputs,
+  env: string,
   tok: string,
 };
 type WikiConfig = {
@@ -164,10 +165,10 @@ const encryptPublic: EncryptPublic = async (inputs) => {
 }
 
 const useGit: UseGit = ({ git, wiki_config }) => {
-  const { owner, owner_token, repo } = git;
+  const { owner, repo } = git;
   const { tmp, home } = wiki_config;
+  const login = `git@github.com`;
   const wiki = `${repo}.wiki`;
-  const login = `${owner}:${owner_token}@github.com`;
   const repo_url = `https://${login}/${owner}/${wiki}.git`;
   const tmp_dir = path.relative(process.cwd(), tmp);
   const tmp_file = path.join(tmp_dir, wiki, home);
@@ -239,7 +240,7 @@ function isAuthSuccess(a: AskOutputs): a is AuthSuccess {
 }
 
 function isGit(a: SecretInputs): a is Git {
-  const keys = 'repo owner email owner_token';
+  const keys = 'repo owner owner_token';
   const g = a as Git;
   try {
     needKeys(g, keys.split(' '));
@@ -375,12 +376,12 @@ const toPasted: ToPasted = async (src) => {
 
 const awaitPasted: AwaitPasted = async (input) => {
   let tries = 0;
-  const { delay } = input;
-  const dt = delay * 1000;
-  const max_tries = 15*60/delay;
-  const { tmp_file } = useGit(input);
-  const src = tmp_file;
-  await cloneGit(input);
+  const dt = input.delay * 1000;
+  const max_tries = 15*60/input.delay;
+  const { tmp_file: src } = useGit(input);
+  if (input.prod) {
+    await cloneGit(input);
+  }
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     const pasted = await toPasted(src);
@@ -493,6 +494,7 @@ const activateToken: ActivateToken = async (inputs) => {
   const add_inputs = { 
     name: tok,
     git: user_git,
+    env: inputs.env,
     secret: token_out.secret
   };
   try {

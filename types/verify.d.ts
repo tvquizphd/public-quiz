@@ -4,6 +4,7 @@ declare type ConfigIn = {
     login: boolean;
     delay: number;
     pep: string;
+    env: string;
     git: Git;
 };
 declare type Inputs = {

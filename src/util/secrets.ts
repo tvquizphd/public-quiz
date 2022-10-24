@@ -2,12 +2,11 @@ import { Octokit } from "octokit";
 import _sodium from 'libsodium-wrappers';
 import type { Git } from "./types";
 
-type Inputs = {
+type AddInputs = {
+  secret: string,
   name: string,
+  env: string,
   git: Git
-}
-type AddInputs = Inputs & {
-  secret: string 
 }
 type Ev = Record<"key_id" | "ev", string>;
 interface Sodiumize {
@@ -38,32 +37,15 @@ const sodiumize: Sodiumize = async (o, id, env, value) => {
   return { key_id, ev };
 }
 
-const deleteSecret = async (inputs: Inputs) => {
-  const { git, name } = inputs;
-  if (!isProduction(process)) {
-    delete process.env[name];
-  }
-  const octokit = new Octokit({
-    auth: git.owner_token
-  })
-  const env = 'secret-tv-access';
-  const get_api = `/repos/${git.owner}/${git.repo}`;
-  const get_r = await octokit.request(`GET ${get_api}`, git);
-  const { id } = get_r.data;
-  const api_root = `/repositories/${id}/environments/${env}`;
-  const api_url = `${api_root}/secrets/${name}`;
-  await octokit.request(`DELETE ${api_url}`)
-}
-
 const addSecret = async (inputs: AddInputs) => {
-  const { git, secret, name } = inputs;
+  const { git, env, secret, name } = inputs;
   if (!isProduction(process)) {
     process.env[name] = secret;
+    return;
   }
   const octokit = new Octokit({
     auth: git.owner_token
   })
-  const env = 'secret-tv-access';
   const get_api = `/repos/${git.owner}/${git.repo}`;
   const get_r = await octokit.request(`GET ${get_api}`, git);
   const { id } = get_r.data;
@@ -80,5 +62,5 @@ const addSecret = async (inputs: AddInputs) => {
 }
 
 export {
-  deleteSecret, addSecret, isProduction
+  addSecret, isProduction
 }
