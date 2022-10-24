@@ -9,6 +9,10 @@ export REMOTE
 SERVER_URL="\"localhost:8000\""
 SERVER_CMD="\"npx http-server docs\""
 INTRO="$SERVER_CMD to access $SERVER_URL"
+CSV="./docs/environment.csv"
+echo "" > $CSV
+echo "REMOTE,$REMOTE" >> $CSV
+echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
 echo $'\n\nRun' $INTRO $'\n'
 if [ ! -z $TOKEN ]; then
   read -p "Use existing login link (y/n)?: " yn

@@ -56,6 +56,7 @@ jobs:
         with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
       - run: |
+          echo "" > secret.txt
           ./action/index NONE $CLIENT_ID
           echo $(head -n 1 secret.txt) > docs/Home.md
           curl -o "docs/$CSV" "$PAGES/$CSV"
