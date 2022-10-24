@@ -18,11 +18,11 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/configure-pages@v2
       - run: |
-					echo "" > $CSV
+          echo "" > $CSV
           echo "REMOTE,$REMOTE" >> $CSV
           echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
         env:
-					CSV: "docs/environment.csv"
+          CSV: "docs/environment.csv"
           REMOTE: ${{ inputs.remote }}
           DEPLOYMENT: ${{ inputs.deployment }}
       - uses: actions/upload-pages-artifact@v1
