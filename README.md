@@ -43,7 +43,8 @@ Unauthorized parties can reset/clear your passwords if:
 
 However, your passwords cannot be viewed/edited unless:
 
-- Your login link AND master password have been stolen
+- Someone has found/guessed your master password and:
+  - has access to your login link (or GitHub account!)
  
 ## Local Testing
 
