@@ -37,11 +37,11 @@ The symmetrically encrypted messages move to/from GitHub Actions via private Git
 
 ## Local Testing
 
-- Edit the `REMOTE` in [environment.csv](./docs/environment.csv) to match your `username/repo`.
+- Edit the `REMOTE` in [environment.csv](./docs/environment.csv) to match your `your_username/public-quiz-device`.
 - Open a terminal, and clone your forked repository:
 
 ```properties
-YOU=my_github_username
+YOU=your_username
 REPO_URL=$YOU/public-quiz-device
 git clone git@github.com:$REPO_URL.git
 cd public-quiz-device
