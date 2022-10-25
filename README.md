@@ -8,7 +8,7 @@
 ## Setup and usage
 
 - [Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
-- Set fork description to ID of [your OAuth App](https://github.com/settings/applications/new) w/ Device Flow.
+- Ensure fork description is ID of [OAuth App](https://github.com/settings/applications/new) w/ Device Flow.
 - ⭐ Star your fork to create your GitHub Pages environment.
 
 **Register via your GitHub Pages URL**, like: [pass.tvquizphd.com](https://pass.tvquizphd.com):
