@@ -37,7 +37,8 @@ The symmetrically encrypted messages move to/from GitHub Actions via private Git
 
 ## Local Testing
 
-Open a terminal, and clone your forked repository:
+- Edit the `REMOTE` in [environment.csv](./blob/main/docs/environment.csv) to match your `username/repo`.
+- Open a terminal, and clone your forked repository:
 
 ```properties
 YOU=my_github_username
