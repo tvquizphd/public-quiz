@@ -33,6 +33,7 @@ WIKI_OUT="./docs/Home.md"
 echo $'\n\nPaste your one-time public key:\n'
 read -r PUB
 mkdir -p $WIKI_IN
+echo "" > $SECRET_TXT
 echo "$PUB" > $WIKI_IN/Home.md
 pnpm develop NONE $CLIENT
 echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
