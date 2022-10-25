@@ -9,7 +9,7 @@
 
 - [Fork this repository][FORK_THIS].
 - Add [GitHub Pages](../../settings/pages) via GitHub Actions on your fork.
-- Set your [OAuth App](https://github.com/settings/developers) client ID as your fork's description.
+- Set a [new OAuth App](https://github.com/settings/applications/new) client ID as your fork's description.
 - Star your fork to create your GitHub Pages environment.
 
 **Follow all steps on your GitHub Pages URL**, e.g: [pass.tvquizphd.com](https://pass.tvquizphd.com):
