@@ -1,20 +1,29 @@
-## Registration
+# Public Quiz Device
 
-- Add [GitHub Pages](../../settings/pages) sourced from GitHub Actions to this repository.
-- Set [OAuth App](https://github.com/settings/developers) client ID as this repository's description.
+- ⏱️ [Setup and usage](#setup-and-usage)
+- 🔑 [Security claims](#security-claims)
+- ✍️ [Local testing](#local-testing)
+- 📦 [Production](production-building)
+
+## Setup and usage
+
+- [Fork this repository][FORK_THIS]
+- Add [GitHub Pages](../../settings/pages) sourced from GitHub Actions on your fork.
+- Set [OAuth App](https://github.com/settings/developers) client ID as your fork's description.
 
 Follow all steps on [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
 1. Copy one-time ECIES public key.
 2. Paste key to the wiki's `Home.md`.
-3. Use one-time GitHub code for [OAuth App](https://github.com/settings/applications).
+3. Use one-time GitHub code to add your [OAuth App](https://github.com/settings/applications).
 4. Choose a secure master password.
 
-The page will generate a link to visit on each login.
+The page gives you a link to bookmark. You must use your master password each time you use the link.
 
-## Login and Usage
+## Security claims
 
-Master passwords never leave your browser. After ~60s, [key exchange][PAKE] login:
+Before activation, GitHub pages publicly hosts public keys and asymmetrically encrypted messages. 
+Your master password, however, never leaves your browser. Within ~60s, [key exchange][PAKE] login:
 
 - Authenticates your password against the [output of a pseudorandom function][OPRF].
 - Returns a single-session [AES-GCM][GCM] key for authenticated encryption.
@@ -24,13 +33,15 @@ Then, all queries or mutations related to your passwords:
 - Are encrypted/decrypted locally with the [Argon2][Argon2] hash of your password.
 - Move to/from GitHub Actions encrypted with your single-session AES-GCM key.
 
+After activation, symmetrically encrypted messages move to/from GitHub Actions via private GitHub projects.
+
 ## Local Testing
 
-- [Fork this repository][FORK_THIS] to e.g `my_github_username`
-- Open a terminal, and clone your forked repository:
+Open a terminal, and clone your forked repository:
 
 ```
-REPO_URL=my_github_username/public-quiz-device
+YOU=my_github_username
+REPO_URL=$YOU/public-quiz-device
 git clone git@github.com:$REPO_URL.git
 cd public-quiz-device
 ```
@@ -60,7 +71,7 @@ Run `bash develop.bash` twice or more, following instructions.
   - If you want to make a new login link, press `n` after running.
   - To use your existing login link, press `y` after running.
 
-## Building for production 
+## Production builds
 
 Update the version in `package.json` and with a tag:
 
