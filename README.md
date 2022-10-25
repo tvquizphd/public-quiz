@@ -5,14 +5,14 @@
 
 ## Setup and usage
 
-- 🍴[Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
+- [Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
   - Keep the description. It defines an [OAuth App](https://github.com/settings/applications/new) w/ Device Flow.
 - ⭐ Star your fork to create your GitHub Pages environment.
 
 **Register via your GitHub Pages URL**, like: [pass.tvquizphd.com](https://pass.tvquizphd.com) by:
 
-1. ✂️ Copying one-time ECIES public key to the link given for your fork's wiki.
-3. ✂️ Pasting one-time GitHub code to authorize the OAuth Application.
+1. Copying one-time ECIES public key to the link given for your fork's wiki.
+3. Pasting one-time GitHub code to authorize the OAuth Application.
 4. 🔑 Choosing a secure master password.
 
 ### The page gives you a login link.
