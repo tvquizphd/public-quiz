@@ -40,7 +40,7 @@ After activation, symmetrically encrypted messages move to/from GitHub Actions v
 
 Open a terminal, and clone your forked repository:
 
-```
+```properties
 YOU=my_github_username
 REPO_URL=$YOU/public-quiz-device
 git clone git@github.com:$REPO_URL.git
@@ -49,7 +49,7 @@ cd public-quiz-device
 
 Install `pnpm`, `node 18`, and dependencies:
 
-```
+```properties
 wget -qO- https://get.pnpm.io/install.sh | sh -
 pnpm env use --global 18
 pnpm install -g node-gyp
@@ -58,7 +58,7 @@ CXX=gcc pnpm install
 
 In a separate terminal, run:
 
-```
+```properties
 cd public-quiz-device
 npx http-server docs -p 8000
 ```
@@ -76,7 +76,7 @@ Run `bash develop.bash` twice or more, following instructions.
 
 Update the version in `package.json` and with a tag:
 
-```
+```properties
 git tag v3.x.y
 git push origin main --tags
 ```
