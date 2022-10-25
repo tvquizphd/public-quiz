@@ -96,7 +96,8 @@ const writeSecretText: WriteSecretText = (inputs) => {
   else {
     console.log('PRODUCTION\n');
     try {
-      await lockDeployment(git, { env });
+      const metadata = { env: `${env}-START` };
+      await lockDeployment(git, metadata);
     }
     catch (e: any) {
       console.error(e?.message);

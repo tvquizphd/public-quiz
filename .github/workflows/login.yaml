@@ -18,15 +18,19 @@ jobs:
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
           -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE/deployments?environment=$DEPLOYMENT);
+          $ROOT/repos/$REMOTE/deployments?environment=$START);
           OUTPUT=$(jq -r '.[0].environment' <<< $JSON);
           echo "deployment environment is $OUTPUT";
           echo "approved=$OUTPUT" >> $GITHUB_OUTPUT
+          echo "wanted=$START" >> $GITHUB_OUTPUT
+        env:
+          START: ${{ env.DEPLOYMENT }}-START
     outputs:
       approved: ${{ steps.deployment.outputs.approved }}
+      wanted: ${{ steps.deployment.outputs.wanted }}
   login:
     needs: [filter]
-    if: needs.filter.outputs.approved == 'PRODUCTION-LOGIN'
+    if: needs.filter.outputs.approved == needs.filter.outputs.wanted
     permissions:
       contents: read
     concurrency:

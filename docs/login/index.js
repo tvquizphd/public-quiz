@@ -64,7 +64,7 @@ async function triggerGithubAction(local, env, git) {
       authorization: `token ${git.token}`,
     }
   });
-  const metadata = { env };
+  const metadata = { env: `${env}-START` };
   const opts = { repo, owner, octograph, metadata };
   try {
     await deploy(opts);
