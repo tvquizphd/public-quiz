@@ -8,7 +8,7 @@
 ## Setup and usage
 
 - [Fork this repository][FORK_THIS].
-- Add [GitHub Pages](../../settings/pages) sourced from GitHub Actions on your fork.
+- Add [GitHub Pages](../../settings/pages) via GitHub Actions on your fork.
 - Set [OAuth App](https://github.com/settings/developers) client ID as your fork's description.
 - Star your fork to create your GitHub Pages environment.
 
