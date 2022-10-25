@@ -73,10 +73,11 @@ npx http-server docs -p 8000
 
 Run `bash develop.bash` twice or more, following instructions.
 
-1. On 1st run, it registers your master password.
+### On 1st run, it registers your master password.
   - It uses the OAuth App in this repostory's description.
   - The new OAuth token in `.env` is encrypted in a new login link.
-2. Afterwards, `bash develop.bash` allows revisiting your login link.
+
+### Afterwards, it allows revisiting your login link.
   - If you want to make a new login link, press `n` after running.
   - To use your existing login link, press `y` after running.
 
