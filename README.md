@@ -17,7 +17,9 @@
 3. Pasting one-time GitHub code to authorize the OAuth Application.
 4. Choosing a secure master password.
 
-The page gives you a link to bookmark. You must use your master password each time you use the link.
+- 🔗 The page gives you a login link.
+- 💾 Bookmark or save the login link.
+- ✏️ Memorize your master password.
 
 ## Security claims
 
