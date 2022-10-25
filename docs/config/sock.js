@@ -1,13 +1,13 @@
 import { toNamespace } from "project-sock";
 
-const configureNamespace = () => {
+const configureNamespace = (env) => {
   const sep = "__";
 
   return toNamespace({
     opaque: {
       sep,
       project: {
-        title: "verify",
+        title: `${env}-verify`,
         prefix: "v"
       },
       operations: [{
@@ -26,7 +26,7 @@ const configureNamespace = () => {
     mailbox: {
       sep,
       project: {
-        title: "mailbox",
+        title: `${env}-mailbox`,
         prefix: "m"
       },
       operations: [{

@@ -21,14 +21,14 @@ export interface NameInterface {
 type Obj<T> = Record<string, T>
 export type Namespace = Obj<NameInterface>
 
-const configureNamespace = (): Namespace => {
+const configureNamespace = (env: string): Namespace => {
   const sep = "__";
 
   return toNamespace({
     opaque: {
       sep,
       project: {
-        title: "verify",
+        title: `${env}-verify`,
         prefix: "v"
       },
       operations: [{
@@ -47,7 +47,7 @@ const configureNamespace = (): Namespace => {
     mailbox: {
       sep,
       project: {
-        title: "mailbox",
+        title: `${env}-mailbox`,
         prefix: "m"
       },
       operations: [{

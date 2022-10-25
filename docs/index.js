@@ -76,14 +76,14 @@ async function encryptWithPassword (event, DATA) {
   event.preventDefault();
   DATA.loading.socket = true;
   const { target } = event;
-  const { git } = DATA;
+  const { git, env } = DATA;
   const { token } = git;
 
   const passSelect = 'input[type="password"]';
   const passField = target.querySelector(passSelect);
   const pass = passField.value;
 
-  const namespace = configureNamespace();
+  const namespace = configureNamespace(env);
   const to_encrypt = {
     password: pass,
     secret_text: token,
@@ -102,7 +102,7 @@ async function encryptWithPassword (event, DATA) {
   return result;
 }
 
-const runReef = (hasLocal, remote) => {
+const runReef = (hasLocal, remote, env) => {
 
   const passFormId = "pass-form";
   const host = window.location.origin; //TODO
@@ -118,6 +118,7 @@ const runReef = (hasLocal, remote) => {
     code: null,
     phase: 0,
     host,
+    env,
     git: {
       token: null,
       owner: remote[0],
@@ -367,7 +368,7 @@ export default () => {
 
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
-  toEnv().then(({ remote }) => {
-    runReef(hasLocal, remote);
+  toEnv().then(({ remote, env }) => {
+    runReef(hasLocal, remote, env);
   });
 };

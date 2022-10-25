@@ -12,7 +12,6 @@ import { DBTrio } from "../scripts/dbtrio.js";
  * Globals needed on window object:
  *
  * reef 
- * configureNamespace
  */
 
 function addErrors(errors) {
@@ -104,11 +103,11 @@ async function decryptWithPassword (event) {
   const pass = passField.value;
 
   const { search } = window.location;
-  const namespace = configureNamespace();
+  const { env, remote } = await toEnv();
+  const namespace = configureNamespace(env);
   const result = await decryptQuery(search, pass);
   const master_key = result.master_key;
   const api_token = result.plain_text;
-  const { env, remote } = await toEnv();
   const git = {
     token: api_token,
     owner: remote[0],

@@ -18,5 +18,5 @@ export interface NameInterface {
 }
 declare type Obj<T> = Record<string, T>;
 export declare type Namespace = Obj<NameInterface>;
-declare const configureNamespace: () => Namespace;
+declare const configureNamespace: (env: string) => Namespace;
 export { configureNamespace };

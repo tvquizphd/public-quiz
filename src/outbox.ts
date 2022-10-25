@@ -46,10 +46,10 @@ const to_bytes = (s: string) => {
 }
 const outbox = async (inputs: Inputs) => {
   const subcommand = "from_secret";
-  const namespace = configureNamespace();
+  const { git, env, trio, delay } = inputs;
+  const namespace = configureNamespace(env);
   const { secret, name } = inputs.creds;
   const master_key = to_bytes(secret);
-  const { git, env, trio, delay } = inputs;
   const sock_inputs = { git, delay, namespace };
   const Sock = await toSock(sock_inputs, "mailbox");
   try {

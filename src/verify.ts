@@ -112,7 +112,7 @@ const toOpaqueSock = async (inputs: SockInputs) => {
 
 const verify: Verify = (config_in) => {
   const { git, env, pep, login, delay } = config_in;
-  const namespace: Namespace = configureNamespace();
+  const namespace: Namespace = configureNamespace(env);
   const opaque: NameInterface = namespace.opaque;
   const user = "root";
   const times = 1000;

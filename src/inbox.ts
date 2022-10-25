@@ -87,8 +87,8 @@ const saveSecrets = async (inputs: SaveInputs) => {
 
 const inbox: Inbox = async (inputs) => {
   const wait_extra_ms = 2000;
-  const namespace = configureNamespace();
   const { git, sec, env, delay, ses } = inputs;
+  const namespace = configureNamespace(env);
   const dt = 1000 * delay + wait_extra_ms;
   const timeout = "timeout";
   // Check for existing saved secrets
