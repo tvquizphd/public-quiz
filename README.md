@@ -36,8 +36,8 @@ Before activation, [GitHub Pages][HELP_PAGES] publicly host one-time-use public 
 Unauthorized 3rd parties _can reset/clear your passwords_ if:
 
 - ⚠️ your fork has allowed outside [collaborators][HELP_COLLAB]
-- ⚠️ your fork's wiki has become [publicly editable][HELP_WIKI]
-- ☠️ your GitHub account has [been compromised][HELP_SECURE]
+- ⚠️ or your fork's wiki has become [publicly editable][HELP_WIKI]
+- ☠️ or your GitHub account has [been compromised][HELP_SECURE]
 
 ### Your passwords only be viewed/edited by:
 
