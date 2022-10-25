@@ -2,21 +2,22 @@
   "ts-node": {
     "files": true,
     "compilerOptions": {
-    	"declaration": false
+      "module": "ES2020",
+      "declaration": false
     }
   },
   "compilerOptions": {
     "lib": ["esnext","dom"],
     "types": ["node"],
-		"outDir": "dist",
+    "outDir": "dist",
     "strict": true,
     "target": "ES2020",
     "declaration": true,
-    "module": "es2020",
+    "module": "commonjs",
     "esModuleInterop": true,
     "isolatedModules": true,
     "moduleResolution": "node",
-		"declarationDir": "./types",
+    "declarationDir": "./types",
     "typeRoots": ["./src/@types"]
   },
   "include": [
