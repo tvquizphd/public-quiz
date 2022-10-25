@@ -23,7 +23,7 @@
 
 ## Security claims
 
-Before activation, GitHub pages publicly hosts public keys and asymmetrically encrypted messages. *Your master password, however, never leaves your browser*. Each login takes about 60 seconds to complete the password-authenticated [key exchange][PAKE] by.
+Before activation, GitHub Pages publicly host public keys and asymmetrically encrypted messages. *Your master password, however, never leaves your browser*. Each login takes about 60 seconds to complete the password-authenticated [key exchange][PAKE] by.
 
 - Authenticating your password against the [output of a pseudorandom function][OPRF].
 - Returning a single-session [AES-GCM][GCM] key for authenticated encryption.
