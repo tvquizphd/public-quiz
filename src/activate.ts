@@ -506,11 +506,7 @@ const activateToken: ActivateToken = async (inputs) => {
       "/repos", user_git.owner, user_git.repo,
       "environments", inputs.env
     ].join("/")
-    await octokit.request(`PUT ${api_url}`, {
-      environment_name: inputs.env,
-      owner: user_git.owner,
-      repo: user_git.repo
-    });
+    await octokit.request(`PUT ${api_url}`);
   }
   catch (e: any) {
     console.error('Unable to make environment.');
