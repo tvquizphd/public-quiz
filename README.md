@@ -36,7 +36,7 @@ Before activation, [GitHub Pages][HELP_PAGES] publicly host one-time-use public 
 
 ## Security limitations
 
-Unauthorized parties can reset/clear your passwords if:
+Unauthorized 3rd parties can reset/clear your passwords if:
 
 - ⚠️ your fork has allowed outside [collaborators][HELP_COLLAB]
 - ⚠️ your fork's wiki has become [publicly editable][HELP_WIKI]
@@ -44,7 +44,7 @@ Unauthorized parties can reset/clear your passwords if:
 
 ### Your passwords cannot be viewed/edited unless:
 
-Someone with your login link (or GitHub account ☠️) knows your master password.
+A 3rd party with your login link (or GitHub account!) has your master password.
  
 ## Local Testing
 
