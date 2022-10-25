@@ -7,8 +7,7 @@
 
 ## Setup and usage
 
-- [Fork this repository][FORK_THIS].
-- Add [GitHub Pages](../../settings/pages) via GitHub Actions on your fork.
+- [Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
 - Set fork description to ID of [an OAuth App](https://github.com/settings/applications/new) w/ Device Flow.
 - ⭐ Star your fork to create your GitHub Pages environment.
 
