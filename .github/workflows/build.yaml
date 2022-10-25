@@ -6,6 +6,8 @@ on:
   push:
     tags:
       - '*'
+  watch:
+    types: [started]
 jobs:
   environment:
     uses: ./.github/workflows/environment.yaml
