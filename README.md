@@ -23,18 +23,17 @@ The page gives you a link to bookmark. You must use your master password each ti
 
 ## Security claims
 
-Before activation, GitHub pages publicly hosts public keys and asymmetrically encrypted messages. 
-Your master password, however, never leaves your browser. Within ~60s, [key exchange][PAKE] login:
+Before activation, GitHub pages publicly hosts public keys and asymmetrically encrypted messages. *Your master password, however, never leaves your browser*. Each login takes about 60 seconds to complete the password-authenticated [key exchange][PAKE] by.
 
-- Authenticates your password against the [output of a pseudorandom function][OPRF].
-- Returns a single-session [AES-GCM][GCM] key for authenticated encryption.
+- Authenticating your password against the [output of a pseudorandom function][OPRF].
+- Returning a single-session [AES-GCM][GCM] key for authenticated encryption.
 
-Then, all queries or mutations related to your passwords:
+### After login, all queries or mutations related to your passwords:
 
 - Are encrypted/decrypted locally with the [Argon2][Argon2] hash of your password.
 - Move to/from GitHub Actions encrypted with your single-session AES-GCM key.
 
-After activation, symmetrically encrypted messages move to/from GitHub Actions via private GitHub projects.
+The symmetrically encrypted messages move to/from GitHub Actions via private GitHub Projects.
 
 ## Local Testing
 
