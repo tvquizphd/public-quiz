@@ -12,16 +12,8 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     permissions:
-      pages: write
-      contents: write
-      id-token: write
+      contents: read
     steps:
-      - run: |
-          curl \
-          -X PUT \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE/environments/$DEPLOYMENT
       - id: pages
         run: |
           JSON=$(curl \

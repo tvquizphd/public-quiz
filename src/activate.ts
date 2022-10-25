@@ -6,6 +6,7 @@ import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { encryptQueryMaster } from "./util/encrypt";
 import { isBytes } from "./util/decrypt";
 import * as eccrypto from "eccrypto";
+import { Octokit } from "octokit";
 import path from 'node:path';
 import fs from 'fs'
 
@@ -497,6 +498,24 @@ const activateToken: ActivateToken = async (inputs) => {
     env: inputs.env,
     secret: token_out.secret
   };
+  try {
+    const octokit = new Octokit({
+      auth: user_git.owner_token
+    });
+    const api_url = [
+      "/repos", user_git.owner, user_git.repo,
+      "environments", inputs.env
+    ].join("/")
+    await octokit.request(`PUT ${api_url}`, {
+      environment_name: inputs.env,
+      owner: user_git.owner,
+      repo: user_git.repo
+    });
+  }
+  catch (e: any) {
+    console.error('Unable to make environment.');
+    throw e;
+  }
   try {
     await addSecret(add_inputs);
     console.log("Encrypted user token.\n");
