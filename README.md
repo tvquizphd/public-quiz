@@ -1,11 +1,11 @@
 # Public Quiz Device
 
-- For users: ⏱️ [Setup and usage](#setup-and-usage), 🔑 [Security claims](#security-claims), and ☠️ [Security limitations](#security-limitations)
+- For users: 🏃 [Setup and usage](#setup-and-usage), 🔑 [Security claims](#security-claims), and ☠️ [Security limitations](#security-limitations)
 - Developers should also read about ✍️ [Local testing](#local-testing) and 📦 [Production](#production-builds)
 
 ## Setup and usage
 
-- [Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
+- 🍴[Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
   - Keep the description. It defines an [OAuth App](https://github.com/settings/applications/new) w/ Device Flow.
 - ⭐ Star your fork to create your GitHub Pages environment.
 
