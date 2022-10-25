@@ -124,10 +124,12 @@ const runReef = (hasLocal, remote, env) => {
       owner: remote[0],
       repo: remote[1]
     },
+    remote: remote.join('/'),
     loading: {
       socket: false,
       verify: false
-    }
+    },
+    wiki_ext: ""
   });
   const wikiMailer = new WikiMailer(DATA);
 
@@ -142,9 +144,14 @@ const runReef = (hasLocal, remote, env) => {
       const first_div = copy.querySelector('div');
       const first_span = copy.querySelector('span');
       const { innerText } = first_div || first_span;
+      const wiki_root = "https://raw.githubusercontent.com/wiki";
+      const wiki_home = `${wiki_root}/${DATA.remote}/Home.md`; 
       navigator.clipboard.writeText(innerText).then(() => {
         wikiMailer.start();
-        DATA.phase = Math.max(1, DATA.phase);
+        fetch(wiki_home).then(({ ok }) => {
+          DATA.phase = Math.max(1, DATA.phase);
+          DATA.wiki_ext = ok ? 'Home/_edit' : '_new';
+        })
         wikiMailer.addHandler('code', (pasted) => {
           DATA.phase = Math.max(2, DATA.phase);
           const decrypt_in = { ...pasted, priv };
@@ -295,7 +302,7 @@ const runReef = (hasLocal, remote, env) => {
   function toCopySpans(root, placeholder) {
     if (isCopyPhase()) {
       const { code } = DATA;
-      const device = `${root}login/device/`;
+      const device = `${root}/login/device/`;
       const link_props = [
         `href="${device}"`,
         'target="_blank"',
@@ -309,11 +316,9 @@ const runReef = (hasLocal, remote, env) => {
   }
 
   function appTemplate () {
-      const { phase } = DATA;
-      const { owner, repo } = DATA.git;
-      const root = "https://github.com/";
-      const repo_url = [owner, repo].join('/');
-      const wiki = `${root}${repo_url}/wiki/Home`;
+      const root = "https://github.com";
+      const { remote, phase, wiki_ext } = DATA;
+      const wiki = `${root}/${remote}/wiki/${wiki_ext}`;
       const link_props = [
         `href="${wiki}"`,
         'target="_blank"',
