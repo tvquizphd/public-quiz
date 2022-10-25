@@ -39,9 +39,9 @@ Unauthorized 3rd parties _can reset/clear your passwords_ if:
 - ⚠️ your fork's wiki has become [publicly editable][HELP_WIKI]
 - ☠️ your GitHub account has [been compromised][HELP_SECURE]
 
-### Your passwords cannot be viewed/edited unless:
+### Your passwords only be viewed/edited by:
 
-A 3rd party with your login link (or GitHub account!) has your master password.
+Anyone with your login link (or GitHub account!) who has your master password.
  
 ## Local Testing
 
