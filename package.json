@@ -1,7 +1,8 @@
 {
   "name": "public-quiz-device",
-  "version": "3.7.0",
+  "version": "3.7.1",
   "description": "Access TV Quiz PhD",
+  "type": "module",
   "scripts": {
     "tsc": "tsc",
     "action": "./action/index",
@@ -9,7 +10,7 @@
     "lint": "eslint src docs",
     "lint:src": "eslint src",
     "lint:docs": "eslint docs",
-    "develop": "ts-node src/index.ts",
+    "develop": "ts-node-esm src/index.ts",
     "pkg": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir ./action dist/index.js"
   },
   "repository": {
@@ -29,7 +30,7 @@
     "eccrypto": "^1.1.6",
     "libsodium-wrappers": "0.7.8",
     "octokit": "^2.0.7",
-    "project-sock": "1.0.0-beta.4.0",
+    "project-sock": "1.0.0-beta.5.4",
     "simple-git": "^3.14.1",
     "ts-node": "^10.9.1"
   },

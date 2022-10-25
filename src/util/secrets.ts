@@ -1,6 +1,6 @@
 import { Octokit } from "octokit";
 import _sodium from 'libsodium-wrappers';
-import type { Git } from "./types";
+import type { Git } from "./types.js";
 
 type AddInputs = {
   secret: string,
@@ -13,10 +13,8 @@ interface Sodiumize {
   (o: Octokit, id: number, env: string, value: string): Promise<Ev>
 }
 
-const isProduction = ({ argv }: NodeJS.Process) => {
-  const dev_exe = "ts-node/dist/bin.js";
-  const exe = argv[0].slice(-dev_exe.length);
-  return exe !== dev_exe;
+const isProduction = (env: string) => {
+  return env.slice(0, 4) === "PROD";
 }
 
 const sodiumize: Sodiumize = async (o, id, env, value) => {
@@ -39,7 +37,7 @@ const sodiumize: Sodiumize = async (o, id, env, value) => {
 
 const addSecret = async (inputs: AddInputs) => {
   const { git, env, secret, name } = inputs;
-  if (!isProduction(process)) {
+  if (!isProduction(env)) {
     process.env[name] = secret;
     return;
   }

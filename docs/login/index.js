@@ -113,7 +113,7 @@ async function decryptWithPassword (event) {
     owner: remote[0],
     repo: remote[1] 
   }
-  const delay = 1;
+  const delay = 0.5;
   const times = 1000;
   await triggerGithubAction(DATA.local, env, git);
   const sock_inputs = { git, delay, ...namespace };

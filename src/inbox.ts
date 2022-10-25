@@ -1,14 +1,14 @@
-import { configureNamespace } from "./config/sock";
-import { decryptQueryMaster } from "./util/decrypt";
+import { configureNamespace } from "./config/sock.js";
+import { decryptQueryMaster } from "./util/decrypt.js";
 import { toB64urlQuery } from "project-sock";
-import { addSecret } from "./util/secrets";
-import { needKeys } from "./util/keys";
-import { toSock } from "./util/socket";
-import { findSub } from "./util/lookup";
-import { opId } from "./util/lookup";
+import { addSecret } from "./util/secrets.js";
+import { needKeys } from "./util/keys.js";
+import { toSock } from "./util/socket.js";
+import { findSub } from "./util/lookup.js";
+import { opId } from "./util/lookup.js";
 
-import type { Git, Trio } from "./util/types";
-import type { Encrypted } from "./util/encrypt";
+import type { Git, Trio } from "./util/types.js";
+import type { Encrypted } from "./util/encrypt.js";
 
 type HasPlain = Record<"plain_text", string>;
 type HasSec = Record<"sec", Trio>;

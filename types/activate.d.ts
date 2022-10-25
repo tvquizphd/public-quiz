@@ -1,4 +1,4 @@
-import type { Git } from "./util/types";
+import type { Git } from "./util/types.js";
 declare type HasClient = {
     client_id: string;
 };

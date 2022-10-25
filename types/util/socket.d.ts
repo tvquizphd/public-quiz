@@ -1,6 +1,6 @@
 import { ProjectChannel } from "project-sock";
-import type { Namespace } from "../config/sock";
-import type { Git } from "./types";
+import type { Namespace } from "../config/sock.js";
+import type { Git } from "./types.js";
 export declare type Socket = {
     sock: ProjectChannel;
     get: (id: string, tag: string) => Promise<unknown>;

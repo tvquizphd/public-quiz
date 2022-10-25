@@ -1,5 +1,5 @@
-import type { Git } from "./util/types";
-import type { Inputs as InIn } from "./inbox";
+import type { Git } from "./util/types.js";
+import type { Inputs as InIn } from "./inbox.js";
 declare type ConfigIn = {
     login: boolean;
     delay: number;

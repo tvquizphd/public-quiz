@@ -1,6 +1,6 @@
-import type { NameInterface as I } from "../config/sock";
-import type { Command } from "../config/sock";
-import type { Socket } from "../config/sock";
+import type { NameInterface as I } from "../config/sock.js";
+import type { Command } from "../config/sock.js";
+import type { Socket } from "../config/sock.js";
 
 function findSub (inputs: I, sub: string): Command {
   const out = inputs.commands.filter((c: Command) => {

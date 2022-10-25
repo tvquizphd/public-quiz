@@ -1,4 +1,4 @@
-import type { Git, Trio } from "./util/types";
+import type { Git, Trio } from "./util/types.js";
 declare type HasSec = Record<"sec", Trio>;
 export declare type Inputs = HasSec & {
     ses: string;

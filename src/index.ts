@@ -1,14 +1,14 @@
-import { isGit, gitDecrypt, activation } from "./activate";
-import { isProduction } from "./util/secrets";
+import { isGit, gitDecrypt, activation } from "./activate.js";
+import { isProduction } from "./util/secrets.js";
 import { graphql } from "@octokit/graphql";
 import { undeploy } from "project-sock";
-import { verifier } from "./verify";
+import { verifier } from "./verify.js";
 import dotenv from "dotenv";
 import fs from "fs";
 
-import type { Git, Trio } from "./util/types";
-import type { SecretInputs } from "./activate"
-import type { SecretOutputs } from "./activate"
+import type { Git, Trio } from "./util/types.js";
+import type { SecretInputs } from "./activate.js"
+import type { SecretOutputs } from "./activate.js"
 
 type Duo = [string, string];
 type Result = {
@@ -58,7 +58,6 @@ const writeSecretText: WriteSecretText = (inputs) => {
 }
 
 (async (): Promise<Result> => {
-  const prod = isProduction(process);
   const args = process.argv.slice(2);
   if (args.length < 1) {
     const message = "Missing 1st arg: MY_TOKEN";
@@ -71,6 +70,7 @@ const writeSecretText: WriteSecretText = (inputs) => {
   const env_all = [ses, tok, pep, "STATE", ...sec];
   const remote = process.env.REMOTE?.split("/") || [];
   const env = process.env.DEPLOYMENT || "";
+  const prod = isProduction(env);
   if (!isDuo(remote)) {
     const message = "Invalid env: REMOTE";
     return { success: false, message };
@@ -88,7 +88,7 @@ const writeSecretText: WriteSecretText = (inputs) => {
     home: "Home.md",
     tmp: "tmp-wiki"
   }
-  const delay = 1;
+  const delay = 0.5;
   if (!prod) {
     console.log('DEVELOPMENT\n');
     dotenv.config();

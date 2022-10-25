@@ -1,7 +1,7 @@
 import { toProjectSock } from "project-sock";
 import { ProjectChannel } from "project-sock";
-import type { Namespace } from "../config/sock";
-import type { Git } from "./types";
+import type { Namespace } from "../config/sock.js";
+import type { Git } from "./types.js";
 
 export type Socket = {
   sock: ProjectChannel;

@@ -1,11 +1,11 @@
-import { configureNamespace } from "./config/sock";
-import { encryptQueryMaster } from "./util/encrypt";
+import { configureNamespace } from "./config/sock.js";
+import { encryptQueryMaster } from "./util/encrypt.js";
 import { fromB64urlQuery } from "project-sock";
-import { addSecret } from "./util/secrets";
-import { toSock } from "./util/socket";
-import { opId } from "./util/lookup";
+import { addSecret } from "./util/secrets.js";
+import { toSock } from "./util/socket.js";
+import { opId } from "./util/lookup.js";
 
-import type { Git, Trio } from "./util/types";
+import type { Git, Trio } from "./util/types.js";
 
 export interface Creds {
   name: string,

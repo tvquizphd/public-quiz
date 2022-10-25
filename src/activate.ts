@@ -1,17 +1,17 @@
 import { simpleGit } from 'simple-git';
-import { needKeys } from "./util/keys";
-import { printSeconds } from "./util/time";
-import { addSecret } from "./util/secrets";
+import { needKeys } from "./util/keys.js";
+import { printSeconds } from "./util/time.js";
+import { addSecret } from "./util/secrets.js";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
-import { encryptQueryMaster } from "./util/encrypt";
-import { isBytes } from "./util/decrypt";
+import { encryptQueryMaster } from "./util/encrypt.js";
+import { isBytes } from "./util/decrypt.js";
 import * as eccrypto from "eccrypto";
 import { Octokit } from "octokit";
 import path from 'node:path';
 import fs from 'fs'
 
-import type { Git } from "./util/types";
-import type { Encrypted } from "./util/encrypt";
+import type { Git } from "./util/types.js";
+import type { Encrypted } from "./util/encrypt.js";
 
 type HasData = {
   data: Encrypted

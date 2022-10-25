@@ -2,7 +2,7 @@
 /// <reference types="node" />
 /// <reference types="node" />
 /// <reference types="node" />
-import type { Git } from "./types";
+import type { Git } from "./types.js";
 declare type AddInputs = {
     secret: string;
     name: string;

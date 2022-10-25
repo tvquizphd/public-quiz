@@ -1,7 +1,7 @@
 import { fromB64urlQuery } from 'project-sock';
-import { hash, argon2d } from 'argon2';
+import argon2 from 'argon2';
 
-import { needKeys } from "./keys";
+import { needKeys } from "./keys.js";
 import type { Options } from 'argon2';
 
 type HasSalt = {
@@ -43,13 +43,13 @@ const toUniformUrl = (str: string): string => {
 
 const digest: Digester = async (text, opts) => {
   const options: ArgonOpts = { 
-    type: argon2d,
+    type: argon2.argon2d,
     raw: false
   };
   if (opts.salt) {
     options.salt = Buffer.from(opts.salt);
   }
-  const url = await hash(text, options);
+  const url = await argon2.hash(text, options);
   const [s64, h64] = url.split('$').slice(-2);
   const coded = `?salt=:${s64}&hash=:${h64}`;
   const coded_url = toUniformUrl(coded);

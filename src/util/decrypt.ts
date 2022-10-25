@@ -1,9 +1,9 @@
 import { fromB64urlQuery } from "project-sock";
 import { createDecipheriv } from 'crypto';
-import { digestPass } from './password';
-import { needKeys } from "./keys";
+import { digestPass } from './password.js';
+import { needKeys } from "./keys.js";
 
-import type { Encrypted } from "./encrypt";
+import type { Encrypted } from "./encrypt.js";
 
 type DSI = {
   key: Uint8Array,

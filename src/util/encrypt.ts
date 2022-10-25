@@ -1,9 +1,9 @@
 import { toB64urlQuery } from "project-sock";
-import { digestNewPass } from './password';
+import { digestNewPass } from './password.js';
 import { getRandomValues } from 'crypto';
 import { createCipheriv } from 'crypto';
 
-import type { Digest } from "./password";
+import type { Digest } from "./password.js";
 
 type QMI = {
   plain_text: string,

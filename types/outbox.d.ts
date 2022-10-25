@@ -1,4 +1,4 @@
-import type { Git, Trio } from "./util/types";
+import type { Git, Trio } from "./util/types.js";
 export interface Creds {
     name: string;
     login: boolean;

@@ -88,7 +88,7 @@ async function encryptWithPassword (event, DATA) {
     password: pass,
     secret_text: token,
   }
-  const delay = 1;
+  const delay = 0.5;
   const result = await encryptSecrets(to_encrypt);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);

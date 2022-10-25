@@ -1,22 +1,22 @@
 import { toB64urlQuery, fromB64urlQuery } from "project-sock";
-import { configureNamespace } from "./config/sock";
-import { opId, findOp } from "./util/lookup";
-import { outbox, isOkCreds } from "./outbox";
-import { addSecret } from "./util/secrets";
-import { needKeys } from "./util/keys";
-import { toSock } from "./util/socket";
-import { inbox } from "./inbox";
+import { configureNamespace } from "./config/sock.js";
+import { opId, findOp } from "./util/lookup.js";
+import { outbox, isOkCreds } from "./outbox.js";
+import { addSecret } from "./util/secrets.js";
+import { needKeys } from "./util/keys.js";
+import { toSock } from "./util/socket.js";
+import { inbox } from "./inbox.js";
 import OP from '@nthparty/opaque';
 
-import type { Git } from "./util/types";
+import type { Git } from "./util/types.js";
 import type { TreeAny } from 'project-sock';
-import type { Socket } from "./util/socket";
-import type { Namespace } from "./config/sock";
-import type { SockInputs } from "./util/socket";
-import type { NameInterface } from "./config/sock";
+import type { Socket } from "./util/socket.js";
+import type { Namespace } from "./config/sock.js";
+import type { SockInputs } from "./util/socket.js";
+import type { NameInterface } from "./config/sock.js";
 import type { Op, Pepper } from '@nthparty/opaque';
-import type { Inputs as InIn } from "./inbox";
-import type { Creds } from "./outbox";
+import type { Inputs as InIn } from "./inbox.js";
+import type { Creds } from "./outbox.js";
 
 type ConfigIn = {
   login: boolean,
