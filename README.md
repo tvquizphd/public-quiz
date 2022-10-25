@@ -12,7 +12,7 @@
 - Set [OAuth App](https://github.com/settings/developers) client ID as your fork's description.
 - Star your fork to create your GitHub Pages environment.
 
-Follow all steps on your GitHub Pages URL, e.g: [pass.tvquizphd.com](https://pass.tvquizphd.com)
+**Follow all steps on your GitHub Pages URL**, e.g: [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
 1. Copy one-time ECIES public key.
 2. Paste key to the wiki's `Home.md`.
