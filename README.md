@@ -3,7 +3,7 @@
 - ⏱️ [Setup and usage](#setup-and-usage)
 - 🔑 [Security claims](#security-claims)
 - ✍️ [Local testing](#local-testing)
-- 📦 [Production](#production-building)
+- 📦 [Production](#production-builds)
 
 ## Setup and usage
 
