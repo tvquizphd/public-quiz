@@ -1,7 +1,3 @@
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
-/// <reference types="node" />
 import type { Git } from "./types.js";
 declare type AddInputs = {
     secret: string;
@@ -9,6 +5,6 @@ declare type AddInputs = {
     env: string;
     git: Git;
 };
-declare const isProduction: ({ argv }: NodeJS.Process) => boolean;
+declare const isProduction: (env: string) => boolean;
 declare const addSecret: (inputs: AddInputs) => Promise<void>;
 export { addSecret, isProduction };
