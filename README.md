@@ -11,9 +11,9 @@
 
 **Register via your GitHub Pages URL**, like: [pass.tvquizphd.com](https://pass.tvquizphd.com) by:
 
-1. Copying one-time ECIES public key to the link given for your fork's wiki.
-3. Pasting one-time GitHub code to authorize the OAuth Application.
-4. Choosing a secure master password.
+1. 📋 Copying one-time ECIES public key to the link given for your fork's wiki.
+3. 📋 Pasting one-time GitHub code to authorize the OAuth Application.
+4. 🔑 Choosing a secure master password.
 
 ### The page gives you a login link.
 - 💾 Bookmark or save the login link.
