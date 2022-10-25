@@ -12,7 +12,7 @@
 - Set fork description to ID of [an OAuth App](https://github.com/settings/applications/new) w/ Device Flow.
 - ⭐ Star your fork to create your GitHub Pages environment.
 
-**Register via your GitHub Pages URL**, e.g: [pass.tvquizphd.com](https://pass.tvquizphd.com):
+**Register via your GitHub Pages URL**, like: [pass.tvquizphd.com](https://pass.tvquizphd.com):
 
 1. Copy one-time ECIES public key.
 2. Paste key to the wiki's `Home.md`.
