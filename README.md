@@ -1,10 +1,7 @@
 # Public Quiz Device
 
-- ⏱️ [Setup and usage](#setup-and-usage)
-- 🔑 [Security claims](#security-claims)
-- ☠️ [Security limitations](#security-limitations)
-- ✍️ [Local testing](#local-testing)
-- 📦 [Production](#production-builds)
+- For users: ⏱️ [Setup and usage](#setup-and-usage), 🔑 [Security claims](#security-claims), and ☠️ [Security limitations](#security-limitations)
+- Developers should also read ✍️ [Local testing](#local-testing) and 📦 [Production](#production-builds)
 
 ## Setup and usage
 
