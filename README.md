@@ -41,7 +41,8 @@ Unauthorized 3rd parties _can reset/clear your passwords_ if:
 
 ### Your passwords only be viewed/edited with:
 
-Your master password AND your login link or GitHub account
+- Your master password AND your bookmarked login link 
+- Your master password AND access to production environment
  
 ## Local Testing
 
