@@ -23,7 +23,7 @@
 
 ## Security claims
 
-Before activation, [GitHub Pages](https://pages.github.com/) publicly host one-time-use public keys and asymmetrically encrypted messages. After activation, symmetrically encrypted messages move to/from GitHub Actions via private [GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects). *Your master password, however, never leaves your browser*. Each login takes about 60 seconds to complete the password-authenticated [key exchange][PAKE] by.
+Before activation, [GitHub Pages](https://pages.github.com/) publicly host one-time-use public keys and asymmetrically encrypted messages. After activation, symmetrically encrypted messages move to/from GitHub Actions via private [GitHub Projects](https://docs.github.com/en/issues/planning-and-tracking-with-projects). *Your master password never leaves your browser*. Each login takes about 60 seconds to complete the password-authenticated [key exchange][PAKE] by.
 
 - Authenticating your password against the [output of a pseudorandom function][OPRF].
 - Returning a single-session [AES-GCM][GCM] key for authenticated encryption.
