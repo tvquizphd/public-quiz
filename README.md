@@ -2,6 +2,7 @@
 
 - ⏱️ [Setup and usage](#setup-and-usage)
 - 🔑 [Security claims](#security-claims)
+- ☠️ [Security limitations](#security-limitations)
 - ✍️ [Local testing](#local-testing)
 - 📦 [Production](#production-builds)
 
@@ -33,7 +34,7 @@ Before activation, [GitHub Pages][HELP_PAGES] publicly host one-time-use public 
 - Are encrypted/decrypted locally with the [Argon2][Argon2] hash of your password.
 - Move to/from GitHub Actions encrypted with your single-session AES-GCM key.
 
-### Security limitations
+## Security limitations
 
 Unauthorized parties can reset/clear your passwords if:
 
