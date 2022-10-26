@@ -6,7 +6,7 @@ import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { toSock } from "./util/socket.js";
 import { inbox } from "./inbox.js";
-import OP from '@nthparty/opaque';
+import { OP } from 'opaque-low-io';
 
 import type { Git } from "./util/types.js";
 import type { TreeAny } from 'project-sock';
@@ -14,7 +14,7 @@ import type { Socket } from "./util/socket.js";
 import type { Namespace } from "./config/sock.js";
 import type { SockInputs } from "./util/socket.js";
 import type { NameInterface } from "./config/sock.js";
-import type { Op, Pepper } from '@nthparty/opaque';
+import type { Op, Pepper } from 'opaque-low-io';
 import type { Inputs as InIn } from "./inbox.js";
 import type { Creds } from "./outbox.js";
 
@@ -73,9 +73,10 @@ const toPepper: ToPepper = async (inputs) => {
   const pepper = fromB64urlQuery(secret_str);
   const op = findOp(inputs, "registered");
   if (isPepper(pepper)) {
+    const registered = true;
     console.log('Loaded pepper from secrets.');
     const op_id = opId(inputs, "registered");
-    Sock.give(op_id, "registered", true);
+    Sock.give(op_id, "registered", { registered });
     return { pepper };
   }
   const reg = await Opaque.serverRegister(times, op);
@@ -95,7 +96,7 @@ const toPepper: ToPepper = async (inputs) => {
 
 const clearOpaqueServer: COS = (Sock, inputs) => {
   const { commands } = inputs;
-  const client_subs = ['sid', 'pw'];
+  const client_subs = ['register'];
   const toClear = commands.filter((cmd) => {
     return !client_subs.includes(cmd.subcommand);
   });

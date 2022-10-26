@@ -33,13 +33,11 @@ const configureNamespace = (env: string): Namespace => {
       },
       operations: [{
         "v": [{
-          ":pake_init": [
-            "sid", "pw", "registered"
-          ],
+          ":pake_init": [ "register", "registered" ]
         }, {
           ":pake": [
-            "alpha", "Xu", "Au", "client_authenticated",
-            "beta", "Xs", "c", "As", "authenticated"
+            "authenticated", "client_authenticated",
+            "server_auth_data", "client_auth_data", "client_auth_result"
           ]
         }]
       }]

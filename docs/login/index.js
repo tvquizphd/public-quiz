@@ -1,6 +1,7 @@
 import { graphql } from "@octokit/graphql";
 import { deploy } from "project-sock";
-import OP from "../scripts/opaque.js";
+import { OP } from "opaque-low-io";
+import sodium from "libsodium-wrappers-sumo";
 import { toEnv } from "../config/environment.js";
 import { findOp, toSock } from "../scripts/finders.js";
 import { configureNamespace } from "../config/sock.js";
@@ -74,7 +75,7 @@ async function triggerGithubAction(local, env, git) {
 }
 
 const clearOpaqueClient = (Sock, { commands }) => {
-  const client_subs = ['sid', 'pw'];
+  const client_subs = ['register'];
   const toClear = commands.filter((cmd) => {
     return client_subs.includes(cmd.subcommand);
   });
@@ -103,25 +104,20 @@ async function decryptWithPassword (event) {
   const pass = passField.value;
 
   const { search } = window.location;
-  const { env, remote } = await toEnv();
-  const namespace = configureNamespace(env);
   const result = await decryptQuery(search, pass);
+  DATA.git.token = result.plain_text;
   const master_key = result.master_key;
-  const api_token = result.plain_text;
-  const git = {
-    token: api_token,
-    owner: remote[0],
-    repo: remote[1] 
-  }
-  const delay = 0.5;
+  const delay = 0.3333;
   const times = 1000;
-  await triggerGithubAction(DATA.local, env, git);
+  const { local, env, git } = DATA;
+  const namespace = configureNamespace(env);
+  await triggerGithubAction(local, env, git);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
   DATA.loading.socket = false;
   DATA.loading.mailer = true;
   // Start verification
-  const Opaque = await OP(Sock);
+  const Opaque = await OP(Sock, sodium);
   const op = findOp(namespace.opaque, "registered");
   await Opaque.clientRegister(pass, "root", op);
   const { clientAuthenticate: authenticate } = Opaque;
@@ -170,7 +166,7 @@ const API = {
 const EMPTY_NEW = [ [""], [""], ["","",""] ];
 const EMPTY_TABLES = [ [], [], [] ];
 
-const runReef = (hasLocal) => {
+const runReef = (hasLocal, remote, env) => {
 
   const passFormId = "pass-form";
   const {store, component} = window.reef;
@@ -184,6 +180,12 @@ const runReef = (hasLocal) => {
         mailer: [],
         database: [],
         sending: [] 
+      },
+      env,
+      git: {
+        token: null,
+        owner: remote[0],
+        repo: remote[1]
       },
       loading: {
         socket: false,
@@ -484,5 +486,7 @@ export default () => {
   reefMain.appendChild(rootApp);
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
-  runReef(hasLocal);
+  toEnv().then(({ remote, env }) => {
+    runReef(hasLocal, remote, env);
+  });
 };

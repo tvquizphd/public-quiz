@@ -88,7 +88,7 @@ const writeSecretText: WriteSecretText = (inputs) => {
     home: "Home.md",
     tmp: "tmp-wiki"
   }
-  const delay = 0.5;
+  const delay = 0.25;
   if (!prod) {
     console.log('DEVELOPMENT\n');
     dotenv.config();

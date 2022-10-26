@@ -1,6 +1,6 @@
 {
   "name": "public-quiz-device",
-  "version": "3.7.3",
+  "version": "3.8.0",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
@@ -24,13 +24,13 @@
   },
   "homepage": "https://github.com/tvquizphd/public-quiz-device#readme",
   "dependencies": {
-    "@nthparty/opaque": "^0.3.0",
     "@octokit/graphql": "^5.0.1",
     "argon2": "^0.29.1",
     "eccrypto": "^1.1.6",
     "libsodium-wrappers": "0.7.8",
     "octokit": "^2.0.7",
-    "project-sock": "1.0.0-beta.5.5",
+    "opaque-low-io": "^2.0.3",
+    "project-sock": "1.0.0-beta.5.7",
     "simple-git": "^3.14.1",
     "ts-node": "^10.9.1"
   },

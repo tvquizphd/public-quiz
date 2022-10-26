@@ -8,7 +8,8 @@ import { encryptSecrets } from "./scripts/encrypt.js";
 import { toEnv } from "../config/environment.js";
 import { configureNamespace } from "./config/sock.js";
 import { findOp, toSock } from "./scripts/finders.js";
-import OP from "./scripts/opaque.js";
+import sodium from "libsodium-wrappers-sumo";
+import { OP } from "opaque-low-io";
 import { Buffer } from "buffer"
 /*
  * Globals needed on window object:
@@ -88,16 +89,17 @@ async function encryptWithPassword (event, DATA) {
     password: pass,
     secret_text: token,
   }
-  const delay = 0.5;
+  const delay = 0.3333;
   const result = await encryptSecrets(to_encrypt);
   const sock_inputs = { git, delay, ...namespace };
   const Sock = await toOpaqueSock(sock_inputs);
   DATA.loading.socket = false;
   DATA.loading.verify = true;
   // Start verification
-  const Opaque = await OP(Sock);
+  const Opaque = await OP(Sock, sodium);
   const op = findOp(namespace.opaque, "registered");
   await Opaque.clientRegister(pass, "root", op);
+  Sock.sock.project.done = true;
   DATA.loading.verify = false;
   return result;
 }
@@ -111,7 +113,7 @@ const runReef = (hasLocal, remote, env) => {
   const KEY_PAIR = toKeyPair();
 
   // Create reactive data store
-  let DATA = store({
+  const DATA = store({
     local: hasLocal,
     failure: false,
     login: null,
@@ -183,6 +185,7 @@ const runReef = (hasLocal, remote, env) => {
         DATA.phase = 4;
       }).catch((e) => {
         console.error(e?.message);
+        console.error(e); //TODO
         DATA.failure = true;
       });
     }
