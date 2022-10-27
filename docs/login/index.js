@@ -1,5 +1,4 @@
-import { graphql } from "@octokit/graphql";
-import { deploy } from "project-sock";
+import { request } from "@octokit/request";
 import { OP } from "opaque-low-io";
 import sodium from "libsodium-wrappers-sumo";
 import { toEnv } from "../config/environment.js";
@@ -50,24 +49,25 @@ async function outage() {
   });
 }
 
+const dispatch = async ({ git, env }) => {
+  const { owner, repo, token } = git;
+  const api_url = `/repos/${owner}/${repo}/dispatches`;
+  await request(`POST ${api_url}`, {
+    event_type: `${env}-START`,
+    headers: {
+      authorization: `token ${token}`,
+    }
+  })
+}
+
 async function triggerGithubAction(local, env, git) {
   if (local) {
     console.log('DEVELOPMENT: please run action locally.');
     return;
   }
   console.log('PRODUCTION: calling GitHub action.');
-  const { repo, owner } = git;
-  const accept = "application/vnd.github.flash-preview+json";
-  const octograph = graphql.defaults({
-    headers: {
-      accept,
-      authorization: `token ${git.token}`,
-    }
-  });
-  const metadata = { env: `${env}-START` };
-  const opts = { repo, owner, octograph, metadata };
   try {
-    await deploy(opts);
+    await dispatch({ git, env });
   }
   catch (e) {
     console.log(e?.message);

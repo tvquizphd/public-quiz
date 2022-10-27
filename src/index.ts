@@ -1,12 +1,10 @@
 import { isGit, gitDecrypt, activation } from "./activate.js";
 import { isProduction } from "./util/secrets.js";
-import { graphql } from "@octokit/graphql";
-import { undeploy } from "project-sock";
 import { verifier } from "./verify.js";
 import dotenv from "dotenv";
 import fs from "fs";
 
-import type { Git, Trio } from "./util/types.js";
+import type { Trio } from "./util/types.js";
 import type { SecretInputs } from "./activate.js"
 import type { SecretOutputs } from "./activate.js"
 
@@ -14,9 +12,6 @@ type Duo = [string, string];
 type Result = {
   success: boolean,
   message: string
-}
-type Meta = {
-  env: string
 }
 interface WriteSecretText {
   (i: Partial<SecretOutputs>): void;
@@ -33,21 +28,6 @@ function isDuo(args: string[]): args is Duo {
 function isOne(args: string[]): args is [string] {
   return args.length === 1;
 } 
-
-async function lockDeployment(git: Git, metadata: Meta) {
-  const { repo, owner } = git;
-  const octograph = graphql.defaults({
-    headers: {
-      authorization: `token ${git.owner_token}`,
-    }
-  });
-  const opts = { repo, owner, octograph, metadata };
-  const { success } = await undeploy(opts);
-  if (success) {
-    return console.log("Successfully undeployed action.");
-  }
-  console.log("No active action to undeploy");
-}
 
 const writeSecretText: WriteSecretText = (inputs) => {
   const out_file = "secret.txt";
@@ -95,15 +75,6 @@ const writeSecretText: WriteSecretText = (inputs) => {
   }
   else {
     console.log('PRODUCTION\n');
-    try {
-      const metadata = { env: `${env}-START` };
-      await lockDeployment(git, metadata);
-    }
-    catch (e: any) {
-      console.error(e?.message);
-      const message = "Unable to undeploy";
-      return { success: false, message };
-    }
   }
   const login = isOne(args);
   const v_in = { git, env, delay };

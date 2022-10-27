@@ -6,16 +6,16 @@ env:
   REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
 concurrency:
-  group: PRODUCTION-LOGIN-WIKI
+  group: PRODUCTION-LOGIN
   cancel-in-progress: true
+permissions:
+  pages: write
+  contents: read
+  id-token: write
+  deployments: write
 jobs:
   code_and_token:
     runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      contents: read
-      id-token: write
-      deployments: write
     environment:
       name: github-pages
       url: ${{ steps.pages.outputs.pages }}

@@ -62,6 +62,6 @@ jobs:
         with:
           tag_name: ${{ env.tag }}
           name: ${{ env.tag }}
-          prerelease: false 
+          prerelease: false
           draft: false
           files: index

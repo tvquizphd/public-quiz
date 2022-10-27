@@ -1,45 +1,29 @@
-name: Login after Deployment
+name: Login after Dispatch
 on:
-  deployment:
-  workflow_dispatch:
+  repository_dispatch:
+    types: [PRODUCTION-LOGIN-START]
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
 concurrency:
-  group: PRODUCTION-LOGIN-DEPLOYMENT
+  group: PRODUCTION-LOGIN
   cancel-in-progress: true
+permissions: {}
 jobs:
   login:
-    permissions:
-      deployments: read
     environment:
       name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
     steps:
-      - name: Validate Deployment Environment
-        id: filter
-        run: |
-          JSON=$(curl \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE/deployments?environment=$START);
-          OUTPUT=$(jq -r '.[0].environment' <<< $JSON);
-          echo "deployment environment is $OUTPUT";
-          echo "approved=$OUTPUT" >> $GITHUB_OUTPUT
-          echo "wanted=$START" >> $GITHUB_OUTPUT
-        env:
-          START: ${{ env.DEPLOYMENT }}-START
-      - name: Download Latest Release
-        if: steps.filter.outputs.approved == steps.filter.outputs.wanted
+      - name: Find Latest Release
         id: index
         run: |
-          echo ${{steps.filter.outputs.approved}}
+          echo $DEPLOYMENT
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           echo "index=$URL" >> $GITHUB_OUTPUT
       - name: User Login
-        if: steps.filter.outputs.approved == steps.filter.outputs.wanted
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
