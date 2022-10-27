@@ -24,7 +24,6 @@
   },
   "homepage": "https://github.com/tvquizphd/public-quiz-device#readme",
   "dependencies": {
-    "@octokit/graphql": "^5.0.1",
     "argon2": "^0.29.1",
     "eccrypto": "^1.1.6",
     "libsodium-wrappers": "0.7.8",
