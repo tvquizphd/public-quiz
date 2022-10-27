@@ -41,8 +41,7 @@ Unauthorized 3rd parties _can reset/clear your passwords_ if:
 
 ### Your passwords only be viewed/edited with:
 
-- your master password AND access to production environment
-- or your master password AND your bookmarked login link 
+Your master password AND your bookmarked login link.
 
 ## Local Testing
 
