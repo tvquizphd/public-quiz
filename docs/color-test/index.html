@@ -8,110 +8,132 @@
   <style>
 @import url('https://fonts.googleapis.com/css2?family=Kreon:wght@400;700&display=swap');
 
+body {
+  animation: animation 2s infinite;
+}
+@-webkit-keyframes animation {
+    0%  {background-color:hwb(16 2% 93%);}
+    20%  {background-color:hwb(320 2% 93%);}
+    40%  {background-color:hwb(0 4% 96%);}
+    60%  {background-color:hwb(240 2% 93%);}
+    80%  {background-color:hwb(0 4% 96%);}
+    100%  {background-color:hwb(16 2% 93%);}
+}
+
+@keyframes animation {
+    0%  {background-color:hwb(16 2% 93%);}
+    20%  {background-color:hwb(320 2% 93%);}
+    40%  {background-color:hwb(0 4% 96%);}
+    60%  {background-color:hwb(240 2% 93%);}
+    80%  {background-color:hwb(0 4% 96%);}
+    100%  {background-color:hwb(16 2% 93%);}
+}
 .black-tan {
-  background-color: hwb(32 6% 90%);
+  background-color: hwb(16 2% 93%);
 }
 .black-pink {
-  background-color: hwb(320 6% 90%);
+  background-color: hwb(320 2% 93%);
 }
 .black-blue {
-  background-color: hwb(211 6% 90%);
+  background-color: hwb(240 2% 93%);
 }
 .dark-tan {
-  background-color: hwb(32 5% 79%);
+  background-color: hwb(16 8% 82%);
 }
 .dark-pink {
-  background-color: hwb(320 5% 79%);
+  background-color: hwb(320 8% 82%);
 }
 .dark-blue {
-  background-color: hwb(211 5% 79%);
+  background-color: hwb(240 8% 82%);
 }
 .true-tan {
-  background-color: hwb(32 10% 64%);
+  background-color: hwb(16 10% 64%);
 }
 .true-pink {
   background-color: hwb(320 10% 64%);
 }
 .true-blue {
-  background-color: hwb(211 10% 64%);
+  background-color: hwb(240 10% 64%);
 }
 .white-tan {
-  color: hwb(32 90% 0%);
+  color: hwb(16 90% 0%);
 }
 .white-pink {
   color: hwb(320 70% 20%);
 }
-.white-blue {
-  color: hwb(211 70% 20%);
-}
 .container {
-  gap: 0.5em;
-  width: 100vw;
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  width: 100%;
+  gap: 1.5em;
 }
-.container > div {
+.block {
+  gap: 0.75em;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas:
+            "a a"
+            "b c"
+            "d e";
+}
+.block > div:nth-child(1) {
+  grid-area: a;
+}
+.block > div:nth-child(2) {
+  grid-area: b;
+}
+.block > div:nth-child(3) {
+  grid-area: c;
+}
+.block > div:nth-child(4) {
+  grid-area: d;
+}
+.block > div:nth-child(5) {
+  grid-area: e;
+}
+.block > div {
   font-family: Kreon, Tahoma, Verdana, sans-serif;
+  border-radius: 0.5em;
+  text-align: center;
   line-height: 1.4em;
   font-weight: 400;
-  font-size: 20px;
+  font-size: 22px;
   padding: 0.5em;
+}
+h2 {
+  margin-top: 0px;
+  margin-bottom: 0px;
 }
   </style>
 </head>
 <body>
   <div class="container">
+    <div class="block">
+      <div class="white-tan true-tan"><h2>Mr. Jock, TV quiz Ph.D., bags few lynx</h2></div>
 
-    <div class="white-tan true-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink true-tan"> </div>
-    <div class="white-blue true-tan"> </div>
+      <div class="white-tan dark-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+      <div class="white-pink dark-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
 
-    <div class="white-tan dark-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink dark-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-blue dark-tan"> </div>
+      <div class="white-tan black-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+      <div class="white-pink black-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    </div>
+    <div class="block">
+      <div class="white-tan true-pink"><h2>Mr. Jock, TV quiz Ph.D., bags few lynx</h2></div>
 
-    <div class="white-tan black-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink black-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-blue black-tan"> </div>
+      <div class="white-tan dark-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+      <div class="white-pink dark-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
 
-    <div class="white-tan true-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink true-pink"> </div>
-    <div class="white-blue true-pink"> </div>
+      <div class="white-tan black-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+      <div class="white-pink black-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    </div>
+    <div class="block">
+      <div class="white-tan true-blue"><h2>Mr. Jock, TV quiz Ph.D., bags few lynx</h2></div>
 
-    <div class="white-tan dark-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink dark-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-blue dark-pink"> </div>
+      <div class="white-tan dark-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+      <div class="white-pink dark-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
 
-    <div class="white-tan black-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink black-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-blue black-pink"> </div>
-
-    <div class="white-tan true-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink true-blue"> </div>
-    <div class="white-blue true-blue"> </div>
-
-    <div class="white-tan dark-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink dark-blue"> </div>
-    <div class="white-blue dark-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-
-    <div class="white-tan black-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
-    <div class="white-pink black-blue"> </div>
-    <div class="white-blue black-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+      <div class="white-tan black-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+      <div class="white-pink black-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    </div>
   </div>
-  <script>
-    const backgrounds = ["tan", "pink", "blue"];
-    const changes = backgrounds.map((s, i, a) => {
-      return [s, backgrounds[(i + 1) % a.length]];
-    });
-    const body = document.querySelector("body");
-    const steps = Object.fromEntries(changes);
-    let bg = backgrounds[0];
-    const updater = () => {
-      body.className = `black-${bg}`;
-      bg = steps[bg];
-    }
-    updater();
-    setInterval(updater, 1000);
-  </script>
 </body>
 </html>
