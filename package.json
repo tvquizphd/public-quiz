@@ -1,6 +1,6 @@
 {
   "name": "public-quiz-device",
-  "version": "3.8.0",
+  "version": "3.8.1",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
     "lint:src": "eslint src",
     "lint:docs": "eslint docs",
     "develop": "ts-node-esm src/index.ts",
-    "pkg": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir ./action dist/index.js"
+    "pkg": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir . dist/index.js"
   },
   "repository": {
     "type": "git",

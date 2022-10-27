@@ -55,10 +55,13 @@ jobs:
       - name: Run with pnpm
         run: |
           pnpm build
-      - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v4
+      - name: Release compiled executable
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         with:
-          token: ${{ github.token }}
-          commit-message: Add build artifact
-          title: Add build artifact
-          base: main
+          tag_name: ${{ env.tag }}
+          name: ${{ env.tag }}
+          prerelease: false 
+          draft: false
+          files: index
