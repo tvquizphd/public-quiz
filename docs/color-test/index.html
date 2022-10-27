@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <title>Activate - Quiz</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=Kreon:wght@400;700&display=swap');
+
+.black-tan {
+  background-color: hwb(32 9% 85%);
+}
+.black-pink {
+  background-color: hwb(306 6% 90%);
+}
+.black-blue {
+  background-color: hwb(211 6% 90%);
+}
+.dark-tan {
+  background-color: hwb(32 5% 69%);
+}
+.dark-pink {
+  background-color: hwb(306 5% 79%);
+}
+.dark-blue {
+  background-color: hwb(211 5% 79%);
+}
+.true-tan {
+  background-color: hwb(32 20% 44%);
+}
+.true-pink {
+  background-color: hwb(306 15% 60%);
+}
+.true-blue {
+  background-color: hwb(211 15% 62%);
+}
+.white-tan {
+  color: hwb(32 80% 0%);
+}
+.white-pink {
+  color: hwb(306 65% 20%);
+}
+.white-blue {
+  color: hwb(211 65% 20%);
+}
+.container {
+  gap: 0.5em;
+  width: 100vw;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.container > div {
+  font-family: Kreon, Tahoma, Verdana, sans-serif;
+  line-height: 1.4em;
+  font-weight: 400;
+  font-size: 20px;
+  padding: 0.5em;
+}
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="white-tan true-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink true-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue true-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan dark-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink dark-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue dark-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan black-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink black-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue black-tan">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan true-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink true-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue true-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan dark-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink dark-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue dark-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan black-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink black-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue black-pink">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan true-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink true-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue true-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan dark-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink dark-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue dark-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+
+    <div class="white-tan black-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-pink black-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+    <div class="white-blue black-blue">Mr. Jock, TV quiz Ph.D., bags few lynx</div>
+  </div>
+  <script>
+    const backgrounds = ["tan", "pink", "blue"];
+    const changes = backgrounds.map((s, i, a) => {
+      return [s, backgrounds[(i + 1) % a.length]];
+    });
+    const body = document.querySelector("body");
+    const steps = Object.fromEntries(changes);
+    let bg = backgrounds[0];
+    const updater = () => {
+      body.className = `black-${bg}`;
+      bg = steps[bg];
+    }
+    updater();
+    setInterval(updater, 1000);
+  </script>
+</body>
+</html>
