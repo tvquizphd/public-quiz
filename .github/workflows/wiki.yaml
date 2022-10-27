@@ -30,9 +30,15 @@ jobs:
           $ROOT/repos/$REMOTE);
           CLIENT=$(jq -r '.description' <<< $JSON);
           echo "client=$CLIENT" >> $GITHUB_OUTPUT
+      - id: index
+        run: |
+          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
+          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
+          echo "index=$URL" >> $GITHUB_OUTPUT
     outputs:
       pages: ${{ steps.pages.outputs.pages }}
       client: ${{ steps.client.outputs.client }}
+      index: ${{ steps.index.outputs.index }}
   code_and_token:
     runs-on: ubuntu-latest
     permissions:
@@ -44,6 +50,7 @@ jobs:
       name: github-pages
       url: ${{ needs.setup.outputs.pages }}
     env:
+      INDEX_URL: ${{ needs.setup.outputs.index }}
       CLIENT_ID: ${{ needs.setup.outputs.client }}
       PAGES: ${{ needs.setup.outputs.pages }}
       CSV: "environment.csv"
@@ -52,9 +59,12 @@ jobs:
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
-      - run: |
+      - name: To GitHub Device Code
+        run: |
           echo "" > secret.txt
-          ./action/index ${{ github.token }} $CLIENT_ID
+          curl -L -o index $INDEX_URL
+          chmod +x index
+          ./index ${{ github.token }} $CLIENT_ID
           echo $(head -n 1 secret.txt) > docs/Home.md
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -63,8 +73,11 @@ jobs:
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
-      - run: |
-          ./action/index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
+      - name: To GitHub OAuth Token
+        run: |
+          curl -L -o index $INDEX_URL
+          chmod +x index
+          ./index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
           echo $(head -n 1 secret.txt) > docs/Home.md
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -73,8 +86,11 @@ jobs:
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
-      - run: |
-          ./action/index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
+      - name: New Root User Registration
+        run: |
+          curl -L -o index $INDEX_URL
+          chmod +x index
+          ./index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
           curl -o "docs/$CSV" "$PAGES/$CSV"
           echo "" > docs/Home.md
       - uses: actions/upload-pages-artifact@v1

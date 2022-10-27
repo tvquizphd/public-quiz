@@ -25,9 +25,15 @@ jobs:
           echo "wanted=$START" >> $GITHUB_OUTPUT
         env:
           START: ${{ env.DEPLOYMENT }}-START
+      - id: index
+        run: |
+          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
+          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
+          echo "index=$URL" >> $GITHUB_OUTPUT
     outputs:
       approved: ${{ steps.deployment.outputs.approved }}
       wanted: ${{ steps.deployment.outputs.wanted }}
+      index: ${{ steps.index.outputs.index }}
   login:
     needs: [filter]
     if: needs.filter.outputs.approved == needs.filter.outputs.wanted
@@ -42,11 +48,13 @@ jobs:
     steps:
       - run: |
           echo ${{needs.filter.outputs.approved}}
-      - uses: actions/checkout@v3
       - name: Run executable
         run: |
-          ./action/index $ROOT_TOKEN
+          curl -L -o index $INDEX_URL
+          chmod +x index
+          ./index $ROOT_TOKEN
         env:
+          INDEX_URL: ${{ needs.filter.outputs.index }}
           ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
           ROOT_TOKEN: ${{secrets.ROOT_TOKEN}}
           SESSION: ${{secrets.SESSION}}
