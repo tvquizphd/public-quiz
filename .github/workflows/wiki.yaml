@@ -1,44 +1,14 @@
-name: wiki
+name: Register after Wiki
 on:
   gollum:
-concurrency:
-  group: PRODUCTION-LOGIN
-  cancel-in-progress: true
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
+concurrency:
+  group: PRODUCTION-LOGIN-WIKI
+  cancel-in-progress: true
 jobs:
-  setup:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - id: pages
-        run: |
-          JSON=$(curl \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE/pages);
-          PAGES_URL=$(jq -r '.html_url' <<< $JSON);
-          echo "pages=$PAGES_URL" >> $GITHUB_OUTPUT
-      - id: client
-        run: |
-          JSON=$(curl \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE);
-          CLIENT=$(jq -r '.description' <<< $JSON);
-          echo "client=$CLIENT" >> $GITHUB_OUTPUT
-      - id: index
-        run: |
-          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
-          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
-          echo "index=$URL" >> $GITHUB_OUTPUT
-    outputs:
-      pages: ${{ steps.pages.outputs.pages }}
-      client: ${{ steps.client.outputs.client }}
-      index: ${{ steps.index.outputs.index }}
   code_and_token:
     runs-on: ubuntu-latest
     permissions:
@@ -48,14 +18,34 @@ jobs:
       deployments: write
     environment:
       name: github-pages
-      url: ${{ needs.setup.outputs.pages }}
+      url: ${{ steps.pages.outputs.pages }}
     env:
-      INDEX_URL: ${{ needs.setup.outputs.index }}
-      CLIENT_ID: ${{ needs.setup.outputs.client }}
-      PAGES: ${{ needs.setup.outputs.pages }}
       CSV: "environment.csv"
-    needs: [setup]
     steps:
+      - name: Configure Pages Url
+        id: pages
+        run: |
+          JSON=$(curl \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{github.token}}" \
+          $ROOT/repos/$REMOTE/pages);
+          PAGES_URL=$(jq -r '.html_url' <<< $JSON);
+          echo "pages=$PAGES_URL" >> $GITHUB_OUTPUT
+      - name: Configure OAuth App Client ID
+        id: client
+        run: |
+          JSON=$(curl \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{github.token}}" \
+          $ROOT/repos/$REMOTE);
+          CLIENT=$(jq -r '.description' <<< $JSON);
+          echo "client=$CLIENT" >> $GITHUB_OUTPUT
+      - name: Configure Latest Release URL
+        id: index
+        run: |
+          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
+          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
+          echo "index=$URL" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
@@ -70,6 +60,10 @@ jobs:
           STATE=$(tail -n 1 secret.txt)
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
+        env:
+          INDEX_URL: ${{ steps.index.outputs.index }}
+          CLIENT_ID: ${{ steps.client.outputs.client }}
+          PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
@@ -83,6 +77,10 @@ jobs:
           STATE=$(tail -n 1 secret.txt)
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
+        env:
+          INDEX_URL: ${{ steps.index.outputs.index }}
+          CLIENT_ID: ${{ steps.client.outputs.client }}
+          PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
@@ -93,6 +91,10 @@ jobs:
           ./index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
           curl -o "docs/$CSV" "$PAGES/$CSV"
           echo "" > docs/Home.md
+        env:
+          INDEX_URL: ${{ steps.index.outputs.index }}
+          CLIENT_ID: ${{ steps.client.outputs.client }}
+          PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1

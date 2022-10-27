@@ -1,4 +1,4 @@
-name: login
+name: Login after Deployment
 on:
   deployment:
   workflow_dispatch:
@@ -6,14 +6,19 @@ env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
+concurrency:
+  group: PRODUCTION-LOGIN-DEPLOYMENT
+  cancel-in-progress: true
 jobs:
-  filter:
-    runs-on: ubuntu-latest
+  login:
     permissions:
       deployments: read
+    environment:
+      name: PRODUCTION-LOGIN
+    runs-on: ubuntu-latest
     steps:
-      - name: Ensuring existing deployment
-        id: deployment
+      - name: Validate Deployment Environment
+        id: filter
         run: |
           JSON=$(curl \
           -H "Accept: application/vnd.github+json" \
@@ -25,36 +30,22 @@ jobs:
           echo "wanted=$START" >> $GITHUB_OUTPUT
         env:
           START: ${{ env.DEPLOYMENT }}-START
-      - id: index
+      - name: Download Latest Release
+        if: steps.filter.outputs.approved == steps.filter.outputs.wanted
+        id: index
         run: |
+          echo ${{steps.filter.outputs.approved}}
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           echo "index=$URL" >> $GITHUB_OUTPUT
-    outputs:
-      approved: ${{ steps.deployment.outputs.approved }}
-      wanted: ${{ steps.deployment.outputs.wanted }}
-      index: ${{ steps.index.outputs.index }}
-  login:
-    needs: [filter]
-    if: needs.filter.outputs.approved == needs.filter.outputs.wanted
-    permissions:
-      contents: read
-    concurrency:
-      group: PRODUCTION-LOGIN
-      cancel-in-progress: true
-    environment:
-      name: PRODUCTION-LOGIN
-    runs-on: ubuntu-latest
-    steps:
-      - run: |
-          echo ${{needs.filter.outputs.approved}}
-      - name: Run executable
+      - name: User Login
+        if: steps.filter.outputs.approved == steps.filter.outputs.wanted
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
           ./index $ROOT_TOKEN
         env:
-          INDEX_URL: ${{ needs.filter.outputs.index }}
+          INDEX_URL: ${{ steps.index.outputs.index }}
           ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
           ROOT_TOKEN: ${{secrets.ROOT_TOKEN}}
           SESSION: ${{secrets.SESSION}}
