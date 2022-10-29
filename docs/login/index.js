@@ -477,13 +477,6 @@ const runReef = (hasLocal, remote, env) => {
 }
 
 export default () => {
-  const rootApp = document.createElement("div");
-  const rootForm = document.createElement("div");
-  const reefMain = document.getElementById("reef-main");
-  rootApp.id = "root-app";
-  rootForm.id = "root-form";
-  reefMain.appendChild(rootForm);
-  reefMain.appendChild(rootApp);
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
   toEnv().then(({ remote, env }) => {
