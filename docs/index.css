@@ -1,13 +1,23 @@
+.hidden {
+  display: none;
+}
 .list-wrapper > ol > li {
+  border-radius: 1em;
+  padding-right: 0.5em;
   padding-left: 0.5em;
-  line-height: 1.5em;
-  font-size: 1.5em;
+  line-height: 2em;
 }
 .list-wrapper > ol > li > button {
+  filter: drop-shadow(0 0 0.25em black);
+  box-shadow: 1px 4px black;
+  padding: min(1em, 1vw);
   font-size: 0.75em;
 }
 .list-wrapper > ol > li > span {
   font-size: 0.75em;
+}
+.list-wrapper > ol > li > span > a {
+  font-size: 1.1em;
 }
 .copy-wrapper {
   display: grid;
@@ -15,7 +25,6 @@
 }
 .copy-wrapper > div {
   font-family: "Arial Narrow", Arial, sans-serif;
-  background-color: #cfcce5;
   white-space: nowrap;
   padding-left: 0.5em;
   line-height: 2em;
@@ -26,8 +35,34 @@
 }
 .long-link {
   word-break: break-all;
+  font-size: 0.5em;
 }
 .copier {
   cursor: pointer;
   padding: 0.5em;
 }
+.container {
+  display: grid;
+  max-width: 960px;
+  background: #f4fff4;
+  border-radius: 3px;
+  padding-top: 0.5em;
+  padding-bottom: 0.5em;
+  margin-bottom: 0.25em;
+  background: rgba(0,0,0,0.5);
+  border-radius: 1em;
+  font-size: 2.25em;
+}
+.container > .contained {
+  grid-template-columns: 1fr minmax(300px, 60vw) 1fr;
+  justify-items: center;
+  align-items: center;
+  display: grid;
+}
+.container > .contained > div {
+  grid-column: 2;
+}
+.container > .uncontained {
+  margin-bottom: 0.5em;
+}
+

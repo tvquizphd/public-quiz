@@ -1,29 +1,35 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <title>Login - Quiz</title>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <link href="../global.css" rel="stylesheet" type="text/css">
-    <link href="./main.css" rel="stylesheet" type="text/css">
+  <title>Activate - Quiz</title>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link href="./main.css" rel="stylesheet" type="text/css">
 </head>
 <body>
 <div id="reef-main"></div>
-<!-- Polyfill for modules browsers without import maps support -->
 <script SameSite="Strict" async src="https://ga.jspm.io/npm:es-module-shims@1.6.1/dist/es-module-shims.js"></script>
 <script type="importmap">
 {
-	"imports": {
+  "imports": {
     "index": "./index.js",
+    "sock": "../config/sock.js",
+    "workflow": "./lib/workflow.js",
+    "templates": "./lib/templates.js",
+    "mailer": "../scripts/mailer.js",
+    "dbtrio": "../scripts/dbtrio.js",
+    "finders": "../scripts/finders.js",
+    "decrypt": "../scripts/decrypt.js",
+    "environment": "../config/environment.js",
     "opaque-low-io": "https://cdn.jsdelivr.net/npm/opaque-low-io@2.1.0/dist/index.mjs",
     "oprf": "https://ga.jspm.io/npm:oprf@2.0.0/build/oprf.js",
 		"@octokit/request": "https://ga.jspm.io/npm:@octokit/request@6.2.2/dist-web/index.js",
 		"libsodium-wrappers-sumo": "https://ga.jspm.io/npm:libsodium-wrappers-sumo@0.7.8/dist/modules-sumo/libsodium-wrappers.js",
-		"project-sock": "https://ga.jspm.io/npm:project-sock@1.0.0-beta.5.7/dist/index.mjs"
-	},
-	"scopes": {
-		"https://ga.jspm.io/": {
+    "project-sock": "https://ga.jspm.io/npm:project-sock@1.0.0-beta.5.7/dist/index.mjs"
+  },
+  "scopes": {
+    "https://ga.jspm.io/": {
 			"@octokit/endpoint": "https://ga.jspm.io/npm:@octokit/endpoint@7.0.3/dist-web/index.js",
 			"@octokit/graphql": "https://ga.jspm.io/npm:@octokit/graphql@5.0.4/dist-web/index.js",
 			"@octokit/request-error": "https://ga.jspm.io/npm:@octokit/request-error@3.0.2/dist-web/index.js",
@@ -39,8 +45,8 @@
 			"process": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/process.js",
 			"universal-user-agent": "https://ga.jspm.io/npm:universal-user-agent@6.0.0/dist-node/index.js",
 			"wrappy": "https://ga.jspm.io/npm:wrappy@1.0.2/wrappy.js"
-		}
-	}
+		} 
+  }
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/reefjs@12/dist/reef.js"></script>

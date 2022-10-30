@@ -10,10 +10,10 @@ const to_random = (n) => {
   }
   return bytes.map(to_pair).join('');
 }
-const saveTemplate = (inputs) => {
+const saveTemplate = () => {
   const html = `
   <div class="wrap-save">
-    <button class="send-mail button true-tan">Save 💯</button>
+    <button class="send-mail button black-blue">Save 💯</button>
   </div>`
   return { html, handlers: [] };
 }
@@ -48,16 +48,18 @@ const formTemplate = (inputs) => {
     <button id="${id}" class="button true-blue">Log in</button>
   `;
   if (loading) {
-    bottom = `<div class="loading">${title}</div>`;
+    bottom = `<div class="loading large-font">
+      <div>${title}</div>
+    </div>`;
   }
   const html = `
   <div class="wrap-form">
     <h1>${title}</h1>
     <form id="${passFormId}">
-      <label for="${u_id}">Username:</label>
-      <input type="text" ${user_props}>
-      <label for="${p_id}">Password:</label>
-      <input type="password" ${pwd_props}>
+      <label class="large-font" for="${u_id}">Username:</label>
+      <input class="large-font" type="text" ${user_props}>
+      <label class="large-font" for="${p_id}">Password:</label>
+      <input class="large-font" type="password" ${pwd_props}>
       ${bottom} 
     </form>
   </div>`

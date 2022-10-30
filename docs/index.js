@@ -151,11 +151,10 @@ const runReef = (hasLocal, remote, env) => {
       navigator.clipboard.writeText(innerText).then(() => {
         wikiMailer.start();
         fetch(wiki_home).then(({ ok }) => {
-          DATA.phase = Math.max(1, DATA.phase);
           DATA.wiki_ext = ok ? 'Home/_edit' : '_new';
         })
         wikiMailer.addHandler('code', (pasted) => {
-          DATA.phase = Math.max(2, DATA.phase);
+          DATA.phase = Math.max(1, DATA.phase);
           const decrypt_in = { ...pasted, priv };
           decryptPublic(decrypt_in).then((code) => {
             DATA.code = code;
@@ -164,7 +163,7 @@ const runReef = (hasLocal, remote, env) => {
           });
         });
         wikiMailer.addHandler('token', (pasted) => {
-          DATA.phase = Math.max(3, DATA.phase);
+          DATA.phase = Math.max(2, DATA.phase);
           const decrypt_in = { ...pasted, priv };
           decryptPublic(decrypt_in).then((token) => {
             wikiMailer.finish();
@@ -198,17 +197,19 @@ const runReef = (hasLocal, remote, env) => {
         "connect": "Connecting...",
         "register": "Registering...",
       }[verb] || verb;
-      return `<p class="loading"> ${gerrund} </p>`;
+      return `<div class="loading">
+        <div> ${gerrund} </div>
+      </div>`;
     }
     return `<div>
       <p class="failure"> Failed to ${verb}. </p>
-      <button class="b-add force-reload">Retry?</button>
+      <button class="button true-pink force-reload">Retry?</button>
     </div>`;
   }
 
   function passTemplate() {
     const { phase } = DATA;
-    if (phase < 3) {
+    if (phase < 2) {
       return "";
     }
     const u_id = "user-root";
@@ -218,13 +219,15 @@ const runReef = (hasLocal, remote, env) => {
     const pwd_auto = 'autocomplete="new-password"';
     const pwd_props = `id="${p_id}" ${pwd_auto}`;
     return `
-      <form id="${passFormId}">
-        <label for="${u_id}">Username:</label>
-        <input id="${u_id} "type="text" ${user_props}>
-        <label for="${p_id}">Password:</label>
-        <input type="password" ${pwd_props}>
-        <button class="b-add">Log in</button>
-      </form>
+      <div class="wrap-form">
+        <form id="${passFormId}">
+          <label class="large-font" for="${u_id}">Username:</label>
+          <input class="large-font" id="${u_id} "type="text" ${user_props}>
+          <label class="large-font" for="${p_id}">Password:</label>
+          <input class="large-font" type="password" ${pwd_props}>
+          <button class="button true-blue">Log in</button>
+        </form>
+      </div>
     `;
   }
 
@@ -255,29 +258,7 @@ const runReef = (hasLocal, remote, env) => {
     }
     return `
       <div class="contained">
-        <div class="loading-wrapper">
-          ${loadingInfo} 
-        </div>
-      </div>
-    `;
-  }
-
-  function copyTemplate () {
-    const { phase } = DATA;
-    const { pub } = KEY_PAIR;
-    const pub_str = toB64urlQuery({pub});
-    if (phase > 1) {
-      return "";
-    }
-    const button = `
-      <button class="b-add">
-        Copy
-      </button>
-    `;
-    return `
-      <div class="copier copy-wrapper">
-        <div>${pub_str}</div>
-        ${button}
+        <div> ${loadingInfo} </div>
       </div>
     `;
   }
@@ -297,13 +278,37 @@ const runReef = (hasLocal, remote, env) => {
     return args.map(a => `<span>${a}</span>`);
   }
 
-  function isCopyPhase() {
+  function isCopyKeyPhase() {
+    return DATA.phase === 0;
+  }
+  function isCopyCodePhase() {
     const { phase, code } = DATA;
-    return phase === 2 && !!code;
+    return phase === 1 && !!code;
   }
 
-  function toCopySpans(root, placeholder) {
-    if (isCopyPhase()) {
+  function toCopyKeySpans(root, placeholder) {
+    const { pub } = KEY_PAIR;
+    const pub_str = toB64urlQuery({ pub });
+    if (isCopyKeyPhase()) {
+      const { remote, wiki_ext } = DATA;
+      const wiki = `${root}/${remote}/wiki/${wiki_ext}`;
+      const link_props = [
+        `href="${wiki}"`,
+        'target="_blank"',
+        'rel="noopener noreferrer"'
+      ].join(" ");
+      const wiki_link = `to <a ${link_props}>the Wiki</a>`;
+      const button = '<button class="button true-tan">Copy</button>';
+      const pub_span = `<span class="hidden">${pub_str}</span>`;
+      const spans = [button, pub_span, ...toSpans("Public Key", wiki_link)];
+      return { spans, cls: "dark-blue copier" };
+    }
+    const spans = toSpans(placeholder);
+    return { spans, cls: "" };
+  }
+
+  function toCopyCodeSpans(root, placeholder) {
+    if (isCopyCodePhase()) {
       const { code } = DATA;
       const device = `${root}/login/device/`;
       const link_props = [
@@ -312,50 +317,35 @@ const runReef = (hasLocal, remote, env) => {
         'rel="noopener noreferrer"'
       ].join(" ");
       const device_link = `to <a ${link_props}>GitHub</a>.`;
-      const button = '<button class="b-add">Copy</button>';
-      return [button, ...toSpans(code, device_link)];
+      const button = '<button class="button true-tan">Copy</button>';
+      const spans = [button, ...toSpans(code, device_link)];
+      return { spans, cls: "dark-blue copier" };
     }
-    return toSpans(placeholder);
+    const spans = toSpans(placeholder);
+    return { spans, cls: "" };
   }
 
   function appTemplate () {
       const root = "https://github.com";
-      const { remote, phase, wiki_ext } = DATA;
-      const wiki = `${root}/${remote}/wiki/${wiki_ext}`;
-      const link_props = [
-        `href="${wiki}"`,
-        'target="_blank"',
-        'rel="noopener noreferrer"'
-      ].join(" ");
-      const wiki_link = `<a ${link_props}>the Wiki</a>`;
-      const item_spans = [
-        toSpans("Copy temporary public key."),
-        toSpans(`Paste into ${wiki_link} Home.md.`),
-        toCopySpans(root, 'Await GitHub Code.'),
-        toSpans("Choose master password!")
-      ];
-      const items = item_spans.map((spans, i) => {
-        const classes = [phase === i ? "highlight" : ""];
-        if (isCopyPhase() && i === 2) {
-          classes.push("copier");
+      const { phase } = DATA;
+      const items = [
+        toCopyKeySpans(root, 'Pasted Key.'),
+        toCopyCodeSpans(root, 'Await GitHub Code.'),
+        {
+          spans: toSpans("Choose master password!"),
+          cls: phase > 1 ? "dark-blue" : ""
         }
-        const cls = classes.join(" ");
-        return { spans, cls };
-      });
+      ];
       const list_props = { items };
       return `
         <div class="container">
-          <div class="uncontained">
-            ${copyTemplate()} 
-          </div>
           <div class="contained">
             <div class="list-wrapper">
               ${listTemplate(list_props)}
             </div>
           </div>
-          ${loadingTemplate()}
-          <br>
         </div>
+        ${loadingTemplate()}
       `;
   }
 
