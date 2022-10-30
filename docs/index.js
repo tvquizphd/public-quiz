@@ -197,7 +197,7 @@ const runReef = (hasLocal, remote, env) => {
         "connect": "Connecting...",
         "register": "Registering...",
       }[verb] || verb;
-      return `<div class="loading">
+      return `<div class="loading large-font">
         <div> ${gerrund} </div>
       </div>`;
     }
@@ -250,14 +250,14 @@ const runReef = (hasLocal, remote, env) => {
       ].join(" ");
       const login_link = `<a ${link_props}>${login}</a>`
       return `
-      <div class="uncontained">
+      <div class="footer">
         <p>You are now registered! Use this link from now on:</p>
         <p class="long-link">${login_link}</p>
       </div>
       `
     }
     return `
-      <div class="contained">
+      <div class="footer">
         <div> ${loadingInfo} </div>
       </div>
     `;
