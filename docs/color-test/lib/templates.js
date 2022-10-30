@@ -1,42 +1,73 @@
+const to_random = (n) => {
+  const empty = new Uint8Array(Math.ceil(n / 2));
+  const bytes = [...crypto.getRandomValues(empty)];
+  const to_pair = x => {
+    const [p0, p1] = x.toString(36).padStart(2,'0');
+    const P0 = Math.random() > 0.5 ? p0.toUpperCase() : p0;
+    const P1 = Math.random() > 0.5 ? p1.toUpperCase() : p1;
+    const sep = Math.random() > 0.5 ? '' : '-';
+    return [P0, P1].join(sep);
+  }
+  return bytes.map(to_pair).join('');
+}
+const saveTemplate = (inputs) => {
+  const html = `
+  <div class="wrap-save">
+    <button class="send-mail button true-tan">Save 💯</button>
+  </div>`
+  return { html, handlers: [] };
+}
 const navTemplate = (inputs) => {
-  const { labels } = inputs.node;
-  const slash = "<div>/</div>"
+  const { stepBack } = inputs;
+  const { uuid, labels } = inputs.node;
+  const slash = '<div class="slash">/</div>'
   const items = labels.map((label) => {
     return `<div>${label}</div>`;
   }).join(slash);
-  const props = 'class="wrap-nav"';
+  const id = `${uuid}-go-back`;
+  const props = [
+    'class="wrap-nav"',
+    `id=${id}`
+  ].join(' ');
+  const fn = () => stepBack(); 
+  const handlers = [{ id, fn }]
   const html = `<div ${props}>${items}</div>`;
-  return { html, handlers: [] };
+  return { html, handlers };
 }
 const formTemplate = (inputs) => {
   const passFormId = "pass-form";
-  const { uuid, title } = inputs.node;
-  const { stepNext } = inputs;
+  const { uuid, title, loading } = inputs.node;
   const id = `${uuid}-form-login`;
-  const u_id = "user-root";
+  const u_id = "u-root";
   const p_id = "password-input";
   const user_auto = 'readonly="readonly" autocomplete="username"';
-  const user_props = `id="u-root" value="root" ${user_auto}`;
+  const user_props = `id="${u_id}" value="root" ${user_auto}`;
   const pwd_auto = 'autocomplete="current-password"';
   const pwd_props = `id="${p_id}" ${pwd_auto}`;
-  const fn = () => [stepNext(true)];
-  const handlers = [ { id, fn } ];
+  let bottom = `
+    <button id="${id}" class="button true-blue">Log in</button>
+  `;
+  if (loading) {
+    bottom = `<div class="loading">${title}</div>`;
+  }
   const html = `
   <div class="wrap-form">
-    <h2>${title}</h2>
+    <h1>${title}</h1>
     <form id="${passFormId}">
       <label for="${u_id}">Username:</label>
-      <input id="${u_id} "type="text" ${user_props}>
+      <input type="text" ${user_props}>
       <label for="${p_id}">Password:</label>
       <input type="password" ${pwd_props}>
-      <p></p>
-      <button id="${id}" class="button true-blue">Log in</button>
+      ${bottom} 
     </form>
   </div>`
-  return { html, handlers };
+  return { html, handlers: [] };
 }
 const buttonsTemplate = (inputs) => {
-  const { stepBack, stepNext, stepHome } = inputs;
+  const { stepNext, stepHome } = inputs;
+  const { data } = inputs.node;
+  const idx = data?.idx || "";
+  const password = data?.password || "";
   const { keys, uuid } = inputs.node;
   const api = inputs.api;
   const labels = {
@@ -45,22 +76,43 @@ const buttonsTemplate = (inputs) => {
     "PASTE": "alter ✏️",
     "PASTE-NEXT": "add ✏️",
     "PASTE-DONE": "alter ✏️",
-    "READ-NEXT": "get 🔑",
+    "READ-NEXT": "view 🔑",
     "WRITE-DONE": "ok 💯",
     "ERASE-DONE": "lose ☠️",
     "COPY-DONE": "copy 🔑"
   };
-  const savePass = () => null;
-  const makePass = () => null;
-  const copyPass = () => null;
-  const pastePass = () => null;
-  const removePass = () => null;
+  const deletePass = api.dbt.at.deleteSecret;
+  const setNewPass = api.dbt.at.setNewSecret;
+  const savePass = api.dbt.at.addNewSecret;
+  const setPass = api.dbt.at.setSecret;
+  const update = (s) => {
+    return idx ? setPass(idx, s) : setNewPass(s);
+  }
+  const copyPass = () => {
+    navigator.clipboard.writeText(password);
+  };
+  const pastePass = async () => {
+    const text = await navigator.clipboard.readText();
+    update(text);
+  }
+  const makePass = () => {
+    const text = to_random(16);
+    update(text);
+  }
+  const removePass = () => deletePass(idx);
   const actions = {
     "NEW": () => [ makePass() ],
     "NEW-NEXT": () => [ makePass(), stepNext(false) ],
     "PASTE": () => [ pastePass() ],
-    "PASTE-NEXT": () => [ pastePass(), stepNext(false) ],
-    "PASTE-DONE": () => [ pastePass(), savePass(), stepHome() ],
+    "PASTE-NEXT": async () => {
+      await pastePass();
+      stepNext(false);
+    },
+    "PASTE-DONE": async () => {
+      await pastePass();
+      savePass();
+      stepHome();
+    },
     "READ-NEXT": () => [ stepNext(true) ],
     "WRITE-DONE": () => [ savePass(), stepHome() ],
     "ERASE-DONE": () => [ removePass(), stepHome()],
@@ -114,15 +166,29 @@ const displayTemplate = (inputs) => {
   return { html, handlers: [] };
 }
 const readTemplate = (inputs) => {
-  const { stepNext } = inputs;
-  const { table, uuid } = inputs.node;
-  const action = () => stepNext(false); 
-  const handlers = table.map((label, i) => {
+  const { stepNext, api } = inputs;
+  const pickSite = api.dbt.at.setNewSecretServer;
+  const pickUser = api.dbt.at.setNewSecretClient;
+  const filter = inputs.node.filter || (() => true);
+  const { table, key, empty, uuid } = inputs.node;
+  const picker = ({
+    sites: pickSite,
+    users: pickUser
+  })[key] || (() => null);
+  const handlers = table.map(([label], i) => {
     const id = `${uuid}-${label}-${i}`;
     const data = { label };
-    const fn = action;
+    const fn = () => {
+      picker(`${i}`);
+      stepNext(false); 
+    };
     return { data, id, fn };
-  });
+  }).filter(filter);
+  if (!handlers.length && empty) {
+    const labels = [empty];
+    const node = { ...inputs.node, labels };
+    return navTemplate({...inputs, node});
+  }
   const items = handlers.map(({ data, id }, i) => {
     const color = ['black-tan', 'black-pink', 'black-blue'][i % 3];
     const props = [
@@ -137,10 +203,51 @@ const readTemplate = (inputs) => {
   return { html, handlers };
 }
 const writeTemplate = (inputs) => {
-  return readTemplate(inputs);//TODO
+  const { stepNext, api } = inputs;
+  const { table, uuid, key } = inputs.node;
+  const f_id = `${uuid}-form-root`;
+  const id = `${uuid}-form-define`;
+  const write_id = "write-define";
+  const next_id = `${table.length}`;
+  const pickSite = api.dbt.at.setNewSecretServer;
+  const pickUser = api.dbt.at.setNewSecretClient;
+  const makeSite = api.dbt.at.setNewServer;
+  const makeUser = api.dbt.at.setNewClient;
+  const addSite = api.dbt.at.addNewServer;
+  const addUser = api.dbt.at.addNewClient;
+  const maker = ({
+    sites: (v) => [makeSite(v), addSite(), pickSite(next_id)],
+    users: (v) => [makeUser(v), addUser(), pickUser(next_id)]
+  })[key] || (() => null);
+  const fn = (event) => {
+    const root = event.target.closest("form");
+    const { value } = root.querySelector("input");
+    const is_space = (c) => c.match(/\s/);
+    if (![...value].every(is_space)) {
+      maker(value);
+      stepNext(false);
+    }
+  };
+  const label = ({
+    "sites": "provider",
+    "users": "username"
+  })[key]
+  const write = `
+  <div class="wrap-form">
+    <form id="${f_id}">
+      <label for="${write_id}">New ${label}:</label>
+      <input id="${write_id} "type="text">
+      <button id="${id}" class="button true-blue">ok 💯</button>
+    </form>
+  </div>`
+  const read = readTemplate(inputs);
+  const html = `${read.html}\n${write}`;
+  const handlers = [ { id, fn } ].concat(read.handlers);
+  return { html, handlers };
 }
 
 const templates = {
+  save: saveTemplate,
   nav: navTemplate,
   form: formTemplate,
   buttons: buttonsTemplate,

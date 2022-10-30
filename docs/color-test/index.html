@@ -6,71 +6,6 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
   <link href="./main.css" rel="stylesheet" type="text/css">
-  <style>
-@import url('https://fonts.googleapis.com/css2?family=Kreon:wght@400;700&display=swap');
-
-body {
-  font-family: Kreon, Tahoma, Verdana, sans-serif;
-  animation: animation 4s infinite;
-  color: hwb(20 90% 0%);
-  font-size: 0.8em;
-  font-weight: 400;
-}
-
-@-webkit-keyframes animation {
-    0%  {background-color:hwb(20 10% 65%);}
-    20%  {background-color:hwb(340 10% 65%);}
-    40%  {background-color:hwb(0 20% 80%);}
-    60%  {background-color:hwb(180 10% 80%);}
-    80%  {background-color:hwb(0 20% 80%);}
-    100%  {background-color:hwb(20 10% 65%);}
-}
-
-@keyframes animation {
-    0%  {background-color:hwb(20 10% 65%);}
-    20%  {background-color:hwb(340 10% 65%);}
-    40%  {background-color:hwb(0 20% 80%);}
-    60%  {background-color:hwb(180 10% 80%);}
-    80%  {background-color:hwb(0 20% 80%);}
-    100%  {background-color:hwb(20 10% 65%);}
-}
-.black-tan {
-  background-color: hwb(20 10% 80%);
-}
-.black-pink {
-  background-color: hwb(340 10% 80%);
-}
-.black-blue {
-  background-color: hwb(180 10% 80%);
-}
-.dark-tan {
-  background-color: hwb(20 10% 65%);
-}
-.dark-pink {
-  background-color: hwb(340 10% 65%);
-}
-.dark-blue {
-  background-color: hwb(180 10% 65%);
-}
-.true-tan {
-  background-color: hwb(20 10% 45%);
-}
-.true-pink {
-  background-color: hwb(340 10% 45%);
-}
-.true-blue {
-  background-color: hwb(180 10% 45%);
-}
-.white-max {
-  color: hwb(0 100% 0%);
-}
-.white-tan {
-  color: hwb(20 90% 0%);
-}
-.white-pink {
-  color: hwb(340 70% 0%);
-}
-</style>
 </head>
 <body>
 <div id="reef-main"></div>
@@ -79,31 +14,43 @@ body {
 {
   "imports": {
     "index": "./index.js",
+    "sock": "../config/sock.js",
     "workflow": "./lib/workflow.js",
     "templates": "./lib/templates.js",
     "mailer": "../scripts/mailer.js",
     "dbtrio": "../scripts/dbtrio.js",
+    "finders": "../scripts/finders.js",
+    "decrypt": "../scripts/decrypt.js",
     "environment": "../config/environment.js",
+    "opaque-low-io": "https://cdn.jsdelivr.net/npm/opaque-low-io@2.1.0/dist/index.mjs",
+    "oprf": "https://ga.jspm.io/npm:oprf@2.0.0/build/oprf.js",
+		"@octokit/request": "https://ga.jspm.io/npm:@octokit/request@6.2.2/dist-web/index.js",
+		"libsodium-wrappers-sumo": "https://ga.jspm.io/npm:libsodium-wrappers-sumo@0.7.8/dist/modules-sumo/libsodium-wrappers.js",
     "project-sock": "https://ga.jspm.io/npm:project-sock@1.0.0-beta.5.7/dist/index.mjs"
   },
   "scopes": {
     "https://ga.jspm.io/": {
-      "@octokit/endpoint": "https://ga.jspm.io/npm:@octokit/endpoint@7.0.3/dist-web/index.js",
-      "@octokit/graphql": "https://ga.jspm.io/npm:@octokit/graphql@5.0.4/dist-web/index.js",
-      "@octokit/request": "https://ga.jspm.io/npm:@octokit/request@6.2.2/dist-web/index.js",
-      "@octokit/request-error": "https://ga.jspm.io/npm:@octokit/request-error@3.0.2/dist-web/index.js",
-      "deprecation": "https://ga.jspm.io/npm:deprecation@2.3.1/dist-node/index.js",
-      "is-plain-object": "https://ga.jspm.io/npm:is-plain-object@5.0.0/dist/is-plain-object.mjs",
-      "node-fetch": "https://ga.jspm.io/npm:node-fetch@2.6.7/browser.js",
-      "once": "https://ga.jspm.io/npm:once@1.4.0/once.js",
-      "process": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/process.js",
-      "universal-user-agent": "https://ga.jspm.io/npm:universal-user-agent@6.0.0/dist-node/index.js",
-      "wrappy": "https://ga.jspm.io/npm:wrappy@1.0.2/wrappy.js"
-    } 
+			"@octokit/endpoint": "https://ga.jspm.io/npm:@octokit/endpoint@7.0.3/dist-web/index.js",
+			"@octokit/graphql": "https://ga.jspm.io/npm:@octokit/graphql@5.0.4/dist-web/index.js",
+			"@octokit/request-error": "https://ga.jspm.io/npm:@octokit/request-error@3.0.2/dist-web/index.js",
+			"buffer": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/buffer.js",
+			"crypto": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/crypto.js",
+			"deprecation": "https://ga.jspm.io/npm:deprecation@2.3.1/dist-node/index.js",
+			"fs": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/fs.js",
+			"is-plain-object": "https://ga.jspm.io/npm:is-plain-object@5.0.0/dist/is-plain-object.mjs",
+			"libsodium-sumo": "https://ga.jspm.io/npm:libsodium-sumo@0.7.10/dist/modules-sumo/libsodium-sumo.js",
+			"node-fetch": "https://ga.jspm.io/npm:node-fetch@2.6.7/browser.js",
+			"once": "https://ga.jspm.io/npm:once@1.4.0/once.js",
+			"path": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/path.js",
+			"process": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/process.js",
+			"universal-user-agent": "https://ga.jspm.io/npm:universal-user-agent@6.0.0/dist-node/index.js",
+			"wrappy": "https://ga.jspm.io/npm:wrappy@1.0.2/wrappy.js"
+		} 
   }
 }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/reefjs@12/dist/reef.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/argon2-browser@1.18.0/dist/argon2-bundled.min.js"></script>
 <script type="module">
   import main from 'index';
   main();

@@ -97,9 +97,9 @@ class DBTrio {
         Promise.all(masters).then(trio => {
           this.at.ascii = trio.join(SEP.TS);
           resolve(this.at.DATA.tables);
-        }).catch(e => {
-          console.error('Master decryption error');
-          reject(e);
+        }).catch(() => {
+          const msg = 'Master decryption error';
+          reject(new Error(msg));
         });
       }).catch(e => {
         console.error('Session decryption error');

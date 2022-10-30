@@ -5,78 +5,131 @@ class Workflow  {
     this.DATA = DATA;
     this.api = API;
   }
-  get loader () {
+  get loading () {
     const loaders = Object.entries(this.DATA.loading);
-    const loading = loaders.filter(([_, v]) => v);
+    return loaders.filter(([_, v]) => v);
+  }
+  get loader () {
+    const { loading } = this;
+    const labels = {
+      socket: "Connecting...",
+      mailer: "Authorizing...",
+      database: "Loading...",
+      sending: "Saving...",
+    }
+    const title = labels[loading[0]?.[0]];
     switch(loading.length) {
       case 0:
         return "Welcome";
       case 1:
-        return loading[0][0];
+        return title || "Processing...";
       default:
         return "Processing";
     }
   }
   get nodes () {
     const { step, tables, newRows } = this.DATA;
-    const [ sites, users ] = tables;
-    const nav_write = "New Password";
-    const nav_read = "Passwords";
-    const new_site = newRows[0][0];
-    const new_user = newRows[1][0];
-    const new_pass = newRows[2][2];
+    const [ sites, users, passwords ] = tables;
+    const nav_write = "Create";
+    const nav_read = "Find";
+    const view_idx_0 = parseInt(newRows[2][0]);
+    const view_idx_1 = parseInt(newRows[2][1]);
+    const view_site = sites[view_idx_0]?.[0] || "";
+    const view_user = users[view_idx_1]?.[0] || "";
+    const view_pass = newRows[2][2];
     const no_branch = [[], []];
     const no_leaf = [];
+    const matches = passwords.filter(([sid]) => {
+      return sid === `${view_idx_0}`;
+    }).map(([_, uid]) => parseInt(uid));
+    const old_combo = (_, u_id) => {
+      return matches.includes(u_id);
+    }
+    const new_combo = (_, u_id) => {
+      return !matches.includes(u_id);
+    };
     const roots = [
       [{
         view: "form",
         title: this.loader,
+        loading: this.loading.length > 0,
       }],
       [{
         view: "nav", labels: ["Home"]
       },{
+        view: "display",
+        items: [{
+          text: `Make random or copied passwords, or view your passwords.`
+        }]
+      },{
         view: "buttons",
-        keys: ["PASTE-NEXT", "NEW-NEXT", "READ-NEXT"]
+        keys: ["NEW-NEXT", "PASTE-NEXT", "READ-NEXT"]
+      },{
+        view: "save"
       }]
     ];
     const branch = [
       [{
         view: "nav", labels: [nav_write]
       },{
-        view: "write", table: sites
+        view: "display",
+        items: [{
+          text: `Add password for which provider?`,
+        }]
+      },{
+        view: "write", key: "sites", table: sites
       }],
       [{
         view: "nav", labels: [nav_read]
+      },{
+        view: "display",
+        items: [{
+          text: `Search for which provider?`,
+        }]
       },{ 
-        view: "read", table: sites
+        view: "read", key: "sites", table: sites,
+        empty: "No sites found. Return Home?"
       }],
     ]
     const branch_0 = [
       [{
-        view: "nav", labels: [nav_write, new_site]
+        view: "nav", labels: [nav_write, view_site]
       },{
-        view: "write", table: users
+        view: "display",
+        items: [{
+          text: `Add which username at "${view_site}"?`,
+        }]
+      },{
+        view: "write", key: "users",
+        table: users, filter: new_combo
       }],
       no_leaf
     ]
     const branch_1 = [
       [{
-        view: "nav", labels: [nav_read, new_site]
+        view: "nav", labels: [nav_read, view_site]
       },{
-        view: "read", table: users
+        view: "display",
+        items: [{
+          text: `Find which username at "${view_site}"?`,
+        }]
+      },{
+        view: "read", key: "users",
+        table: users, filter: old_combo,
+        empty: "No users found. Return Home?"
       }],
       no_leaf
     ]
     const branch_0_0 = [
       [{
-        view: "nav", labels: [nav_write, new_site, new_user]
+        view: "nav", labels: [nav_write, view_site, view_user]
       },{
         view: "display",
         items: [{
-          text: `Store this for ${new_user} at ${new_site}?`,
+          text: `Store this for ${view_user} at ${view_site}?`,
         },{
           strength: 2,
-          text: new_pass
+          text: view_pass
         }]
       },{
         view: "buttons",
@@ -84,16 +137,29 @@ class Workflow  {
       }],
       no_leaf
     ]
+    const pass_idx = passwords.findIndex(([sid, uid]) => {
+      const s = parseInt(sid);
+      const u = parseInt(uid);
+      return view_idx_0 === s && view_idx_1 === u;
+    });
+    const pass_now = passwords[pass_idx]?.[2];
     const branch_1_0 = [
       [{
-        view: "nav", labels: [nav_read, new_site, new_user]
+        view: "nav", labels: [nav_read, view_site, view_user]
       },{
         view: "display",
         items: [{
-          text: `What to do for ${new_user} at ${new_site}?`
+          text: `What to do for ${view_user} at ${view_site}?`
+        },{
+          strength: 1,
+          text: `Current password is "${pass_now}"`
         }]
       },{
         view: "buttons",
+        data: {
+          idx: `${pass_idx}`,
+          password: pass_now || ""
+        },
         keys: ["ERASE-DONE", "PASTE-DONE", "COPY-DONE"]
       }],
       no_leaf
@@ -133,7 +199,9 @@ class Workflow  {
   }
   stepBack() {
     const { step } = this.DATA;
-    this.DATA.step = Math.floor(step/2);
+    if ( step > 1 ) {
+      this.DATA.step = Math.floor(step/2);
+    }
   }
   stepNext(bool) {
     const { step } = this.DATA;

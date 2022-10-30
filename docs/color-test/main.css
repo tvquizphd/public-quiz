@@ -1,15 +1,86 @@
+@import url('https://fonts.googleapis.com/css2?family=Kreon:wght@400;700&display=swap');
+
+body {
+  font-family: Kreon, Tahoma, Verdana, sans-serif;
+  animation: bg-animation 4s infinite;
+  color: hwb(20 90% 0%);
+  font-size: 0.8em;
+  font-weight: 400;
+}
+
+@-webkit-keyframes bg-animation {
+    0%  {background-color:hwb(20 10% 65%);}
+    20%  {background-color:hwb(340 10% 65%);}
+    40%  {background-color:hwb(0 20% 80%);}
+    60%  {background-color:hwb(180 10% 80%);}
+    80%  {background-color:hwb(0 20% 80%);}
+    100%  {background-color:hwb(20 10% 65%);}
+}
+
+@keyframes bg-animation {
+    0%  {background-color:hwb(20 10% 65%);}
+    20%  {background-color:hwb(340 10% 65%);}
+    40%  {background-color:hwb(0 20% 80%);}
+    60%  {background-color:hwb(180 10% 80%);}
+    80%  {background-color:hwb(0 20% 80%);}
+    100%  {background-color:hwb(20 10% 65%);}
+}
+.black-tan {
+  background-color: hwb(20 10% 80%);
+}
+.black-pink {
+  background-color: hwb(340 10% 80%);
+}
+.black-blue {
+  background-color: hwb(180 10% 80%);
+}
+.dark-tan {
+  background-color: hwb(20 10% 65%);
+}
+.dark-pink {
+  background-color: hwb(340 10% 65%);
+}
+.dark-blue {
+  background-color: hwb(180 10% 65%);
+}
+.true-tan {
+  background-color: hwb(20 10% 45%);
+}
+.true-pink {
+  background-color: hwb(340 10% 45%);
+}
+.true-blue {
+  background-color: hwb(180 10% 45%);
+}
+.white-max {
+  color: hwb(0 100% 0%);
+}
+.white-tan {
+  color: hwb(20 90% 0%);
+}
+.white-pink {
+  color: hwb(340 70% 0%);
+}
+.slash {
+  font-size: 2em;
+}
 .wrap-nav {
   display: grid;
-  font-size: 1.25em;
+  font-size: 1.5em;
   font-weight: 700;
   gap: min(2em, 3vw);
   grid-auto-flow: column;
   justify-content: start;
+  align-items: center;
   padding-top: 1em;
   padding-bottom: 1em;
   padding-left: min(2em, 3vw);
   background: rgba(0,0,0,0.5);
   border-radius: 1em;
+  cursor: pointer;
+}
+.wrap-nav > * {
+  pointer-events: none;
 }
 .wrap-3 {
   display: grid;
@@ -57,7 +128,7 @@
 .wrap-form > form {
   gap: 0.5em;
   display: grid;
-  font-size: 1.5em;
+  font-size: 2em;
   grid-template-columns: 1fr 1fr 1fr;
 }
 .wrap-form input[type=password],
@@ -71,6 +142,14 @@
   grid-column: 1 / -1;
 }
 .wrap-form > form > button {
+  padding: min(1em, 1vw);
+  margin-top: 0.5em;
+  grid-column: 2;
+  display: block;
+}
+.wrap-form > form > .loading {
+  padding: min(1em, 1vw);
+  margin-top: 0.5em;
   grid-column: 2;
 }
 .wrap-form > form > input {
@@ -81,7 +160,16 @@
 .wrap-form > form > label {
   display: block;
 }
-.wrap-form > form > button {
+.wrap-save {
+  gap: 0.5em;
+  display: grid;
+  font-size: 2em;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+.wrap-save > button {
+  padding: min(1em, 1vw);
+  margin-top: 0.5em;
+  grid-column: 2;
   display: block;
 }
 button {
@@ -93,7 +181,53 @@ button {
   border-radius: 1em;
   font-size: 1.5em;
   font-weight: 700;
+  cursor: pointer;
   border: none;
+}
+
+.loading {
+  display: grid;
+  position: relative;
+  grid-template-columns: minmax(30vw, 300px);
+  align-content: space-evenly;
+  grid-template-rows: auto;
+  justify-items: stretch;
+  align-items: center;
+  background:
+    linear-gradient(to right, transparent, hwb(0 10% 45%), transparent),
+    url("../assets/noise.svg");
+  filter: contrast(200%) brightness(300%) invert(1);
+  image-rendering: pixelated;
+  background-size: 200% auto;
+  pointer-events: none;
+  border-radius: 1em;
+  text-align: center;
+  opacity: 0.666;
+  -webkit-animation: loading-animation 3s linear infinite;
+  -moz-animation: loading-animation 3s linear infinite;
+  animation: loading-animation 3s linear infinite;
+}
+
+@-webkit-keyframes loading-animation {
+    0%{background-position:0% 0%; color: black}
+    30%{background-position:60% 0%; color: white}
+    50%{background-position:100% 0%; color: black}
+    70%{background-position:140% 0%; color: black}
+    100%{background-position:200% 0%; color: black}
+}
+@-moz-keyframes loading-animation {
+    0%{background-position:0% 0%; color: black}
+    30%{background-position:60% 0%; color: white}
+    50%{background-position:100% 0%; color: black}
+    70%{background-position:140% 0%; color: black}
+    100%{background-position:200% 0%; color: black}
+}
+@keyframes loading-animation { 
+    0%{background-position:0% 0%; color: black}
+    30%{background-position:60% 0%; color: white}
+    50%{background-position:100% 0%; color: black}
+    70%{background-position:140% 0%; color: black}
+    100%{background-position:200% 0%; color: black}
 }
 
 input:-webkit-autofill,
