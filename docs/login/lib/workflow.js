@@ -65,7 +65,9 @@ class Workflow  {
         view: "buttons",
         keys: ["NEW-NEXT", "PASTE-NEXT", "READ-NEXT"]
       },{
-        view: "save"
+        view: "save",
+        title: this.loader,
+        loading: this.loading.length > 0,
       }]
     ];
     const branch = [

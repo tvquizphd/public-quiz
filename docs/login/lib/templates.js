@@ -10,10 +10,20 @@ const to_random = (n) => {
   }
   return bytes.map(to_pair).join('');
 }
-const saveTemplate = () => {
+const saveTemplate = (inputs) => {
+  const { title, loading } = inputs.node;
+  const cls = "send-mail button black-blue";
+  let core = `
+    <button class="">Save 💌</button>
+  `;
+  if (loading) {
+    core = `<div class="loading large-font">
+      <div>${title}</div>
+    </div>`;
+  }
   const html = `
   <div class="wrap-save">
-    <button class="send-mail button black-blue">Save 💯</button>
+    ${core}
   </div>`
   return { html, handlers: [] };
 }

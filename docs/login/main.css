@@ -171,6 +171,9 @@ a:link, a:visited, a:hover, a:active {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
 }
+.wrap-save > .loading {
+  grid-column: 1 / -1;
+}
 .wrap-save > button {
   padding: min(1em, 1vw);
   margin-top: 0.5em;
