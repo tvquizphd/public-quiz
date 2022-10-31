@@ -12,7 +12,6 @@
 .list-wrapper > ol > li > div {
   gap: 0.5em;
   display: grid;
-  position: absolute;
   border-radius: 1em;
   align-items: center;
   justify-items: center;
