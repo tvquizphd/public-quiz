@@ -1,10 +1,10 @@
 import { 
   fromB64urlQuery, toB64urlQuery 
 } from "project-sock";
-import { DBTrio } from "./dbtrio.js";
-import { findSub, opId } from "./finders.js";
-import { decryptQueryMaster } from "./decrypt.js";
-import { encryptQueryMaster } from "./encrypt.js";
+import { DBTrio } from "dbtrio";
+import { findSub, opId } from "finders";
+import { decryptQueryMaster } from "decrypt";
+import { encryptQueryMaster } from "encrypt";
 
 const waiter = (n, delay, check_status) => {
   const tries = [...new Array(n + 1).keys()];
@@ -143,9 +143,6 @@ class Mailer {
     mbs.give(opId(mailbox, sub), sub, mail);
   }
 
-  render(cls) {
-    return this.dbt.render(cls);
-  }
 }
 
 export { Mailer };

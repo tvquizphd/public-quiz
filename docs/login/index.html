@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <title>Activate - Quiz</title>
+  <title>Login - Quiz</title>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
@@ -14,12 +14,15 @@
 {
   "imports": {
     "index": "./index.js",
-    "sock": "../config/sock.js",
     "workflow": "./lib/workflow.js",
     "templates": "./lib/templates.js",
-    "mailer": "../scripts/mailer.js",
-    "dbtrio": "../scripts/dbtrio.js",
+    "mailer": "./lib/mailer.js",
+    "dbtrio": "./lib/dbtrio.js",
+    "ascii": "./lib/ascii.js",
+    "sock": "../config/sock.js",
+    "to-key": "../scripts/toKey.js",
     "finders": "../scripts/finders.js",
+    "encrypt": "../scripts/encrypt.js",
     "decrypt": "../scripts/decrypt.js",
     "environment": "../config/environment.js",
     "opaque-low-io": "https://cdn.jsdelivr.net/npm/opaque-low-io@2.1.0/dist/index.mjs",

@@ -7,10 +7,7 @@ body {
   font-weight: 400;
 }
 .main-font {
-  font-size: 1em;
-}
-.large-font {
-  font-size: 2em;
+  font-size: 1.75em;
 }
 a:link, a:visited, a:hover, a:active {
   font-weight: 700;
@@ -70,21 +67,22 @@ a:link, a:visited, a:hover, a:active {
 .white-pink {
   color: hwb(340 70% 0%);
 }
-.slash {
+.wrap-nav .slash {
   font-size: 2em;
 }
 .wrap-nav {
   display: grid;
   font-weight: 700;
-  gap: min(2em, 3vw);
+  gap: min(3em, 1.5vw);
   grid-auto-flow: column;
   justify-content: start;
   align-items: center;
-  padding-top: 1em;
-  padding-bottom: 1em;
-  padding-left: min(2em, 3vw);
+  padding-top: 0.25em;
+  padding-bottom: 0.5em;
+  padding-left: 0.75em;
   background: rgba(0,0,0,0.5);
   border-radius: 1em;
+  font-size: 0.75em;
   cursor: pointer;
 }
 .wrap-nav > * {
@@ -94,14 +92,14 @@ a:link, a:visited, a:hover, a:active {
   display: grid;
   margin-top: 1em;
   margin-bottom: 1em;
-  gap: min(2em, 3vw);
+  gap: min(3em, 1.5vw);
   grid-template-columns: 1fr 1fr 1fr;
 }
 .wrap-2 {
   display: grid;
   margin-top: 1em;
   margin-bottom: 1em;
-  gap: min(2em, 3vw);
+  gap: min(3em, 1.5vw);
   grid-template-columns: 1fr 1fr;
 }
 .wrap-lines {
@@ -109,12 +107,11 @@ a:link, a:visited, a:hover, a:active {
   margin-top: 1em;
   margin-bottom: 1em;
   filter: drop-shadow(0 0 0.5em black);
-  font-size: 1.5em;
 }
 .wrap-lines > div {
   padding-top: 1em;
   padding-bottom: 1em;
-  padding-left: min(2em, 3vw);
+  padding-left: min(3em, 1.5vw);
 }
 .wrap-lines > div:first-child {
   border-radius: 1em 1em 0 0;
@@ -128,12 +125,8 @@ a:link, a:visited, a:hover, a:active {
 .wrap-form {
   padding-top: 1em;
   padding-bottom: 1em;
-  padding-right: min(2em, 3vw);
-  padding-left: min(2em, 3vw);
-  background: rgba(0,0,0,0.5);
-  border-radius: 1em;
 }
-.wrap-form > form {
+.wrap-form form {
   gap: 0.5em;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -142,28 +135,28 @@ a:link, a:visited, a:hover, a:active {
 .wrap-form input[type=text] {
   background-color: hwb(180 10% 80%);
   line-height: 2em;
-  color: white;
+  font-size: inherit;
+  color: inherit;
 }
-.wrap-form > form > * {
+.wrap-form form > * {
   grid-column: 1 / -1;
 }
-.wrap-form > form > button {
-  padding: min(1em, 1vw);
+.wrap-form form > button {
+  font-size: inherit;
   margin-top: 0.5em;
   grid-column: 2;
   display: block;
 }
-.wrap-form > form > .loading {
-  padding: min(1em, 1vw);
+.wrap-form form > .loading {
   grid-column: 1 / -1;
   margin-top: 0.5em;
 }
-.wrap-form > form > input {
+.wrap-form form > input {
   line-height: 1.5em;
   padding-left: .5em;
   border: none;
 }
-.wrap-form > form > label {
+.wrap-form form > label {
   display: block;
 }
 .wrap-save {
@@ -175,19 +168,18 @@ a:link, a:visited, a:hover, a:active {
   grid-column: 1 / -1;
 }
 .wrap-save > button {
-  padding: min(1em, 1vw);
   margin-top: 0.5em;
   grid-column: 2;
   display: block;
 }
 button {
   font-family: Kreon, Tahoma, Verdana, sans-serif;
+  padding: min(3em, 1.5vh) min(3em, 1.5vw);
   filter: drop-shadow(0 0 0.5em black);
   box-shadow: 3px 6px black;
-  padding: min(2em, 3vw);
   color: hwb(20 90% 0%);
+  font-size: inherit;
   border-radius: 1em;
-  font-size: 1.5em;
   font-weight: 700;
   cursor: pointer;
   border: none;
@@ -196,7 +188,8 @@ button {
 .loading {
   display: grid;
   position: relative;
-  grid-template-columns: minmax(30vw, 300px);
+  grid-template-columns: auto minmax(30vw, 300px) auto;
+  padding: min(3em, 1.5vh) min(3em, 1.5vw);
   align-content: space-evenly;
   grid-template-rows: auto;
   justify-items: stretch;
@@ -213,6 +206,7 @@ button {
   border-radius: 1em;
   text-align: center;
   opacity: 0.666;
+  grid-column: 2;
   -webkit-animation: loading-animation 3s linear infinite;
   -moz-animation: loading-animation 3s linear infinite;
   animation: loading-animation 3s linear infinite;

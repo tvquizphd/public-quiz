@@ -2,12 +2,12 @@ import {
   fromB64urlQuery, toB64urlQuery 
 } from "project-sock";
 import * as eccrypto from "eccrypto/browser";
-import { WikiMailer } from "./scripts/wiki.js";
-import { decryptQueryMaster } from "./scripts/decrypt.js";
-import { encryptSecrets } from "./scripts/encrypt.js";
-import { toEnv } from "../config/environment.js";
-import { configureNamespace } from "./config/sock.js";
-import { findOp, toSock } from "./scripts/finders.js";
+import { WikiMailer } from "wiki";
+import { decryptQueryMaster } from "decrypt";
+import { encryptSecrets } from "encrypt";
+import { toEnv } from "environment";
+import { configureNamespace } from "sock";
+import { findOp, toSock } from "finders";
 import sodium from "libsodium-wrappers-sumo";
 import { OP } from "opaque-low-io";
 import { Buffer } from "buffer"
@@ -159,9 +159,7 @@ const runReef = (hasLocal, remote, env) => {
       return window.location.reload();
     }
     if (copy) {
-      const first_div = copy.querySelector('div');
-      const first_span = copy.querySelector('span');
-      const { innerText } = first_div || first_span;
+      const { innerText } = copy.querySelector('.hidden');
       const wiki_root = "https://raw.githubusercontent.com/wiki";
       const wiki_home = `${wiki_root}/${DATA.remote}/Home.md`; 
       navigator.clipboard.writeText(innerText).then(() => {
@@ -213,7 +211,7 @@ const runReef = (hasLocal, remote, env) => {
         "connect": "Connecting...",
         "register": "Registering...",
       }[verb] || verb;
-      return `<div class="loading large-font">
+      return `<div class="loading">
         <div> ${gerrund} </div>
       </div>`;
     }
@@ -237,10 +235,10 @@ const runReef = (hasLocal, remote, env) => {
     return `
       <div class="wrap-form">
         <form id="${passFormId}">
-          <label class="large-font" for="${u_id}">Username:</label>
-          <input class="large-font" id="${u_id} "type="text" ${user_props}>
-          <label class="large-font" for="${p_id}">Password:</label>
-          <input class="large-font" type="password" ${pwd_props}>
+          <label for="${u_id}">Username:</label>
+          <input id="${u_id} "type="text" ${user_props}>
+          <label for="${p_id}">Password:</label>
+          <input type="password" ${pwd_props}>
           <button class="button true-blue">Log in</button>
         </form>
       </div>
@@ -266,16 +264,12 @@ const runReef = (hasLocal, remote, env) => {
       ].join(" ");
       const login_link = `<a ${link_props}>${login}</a>`
       return `
-      <div class="footer">
         <p>You are now registered! Use this link from now on:</p>
         <p class="long-link">${login_link}</p>
-      </div>
       `
     }
     return `
-      <div class="footer">
-        <div> ${loadingInfo} </div>
-      </div>
+      <div> ${loadingInfo} </div>
     `;
   }
 
@@ -284,14 +278,19 @@ const runReef = (hasLocal, remote, env) => {
     const all_li = items.map(({ spans, cls }) => {
       const inner = spans.join(' ');
       return `
-        <li class="${cls}">${inner}</li>
+        <li> <div class="${cls}">${inner}</div> </li>
       `;
     }).join('');
     return "<ol>" + all_li + "</ol>";
   }
 
-  function toSpans (...args) {
-    return args.map(a => `<span>${a}</span>`);
+  function inliner (...args) {
+    return args.map((a, i) => {
+      if (i < 2) {
+        return `<span>${a}</span>`;
+      }
+      return `<span class="hidden">${a}</span>`;
+    });
   }
 
   function isCopyKeyPhase() {
@@ -306,20 +305,20 @@ const runReef = (hasLocal, remote, env) => {
     const { pub } = KEY_PAIR;
     const pub_str = toB64urlQuery({ pub });
     if (isCopyKeyPhase()) {
-      const { remote, wiki_ext } = DATA;
+      const { local, remote, wiki_ext } = DATA;
       const wiki = `${root}/${remote}/wiki/${wiki_ext}`;
       const link_props = [
         `href="${wiki}"`,
         'target="_blank"',
         'rel="noopener noreferrer"'
       ].join(" ");
-      const wiki_link = `to <a ${link_props}>the Wiki</a>`;
+      const wiki_link = `<a ${link_props}>the Wiki</a>`;
+      const target = local ? "develop.bash" : wiki_link;
       const button = '<button class="button true-tan">Copy</button>';
-      const pub_span = `<span class="hidden">${pub_str}</span>`;
-      const spans = [button, pub_span, ...toSpans("Public Key", wiki_link)];
+      const spans = inliner(button, `Public key to ${target}`, pub_str);
       return { spans, cls: "dark-blue copier" };
     }
-    const spans = toSpans(placeholder);
+    const spans = inliner("", placeholder);
     return { spans, cls: "" };
   }
 
@@ -332,12 +331,12 @@ const runReef = (hasLocal, remote, env) => {
         'target="_blank"',
         'rel="noopener noreferrer"'
       ].join(" ");
-      const device_link = `to <a ${link_props}>GitHub</a>.`;
+      const device_link = `<a ${link_props}>GitHub</a>.`;
       const button = '<button class="button true-tan">Copy</button>';
-      const spans = [button, ...toSpans(code, device_link)];
+      const spans = inliner(button, `${code} to ${device_link}`, code);
       return { spans, cls: "dark-blue copier" };
     }
-    const spans = toSpans(placeholder);
+    const spans = inliner("", placeholder);
     return { spans, cls: "" };
   }
 
@@ -345,10 +344,10 @@ const runReef = (hasLocal, remote, env) => {
       const root = "https://github.com";
       const { phase } = DATA;
       const items = [
-        toCopyKeySpans(root, 'Pasted Key.'),
-        toCopyCodeSpans(root, 'Await GitHub Code.'),
+        toCopyKeySpans(root, 'Pasted Key!'),
+        toCopyCodeSpans(root, 'Await GitHub Code'),
         {
-          spans: toSpans("Choose master password!"),
+          spans: inliner("", "Choose master password!"),
           cls: phase > 1 ? "dark-blue" : ""
         }
       ];
@@ -361,7 +360,11 @@ const runReef = (hasLocal, remote, env) => {
             </div>
           </div>
         </div>
-        ${loadingTemplate()}
+        <div class="container">
+          <div class="contained">
+            ${loadingTemplate()}
+          </div>
+        </div>
       `;
   }
 

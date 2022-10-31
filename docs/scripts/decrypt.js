@@ -1,4 +1,4 @@
-import { toKey } from "./toKey.js";
+import { toKey } from "to-key";
 import { fromB64urlQuery } from "project-sock";
 
 const decrypt = (key, ev, iv, tag) => {

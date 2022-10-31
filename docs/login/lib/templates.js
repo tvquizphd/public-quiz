@@ -64,12 +64,12 @@ const formTemplate = (inputs) => {
   }
   const html = `
   <div class="wrap-form">
-    <h1>${title}</h1>
+    <h2>${title}</h2>
     <form id="${passFormId}">
-      <label class="large-font" for="${u_id}">Username:</label>
-      <input class="large-font" type="text" ${user_props}>
-      <label class="large-font" for="${p_id}">Password:</label>
-      <input class="large-font" type="password" ${pwd_props}>
+      <label for="${u_id}">Username:</label>
+      <input type="text" ${user_props}>
+      <label for="${p_id}">Password:</label>
+      <input type="password" ${pwd_props}>
       ${bottom} 
     </form>
   </div>`
@@ -123,7 +123,6 @@ const buttonsTemplate = (inputs) => {
     "PASTE-DONE": async () => {
       await pastePass();
       savePass();
-      stepHome();
     },
     "READ-NEXT": () => [ stepNext(true) ],
     "WRITE-DONE": () => [ savePass(), stepHome() ],
@@ -164,7 +163,7 @@ const buttonsTemplate = (inputs) => {
 const displayTemplate = (inputs) => {
   const { items } = inputs.node;
   const colors = [
-    "black-pink", "dark-tan", "true-tan"
+    "black-pink", "black-blue", "dark-blue", "true-blue"
   ]
   const baseline = colors[0];
   const lines = items.map((item) => {
@@ -202,7 +201,11 @@ const readTemplate = (inputs) => {
     return navTemplate({...inputs, node});
   }
   const items = handlers.map(({ data, id }, i) => {
-    const color = ['black-tan', 'black-pink', 'black-blue'][i % 3];
+    const colors = [
+      'black-blue', 'black-pink', 'black-tan',
+      'dark-blue', 'dark-pink', 'dark-tan'
+    ];
+    const color = colors[i % colors.length];
     const props = [
       `id="${id}"`,
       `class="${color} button"`
