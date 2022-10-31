@@ -14,7 +14,7 @@ const saveTemplate = (inputs) => {
   const { title, loading } = inputs.node;
   const cls = "send-mail button black-blue";
   let core = `
-    <button class="">Save 💌</button>
+    <button class="${cls}">Save 💌</button>
   `;
   if (loading) {
     core = `<div class="loading large-font">
