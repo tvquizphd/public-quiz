@@ -237,8 +237,8 @@ const writeTemplate = (inputs) => {
   const write = `
   <div class="wrap-form">
     <form id="${f_id}">
-      <label for="${write_id}">New ${label}:</label>
-      <input id="${write_id} "type="text">
+      <label class="large-font" for="${write_id}">New ${label}:</label>
+      <input class="large-font" id="${write_id} "type="text">
       <button id="${id}" class="button true-blue">ok 💯</button>
     </form>
   </div>`
