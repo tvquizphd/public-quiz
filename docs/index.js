@@ -104,6 +104,16 @@ async function encryptWithPassword (event, DATA) {
   return result;
 }
 
+const noTemplate = () => {
+  return `
+    <div class="wrap-lines">
+      <div class="list-wrapper">
+        Invalid environment configured.
+      </div>
+    </div>
+  `;
+}
+
 const runReef = (hasLocal, remote, env) => {
 
   const passFormId = "pass-form";
@@ -111,6 +121,12 @@ const runReef = (hasLocal, remote, env) => {
   let {store, component} = window.reef;
 
   const KEY_PAIR = toKeyPair();
+
+  if (!remote || !env) {
+    component(`#reef-main`, noTemplate);
+    return;
+  }
+
 
   // Create reactive data store
   const DATA = store({

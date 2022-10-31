@@ -57,10 +57,25 @@ async function triggerGithubAction(local, env, git) {
   }
 }
 
+const noTemplate = () => {
+  return `
+    <div class="wrap-lines">
+      <div class="list-wrapper">
+        Invalid environment configured.
+      </div>
+    </div>
+  `;
+}
+
 const runReef = (hasLocal, remote, env) => {
 
   const passFormId = "pass-form";
   const {store, component} = window.reef;
+
+  if (!remote || !env) {
+    component(`#reef-main`, noTemplate);
+    return;
+  }
 
   let HANDLERS = [];
   const DATA = store({
