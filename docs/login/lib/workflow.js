@@ -59,7 +59,7 @@ class Workflow  {
       },{
         view: "display",
         items: [{
-          text: `Make random or copied passwords, or view your passwords.`
+          text: `Add random or pasted password, or view passwords.`
         }]
       },{
         view: "buttons",
@@ -133,7 +133,7 @@ class Workflow  {
         }]
       },{
         view: "buttons",
-        keys: ["PASTE", "NEW", "WRITE-DONE"]
+        keys: ["NEW", "PASTE", "WRITE-DONE"]
       }],
       no_leaf
     ]

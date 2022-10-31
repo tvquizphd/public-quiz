@@ -75,9 +75,9 @@ const buttonsTemplate = (inputs) => {
   const labels = {
     "NEW": "alter ✨",
     "NEW-NEXT": "new ✨",
-    "PASTE": "alter ✏️",
-    "PASTE-NEXT": "add ✏️",
-    "PASTE-DONE": "alter ✏️",
+    "PASTE": "alter ✂️",
+    "PASTE-NEXT": "use ✂️",
+    "PASTE-DONE": "alter ✂️",
     "READ-NEXT": "view 🔑",
     "WRITE-DONE": "ok 💯",
     "ERASE-DONE": "lose ☠️",
