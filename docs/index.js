@@ -279,7 +279,7 @@ const runReef = (hasLocal, remote, env) => {
       const inner = spans.join(' ');
       return `
         <div class="${cls}">
-          <span>${i+1}.<spab>
+          <span>${i+1}.</span>
           ${inner}
         </div>
       `;
