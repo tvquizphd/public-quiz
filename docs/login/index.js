@@ -60,8 +60,8 @@ const dispatch = async ({ git, env, payload }) => {
   const api_url = `/repos/${owner}/${repo}/dispatches`;
   await request(`POST ${api_url}`, {
     event_type: `${env}-START`,
+    client_payload: payload,
     headers: {
-      client_payload: payload,
       authorization: `token ${token}`,
     }
   })
