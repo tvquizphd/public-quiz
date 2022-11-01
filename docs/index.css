@@ -3,8 +3,11 @@
 }
 .list-wrapper > .ol {
   margin-bottom: 0.333em;
+  margin-top: 0.333em;
+  display: grid;
+  gap: 1em;
 }
-.list-wrapper > .ol > div > *:first-child {
+.list-wrapper > .ol > div > span:first-child {
   font-size: 1.75em;
 }
 .list-wrapper > .ol > div {
