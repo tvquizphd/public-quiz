@@ -25,12 +25,15 @@ type MayReset = {
 
 const canReset = async (inputs: MayReset) => {
   const { OLD_HASH, SESSION } = inputs;
+  if (!OLD_HASH || !SESSION) {
+    return false;
+  }
   return await argon2.verify(OLD_HASH, SESSION);
 }
 
 function mayReset(env: Env): env is MayReset {
-  const props = [typeof env.OLD_HASH, typeof env.SESSION];
-  return props.every(p => p === "string" && p.length > 0);
+  const vars = [env.OLD_HASH, env.SESSION];
+  return vars.every(s => typeof s === "string" && s.length > 0);
 } 
 
 function isTrio(args: string[]): args is Trio {
