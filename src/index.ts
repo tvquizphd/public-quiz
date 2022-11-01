@@ -30,7 +30,7 @@ const canReset = async (inputs: MayReset) => {
 
 function mayReset(env: Env): env is MayReset {
   const props = [typeof env.OLD_HASH, typeof env.SESSION];
-  return props.every(p => p === "string");
+  return props.every(p => p === "string" && p.length > 0);
 } 
 
 function isTrio(args: string[]): args is Trio {
