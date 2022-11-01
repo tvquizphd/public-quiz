@@ -2,9 +2,10 @@
   display: none;
 }
 .list-wrapper > .ol {
-  font-size: 1.75em;
-  padding-inline-start: 1em;
   margin-bottom: 0.333em;
+}
+.list-wrapper > .ol > div > *:first-child {
+  font-size: 1.75em;
 }
 .list-wrapper > .ol > div {
   gap: 0.5em;
