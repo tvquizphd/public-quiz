@@ -1,15 +1,12 @@
 .hidden {
   display: none;
 }
-.list-wrapper > ol {
+.list-wrapper > .ol {
   font-size: 1.75em;
   padding-inline-start: 1em;
-}
-.list-wrapper > ol > li {
-  position: relative;
   margin-bottom: 0.333em;
 }
-.list-wrapper > ol > li > div {
+.list-wrapper > .ol > div {
   gap: 0.5em;
   display: grid;
   border-radius: 1em;
@@ -22,12 +19,12 @@
   font-size: 0.5em;
   height: 100%;
 }
-.list-wrapper > ol > li button {
+.list-wrapper > .ol button {
   filter: drop-shadow(0 0 0.25em black);
   box-shadow: 1px 4px black;
   font-size: inherit;
 }
-.list-wrapper > ol > li a {
+.list-wrapper > .ol a {
   font-size: 1.1em;
 }
 .long-link {

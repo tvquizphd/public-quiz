@@ -275,13 +275,16 @@ const runReef = (hasLocal, remote, env) => {
 
   function listTemplate (props) {
     const { items } = props;
-    const all_li = items.map(({ spans, cls }) => {
+    const all_li = items.map(({ spans, cls }, i) => {
       const inner = spans.join(' ');
       return `
-        <li> <div class="${cls}">${inner}</div> </li>
+        <div class="${cls}">
+          <span>${i+1}.<spab>
+          ${inner}
+        </div>
       `;
     }).join('');
-    return "<ol>" + all_li + "</ol>";
+    return `<div class="ol">` + all_li + "</div>";
   }
 
   function inliner (...args) {
