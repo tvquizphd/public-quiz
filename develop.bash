@@ -1,4 +1,5 @@
 #!/bin/bash
+DEVELOPMENT_CLIENT=f4ed3b82efd5c5407efa
 SET_TOKEN=$(cat .env | egrep "^ROOT_TOKEN")
 TOKEN=$(sed -r "s/.*=.(.+)./\1/" <<< $SET_TOKEN)
 GIT_URL=$(git config --get remote.origin.url)
@@ -17,6 +18,12 @@ echo $'\n\nRun' $INTRO $'\n'
 if [ ! -z $TOKEN ]; then
   read -p "Use existing login link (y/n)?: " yn
   if [ $yn == "y" ]; then
+    read -p "Use existing password (y/n)?: " yn
+    if [ $yn != "y" ]; then
+      echo $'\n\nPaste your argon hash:\n'
+      read -r OLD_HASH
+      export OLD_HASH
+    fi
     echo "Running login development action." $'\n'
     echo "Please open your personal login link." $'\n'
     pnpm develop $TOKEN
@@ -24,10 +31,7 @@ if [ ! -z $TOKEN ]; then
   fi
 fi
 WIKI_IN="./tmp-wiki/$(basename $REMOTE).wiki"
-URL=https://api.github.com/repos/$REMOTE
-JSON=$(curl -s -H "Accept: application/vnd.github+json" $URL)
-PARSE="console.log(JSON.parse(process.argv[1]).description)"
-CLIENT=$(node -e $PARSE <<< "" "$JSON");
+CLIENT=$DEVELOPMENT_CLIENT;
 SECRET_TXT="./secret.txt"
 WIKI_OUT="./docs/Home.md"
 echo $'\n\nPaste your one-time public key:\n'

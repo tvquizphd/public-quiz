@@ -37,7 +37,7 @@ const encryptSecret = async (inputs) => {
   return await encrypt(e_key, inputs.secret);
 }
 
-const digest = async (pass) => {
+const toHash = async (pass) => {
   const { hash } = window.argon2;
   const salt = toNumBytes(16);
   const argonOpts = {
@@ -47,7 +47,11 @@ const digest = async (pass) => {
     mem: 4096,
     hashLen: 32,
   }
-  const url = (await hash(argonOpts)).encoded;
+  return (await hash(argonOpts)).encoded;
+}
+
+const digest = async (pass) => {
+  const url = await toHash(pass);
   const [s64, h64] = url.split('$').slice(-2);
   const coded = `?salt=:${s64}&hash=:${h64}`;
   const coded_url = toUniformUrl(coded);
@@ -90,4 +94,4 @@ const encryptQueryMaster = async (inputs) => {
   return toB64urlQuery({ data });
 }
 
-export { encryptSecrets, encryptQueryMaster };
+export { toHash, encryptSecrets, encryptQueryMaster };

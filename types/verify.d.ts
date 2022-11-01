@@ -1,6 +1,7 @@
 import type { Git } from "./util/types.js";
 import type { Inputs as InIn } from "./inbox.js";
 declare type ConfigIn = {
+    reset: boolean;
     login: boolean;
     delay: number;
     pep: string;

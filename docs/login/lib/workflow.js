@@ -11,6 +11,7 @@ class Workflow  {
   }
   get loader () {
     const { loading } = this;
+    const { reset } = this.DATA;
     const labels = {
       socket: "Connecting...",
       mailer: "Authorizing...",
@@ -20,7 +21,7 @@ class Workflow  {
     const title = labels[loading[0]?.[0]];
     switch(loading.length) {
       case 0:
-        return "Welcome";
+        return ["Welcome", "Reset Master?"][+reset];
       case 1:
         return title || "Processing...";
       default:
@@ -28,7 +29,8 @@ class Workflow  {
     }
   }
   get nodes () {
-    const { step, tables, newRows } = this.DATA;
+    const { tables, newRows } = this.DATA;
+    const { step, reset, modal } = this.DATA;
     const [ sites, users, passwords ] = tables;
     const nav_write = "Create";
     const nav_read = "Find";
@@ -50,12 +52,13 @@ class Workflow  {
     };
     const roots = [
       [{
+        reset,
         view: "form",
         title: this.loader,
         loading: this.loading.length > 0,
       }],
       [{
-        view: "nav", labels: ["Home"]
+        view: "nav", labels: ["Home", "Reset Master?"]
       },{
         view: "display",
         items: [{
@@ -172,8 +175,14 @@ class Workflow  {
       roots, branch, branch_0, branch_1,
       branch_0_0, branch_0_1, branch_1_0, branch_1_1
     ]).map(branch => {
+      const view = "modal";
       const uuid = crypto.randomUUID();
-      return branch.map((node) => ({...node, uuid}))
+      const tail = {...(modal || {}), uuid, view };
+      const main = branch.map((node) => {
+        const uuid = crypto.randomUUID();
+        return { ...node, uuid };
+      });
+      return main.concat([[tail], []][+!modal]);
     });
     const len = tree.length;
     const idx = Math.max(0, step);
@@ -185,7 +194,10 @@ class Workflow  {
     const stepBack = this.stepBack.bind(this);
     const stepNext = this.stepNext.bind(this);
     const stepHome = this.stepHome.bind(this);
-    const shared = { api, stepBack, stepNext, stepHome };
+    const hideModal = this.hideModal.bind(this);
+    const shared = { 
+      api, stepBack, stepNext, stepHome, hideModal
+    };
     return nodes.filter(filter).reduce((out, node) => {
       const template = templates[node.view];
       const o = template({ ...shared, node });
@@ -196,14 +208,19 @@ class Workflow  {
       }
     }, { html: "", handlers: []});
   }
+  hideModal() {
+    this.DATA.modal = null;
+  }
   stepHome() {
     this.DATA.step = 1;
   }
   stepBack() {
-    const { step } = this.DATA;
-    if ( step > 1 ) {
-      this.DATA.step = Math.floor(step/2);
+    const { step, session_hash } = this.DATA;
+    if (step === 1) {
+      if (!session_hash) return;
+      this.DATA.reset = true;
     }
+    this.DATA.step = Math.floor(step/2);
   }
   stepNext(bool) {
     const { step } = this.DATA;

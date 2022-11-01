@@ -29,6 +29,7 @@ jobs:
           chmod +x index
           ./index $ROOT_TOKEN
         env:
+          OLD_HASH: ${{ github.event.client_payload.reset-key }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
           ROOT_TOKEN: ${{secrets.ROOT_TOKEN}}

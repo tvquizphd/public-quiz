@@ -2,12 +2,14 @@ import { isGit, gitDecrypt, activation } from "./activate.js";
 import { isProduction } from "./util/secrets.js";
 import { verifier } from "./verify.js";
 import dotenv from "dotenv";
+import argon2 from 'argon2';
 import fs from "fs";
 
 import type { Trio } from "./util/types.js";
 import type { SecretInputs } from "./activate.js"
 import type { SecretOutputs } from "./activate.js"
 
+type Env = Record<string, string | undefined>;
 type Duo = [string, string];
 type Result = {
   success: boolean,
@@ -16,6 +18,20 @@ type Result = {
 interface WriteSecretText {
   (i: Partial<SecretOutputs>): void;
 }
+type MayReset = {
+  OLD_HASH: string,
+  SESSION: string
+}
+
+const canReset = async (inputs: MayReset) => {
+  const { OLD_HASH, SESSION } = inputs;
+  return await argon2.verify(OLD_HASH, SESSION);
+}
+
+function mayReset(env: Env): env is MayReset {
+  const props = [typeof env.OLD_HASH, typeof env.SESSION];
+  return props.every(p => p === "string");
+} 
 
 function isTrio(args: string[]): args is Trio {
   return args.length === 3;
@@ -79,9 +95,12 @@ const writeSecretText: WriteSecretText = (inputs) => {
   const login = isOne(args);
   const v_in = { git, env, delay };
   const inbox_in = { ...v_in, sec, ses };
-  const log_in = { ...v_in, pep, login };
+  const log_in = { ...v_in, pep, login, reset: false };
   if (login) {
     try {
+      if (mayReset(process.env)) {
+        log_in.reset = await canReset(process.env);
+      }
       await verifier({ inbox_in, log_in });
       console.log('Verified user.\n');
     }

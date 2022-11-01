@@ -107,7 +107,7 @@ async function encryptWithPassword (event, DATA) {
 const noTemplate = () => {
   return `
     <div class="wrap-lines">
-      <div class="list-wrapper">
+      <div class="wrap-shadow">
         Invalid environment configured.
       </div>
     </div>
@@ -117,7 +117,7 @@ const noTemplate = () => {
 const runReef = (hasLocal, remote, env) => {
 
   const passFormId = "pass-form";
-  const host = window.location.origin; //TODO
+  const host = window.location.origin;
   let {store, component} = window.reef;
 
   const KEY_PAIR = toKeyPair();
@@ -198,7 +198,6 @@ const runReef = (hasLocal, remote, env) => {
         DATA.phase = 4;
       }).catch((e) => {
         console.error(e?.message);
-        console.error(e); //TODO
         DATA.failure = true;
       });
     }
@@ -233,7 +232,7 @@ const runReef = (hasLocal, remote, env) => {
     const pwd_auto = 'autocomplete="new-password"';
     const pwd_props = `id="${p_id}" ${pwd_auto}`;
     return `
-      <div class="wrap-form">
+      <div class="wrap-shadow">
         <form id="${passFormId}">
           <label for="${u_id}">Username:</label>
           <input id="${u_id} "type="text" ${user_props}>
@@ -358,7 +357,7 @@ const runReef = (hasLocal, remote, env) => {
       return `
         <div class="container">
           <div class="contained">
-            <div class="list-wrapper">
+            <div class="wrap-shadow">
               ${listTemplate(list_props)}
             </div>
           </div>

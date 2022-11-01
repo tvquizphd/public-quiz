@@ -19,6 +19,7 @@ import type { Inputs as InIn } from "./inbox.js";
 import type { Creds } from "./outbox.js";
 
 type ConfigIn = {
+  reset: boolean,
   login: boolean,
   delay: number,
   pep: string,
@@ -32,6 +33,7 @@ type PepperInputs = NameInterface & {
   Opaque: Op,
   Sock: Socket,
   times: number,
+  reset: boolean,
   env: string,
   pep: string,
   git: Git
@@ -68,11 +70,14 @@ const isPepper = (t: TreeAny): t is Pepper => {
 
 const toPepper: ToPepper = async (inputs) => {
   const { git, env, times, pep } = inputs;
-  const { Opaque, Sock } = inputs;
+  const { Opaque, Sock, reset } = inputs;
   const secret_str = process.env[pep] || '';
   const pepper = fromB64urlQuery(secret_str);
   const op = findOp(inputs, "registered");
-  if (isPepper(pepper)) {
+  if (reset) {
+    console.log('Allowing password reset!');
+  }
+  if (!reset && isPepper(pepper)) {
     const registered = true;
     console.log('Loaded pepper from secrets.');
     const op_id = opId(inputs, "registered");
@@ -112,7 +117,7 @@ const toOpaqueSock = async (inputs: SockInputs) => {
 }
 
 const verify: Verify = (config_in) => {
-  const { git, env, pep, login, delay } = config_in;
+  const { git, env, pep, login, delay, reset } = config_in;
   const namespace: Namespace = configureNamespace(env);
   const opaque: NameInterface = namespace.opaque;
   const user = "root";
@@ -121,7 +126,7 @@ const verify: Verify = (config_in) => {
   return new Promise((resolve: Resolver) => {
     toOpaqueSock(user_inputs).then(({ Opaque, Sock }) => {
       const pepper_inputs = {
-        ...opaque, git, env, pep, times, Opaque, Sock
+        ...opaque, reset, git, env, pep, times, Opaque, Sock
       };
       // Authenticate server with opaque sequence
       const op = findOp(opaque, "registered");
