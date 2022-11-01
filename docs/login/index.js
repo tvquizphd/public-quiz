@@ -291,7 +291,7 @@ const runReef = (hasLocal, remote, env) => {
       decryptWithPassword(passwords).then((done) => {
         console.log(done.join("\n"));
         workflow.stepNext(true);
-      }).catch((e) => {
+      }).catch(() => {
         DATA.modal = {
           error: true,
           message: "Unable to authenticate"
