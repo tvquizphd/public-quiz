@@ -53,7 +53,7 @@ const toHash = async (pass) => {
 const digest = async (pass) => {
   const url = await toHash(pass);
   const [s64, h64] = url.split('$').slice(-2);
-  const coded = `?salt=:${s64}&hash=:${h64}`;
+  const coded = `#salt=:${s64}#hash=:${h64}`;
   const coded_url = toUniformUrl(coded);
   const output = fromB64urlQuery(coded_url);
   if ("hash" in output && "salt" in output) {

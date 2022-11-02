@@ -8,7 +8,6 @@ import { encryptSecrets } from "encrypt";
 import { toEnv } from "environment";
 import { configureNamespace } from "sock";
 import { findOp, toSock } from "finders";
-import sodium from "libsodium-wrappers-sumo";
 import { OP } from "opaque-low-io";
 import { Buffer } from "buffer"
 /*
@@ -96,7 +95,7 @@ async function encryptWithPassword (event, DATA) {
   DATA.loading.socket = false;
   DATA.loading.verify = true;
   // Start verification
-  const Opaque = await OP(Sock, sodium);
+  const Opaque = await OP(Sock);
   const op = findOp(namespace.opaque, "registered");
   await Opaque.clientRegister(pass, "root", op);
   Sock.sock.project.done = true;

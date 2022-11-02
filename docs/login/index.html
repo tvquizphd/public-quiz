@@ -25,30 +25,33 @@
     "encrypt": "../scripts/encrypt.js",
     "decrypt": "../scripts/decrypt.js",
     "environment": "../config/environment.js",
+    "@octokit/request": "https://cdn.jsdelivr.net/npm/@octokit/request@6.2.2/dist-web/index.js",
     "opaque-low-io": "https://cdn.jsdelivr.net/npm/opaque-low-io@2.1.0/dist/index.mjs",
     "oprf": "https://ga.jspm.io/npm:oprf@2.0.0/build/oprf.js",
-		"@octokit/request": "https://ga.jspm.io/npm:@octokit/request@6.2.2/dist-web/index.js",
-		"libsodium-wrappers-sumo": "https://ga.jspm.io/npm:libsodium-wrappers-sumo@0.7.8/dist/modules-sumo/libsodium-wrappers.js",
-    "project-sock": "https://ga.jspm.io/npm:project-sock@1.0.0-beta.5.7/dist/index.mjs"
+    "project-sock": "https://cdn.jsdelivr.net/npm/project-sock@1.1.1/dist/index.mjs"
   },
   "scopes": {
+    "https://cdn.jsdelivr.net/": {
+      "@octokit/endpoint": "https://cdn.jsdelivr.net/npm/@octokit/endpoint@7.0.3/dist-web/index.js",
+      "@octokit/graphql": "https://cdn.jsdelivr.net/npm/@octokit/graphql@5.0.4/dist-web/index.js",
+      "@octokit/request-error": "https://cdn.jsdelivr.net/npm/@octokit/request-error@3.0.2/dist-web/index.js",
+      "deprecation": "https://cdn.jsdelivr.net/npm/deprecation@2.3.1/dist-web/index.js",
+      "is-plain-object": "https://cdn.jsdelivr.net/npm/is-plain-object@5.0.0/dist/is-plain-object.mjs",
+      "node-fetch": "https://ga.jspm.io/npm:node-fetch@2.6.7/browser.js",
+      "once": "https://ga.jspm.io/npm:once@1.4.0/once.js",
+      "universal-user-agent": "https://cdn.jsdelivr.net/npm/universal-user-agent@6.0.0/dist-web/index.js"
+    },
     "https://ga.jspm.io/": {
-			"@octokit/endpoint": "https://ga.jspm.io/npm:@octokit/endpoint@7.0.3/dist-web/index.js",
-			"@octokit/graphql": "https://ga.jspm.io/npm:@octokit/graphql@5.0.4/dist-web/index.js",
-			"@octokit/request-error": "https://ga.jspm.io/npm:@octokit/request-error@3.0.2/dist-web/index.js",
-			"buffer": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/buffer.js",
-			"crypto": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/crypto.js",
-			"deprecation": "https://ga.jspm.io/npm:deprecation@2.3.1/dist-node/index.js",
-			"fs": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/fs.js",
-			"is-plain-object": "https://ga.jspm.io/npm:is-plain-object@5.0.0/dist/is-plain-object.mjs",
-			"libsodium-sumo": "https://ga.jspm.io/npm:libsodium-sumo@0.7.10/dist/modules-sumo/libsodium-sumo.js",
-			"node-fetch": "https://ga.jspm.io/npm:node-fetch@2.6.7/browser.js",
-			"once": "https://ga.jspm.io/npm:once@1.4.0/once.js",
-			"path": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/path.js",
-			"process": "https://ga.jspm.io/npm:@jspm/core@2.0.0-beta.27/nodelibs/browser/process.js",
-			"universal-user-agent": "https://ga.jspm.io/npm:universal-user-agent@6.0.0/dist-node/index.js",
-			"wrappy": "https://ga.jspm.io/npm:wrappy@1.0.2/wrappy.js"
-		} 
+      "buffer": "https://cdn.jsdelivr.net/npm/@jspm/core@2.0.0-beta.27/nodelibs/browser/buffer.js",
+      "crypto": "https://cdn.jsdelivr.net/npm/@jspm/core@2.0.0-beta.27/nodelibs/browser/crypto.js",
+      "fs": "https://cdn.jsdelivr.net/npm/@jspm/core@2.0.0-beta.27/nodelibs/browser/fs.js",
+      "ieee754": "https://ga.jspm.io/npm:ieee754@1.2.1/index.js",
+      "libsodium-sumo": "https://ga.jspm.io/npm:libsodium-sumo@0.7.8/dist/modules-sumo/libsodium-sumo.js",
+      "libsodium-wrappers-sumo": "https://ga.jspm.io/npm:libsodium-wrappers-sumo@0.7.8/dist/modules-sumo/libsodium-wrappers.js",
+      "path": "https://cdn.jsdelivr.net/npm/@jspm/core@2.0.0-beta.27/nodelibs/browser/path.js",
+      "process": "https://cdn.jsdelivr.net/npm/@jspm/core@2.0.0-beta.27/nodelibs/browser/process.js",
+      "wrappy": "https://ga.jspm.io/npm:wrappy@1.0.2/wrappy.js"
+    }
   }
 }
 </script>

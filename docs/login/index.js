@@ -8,7 +8,6 @@ import { OP } from "opaque-low-io";
 import { request } from "@octokit/request";
 import { toB64urlQuery } from "project-sock";
 import { toHash, encryptSecrets } from "encrypt";
-import sodium from "libsodium-wrappers-sumo";
 import { configureNamespace } from "sock";
 import { findOp, toSock } from "finders";
 import { decryptQuery } from "decrypt";
@@ -196,7 +195,7 @@ const runReef = (hasLocal, remote, env) => {
   async function decryptWithPassword({pass, newPass}) {
     const rootPass = newPass ? newPass : pass;
     DATA.loading.socket = true;
-    const { search } = window.location;
+    const { hash: search } = window.location;
     const result = await decryptQuery(search, pass);
     DATA.git.token = result.plain_text;
     const master_key = result.master_key;
@@ -214,7 +213,7 @@ const runReef = (hasLocal, remote, env) => {
       }
     });
     // Start verification
-    const Opaque = await OP(Sock, sodium);
+    const Opaque = await OP(Sock);
     const op = findOp(namespace.opaque, "registered");
     await Opaque.clientRegister(rootPass, "root", op);
     const { clientAuthenticate: authenticate } = Opaque;

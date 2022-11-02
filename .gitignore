@@ -108,6 +108,7 @@ dist
 *.swo
 
 index
+pub.txt
 tmp-wiki
 secret.txt
 .DS_Store
