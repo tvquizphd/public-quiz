@@ -36,6 +36,7 @@ SECRET_TXT="./secret.txt"
 WIKI_OUT="./docs/Home.md"
 echo $'\n\nPaste your one-time public key:\n'
 read -r PUB
+echo "" > .env
 mkdir -p $WIKI_IN
 echo "" > $SECRET_TXT
 echo "$PUB" > $WIKI_IN/Home.md

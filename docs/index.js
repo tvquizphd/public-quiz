@@ -361,8 +361,6 @@ const runReef = (hasLocal, remote, env) => {
               ${listTemplate(list_props)}
             </div>
           </div>
-        </div>
-        <div class="container">
           <div class="contained">
             ${loadingTemplate()}
           </div>
