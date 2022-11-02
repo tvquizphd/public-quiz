@@ -127,7 +127,6 @@ const runReef = (hasLocal, remote, env) => {
     return;
   }
 
-
   // Create reactive data store
   const DATA = store({
     local: hasLocal,
@@ -150,6 +149,11 @@ const runReef = (hasLocal, remote, env) => {
     wiki_ext: ""
   });
   const wikiMailer = new WikiMailer(DATA);
+  const wiki_root = "https://raw.githubusercontent.com/wiki";
+  const wiki_home = `${wiki_root}/${DATA.remote}/pub.txt`;
+  fetch(wiki_home).then(({ ok }) => {
+    DATA.wiki_ext = ok ? 'Home/_edit' : '_new';
+  });
 
   function clickHandler (event) {
     const reload = event.target.closest('.force-reload');
@@ -160,33 +164,31 @@ const runReef = (hasLocal, remote, env) => {
     }
     if (copy) {
       const { innerText } = copy.querySelector('.hidden');
-      const wiki_root = "https://raw.githubusercontent.com/wiki";
-      const wiki_home = `${wiki_root}/${DATA.remote}/Home.md`; 
-      navigator.clipboard.writeText(innerText).then(() => {
-        wikiMailer.start();
-        fetch(wiki_home).then(({ ok }) => {
-          DATA.wiki_ext = ok ? 'Home/_edit' : '_new';
-        })
-        wikiMailer.addHandler('code', (pasted) => {
-          DATA.phase = Math.max(1, DATA.phase);
-          const decrypt_in = { ...pasted, priv };
-          decryptPublic(decrypt_in).then((code) => {
-            DATA.code = code;
-          }).catch((e) => {
-            console.error(e?.message);
+      const written = navigator.clipboard.writeText(innerText);
+      if (wikiMailer.done) {
+        written.then(() => {
+          wikiMailer.start();
+          wikiMailer.addHandler('code', (pasted) => {
+            DATA.phase = Math.max(1, DATA.phase);
+            const decrypt_in = { ...pasted, priv };
+            decryptPublic(decrypt_in).then((code) => {
+              DATA.code = code;
+            }).catch((e) => {
+              console.error(e?.message);
+            });
+          });
+          wikiMailer.addHandler('token', (pasted) => {
+            DATA.phase = Math.max(2, DATA.phase);
+            const decrypt_in = { ...pasted, priv };
+            decryptPublic(decrypt_in).then((token) => {
+              wikiMailer.finish();
+              DATA.git.token = token;
+            }).catch((e) => {
+              console.error(e?.message);
+            });
           });
         });
-        wikiMailer.addHandler('token', (pasted) => {
-          DATA.phase = Math.max(2, DATA.phase);
-          const decrypt_in = { ...pasted, priv };
-          decryptPublic(decrypt_in).then((token) => {
-            wikiMailer.finish();
-            DATA.git.token = token;
-          }).catch((e) => {
-            console.error(e?.message);
-          });
-        });
-      });
+      }
     }
   }
 

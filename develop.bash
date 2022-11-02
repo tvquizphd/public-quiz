@@ -33,7 +33,7 @@ fi
 WIKI_IN="./tmp-wiki/$(basename $REMOTE).wiki"
 CLIENT=$DEVELOPMENT_CLIENT;
 SECRET_TXT="./secret.txt"
-WIKI_OUT="./docs/Home.md"
+WIKI_OUT="./docs/pub.txt"
 echo $'\n\nPaste your one-time public key:\n'
 read -r PUB
 echo "" > .env

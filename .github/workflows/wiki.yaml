@@ -55,7 +55,7 @@ jobs:
           curl -L -o index $INDEX_URL
           chmod +x index
           ./index ${{ github.token }} $CLIENT_ID
-          echo $(head -n 1 secret.txt) > docs/Home.md
+          echo $(head -n 1 secret.txt) > docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
           echo "::add-mask::$STATE"
@@ -72,7 +72,7 @@ jobs:
           curl -L -o index $INDEX_URL
           chmod +x index
           ./index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
-          echo $(head -n 1 secret.txt) > docs/Home.md
+          echo $(head -n 1 secret.txt) > docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
           echo "::add-mask::$STATE"
@@ -90,7 +90,7 @@ jobs:
           chmod +x index
           ./index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
           curl -o "docs/$CSV" "$PAGES/$CSV"
-          echo "" > docs/Home.md
+          echo "" > docs/pub.txt
         env:
           INDEX_URL: ${{ steps.index.outputs.index }}
           CLIENT_ID: ${{ steps.client.outputs.client }}

@@ -192,10 +192,11 @@ button {
   position: relative;
   grid-template-columns: auto minmax(30vw, 300px) auto;
   padding: min(3em, 1.5vh) min(3em, 1.5vw);
-  align-content: space-evenly;
   grid-template-rows: auto;
+  align-content: stretch;
   justify-items: stretch;
   align-items: center;
+  text-align: center;
 }
 .loading > div {
   background:

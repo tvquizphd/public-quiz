@@ -9,7 +9,7 @@ function isPastedToken(p) {
 }
 
 const toPasted = async (url) => {
-  const wiki = `${url}/Home.md`;
+  const wiki = `${url}/pub.txt`;
   const headers = {
     "Cache-Control": "no-store",
     "Pragma": "no-cache"
@@ -18,6 +18,11 @@ const toPasted = async (url) => {
   const result = await fetch(wiki, opts);
   const text = await (result).text();
   return fromB64urlQuery(text.replaceAll('\n',''));
+}
+
+const NO_HANDLERS = {
+  'token': [],
+  'code': []
 }
 
 class WikiMailer {
@@ -29,14 +34,11 @@ class WikiMailer {
     };
     this.host = host;
     this.done = true;
-    this.handlers = {
-      'token': [],
-      'code': []
-    };
+    this.handlers = {...NO_HANDLERS};
   }
 
   async mainLoop () {
-    const dt = 5000; // 5 seconds
+    const dt = 3000; // 3 seconds
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
       const pasted = await toPasted(this.host);
@@ -78,6 +80,7 @@ class WikiMailer {
 
   finish() {
     this.done = true;
+    this.handlers = {...NO_HANDLERS};
   }
 }
 
