@@ -150,7 +150,7 @@ const runReef = (hasLocal, remote, env) => {
   });
   const wikiMailer = new WikiMailer(DATA);
   const wiki_root = "https://raw.githubusercontent.com/wiki";
-  const wiki_home = `${wiki_root}/${DATA.remote}/pub.txt`;
+  const wiki_home = `${wiki_root}/${DATA.remote}/Home.md`;
   fetch(wiki_home).then(({ ok }) => {
     DATA.wiki_ext = ok ? 'Home/_edit' : '_new';
   });
