@@ -1,11 +1,15 @@
 import { fromB64urlQuery } from "project-sock";
 
-function isPastedCode(p) {
-  return !!p.pub && !!p.code;
+function isForApp(p) {
+  return p.register && p.client_auth_data;
 }
 
-function isPastedToken(p) {
-  return !!p.pub && !!p.token;
+function isForInstall(p) {
+  return p.client_auth_result; 
+}
+
+function isForAuth(p) {
+  return p.salt && p.key && p.data; 
 }
 
 const toPasted = async (url) => {
@@ -27,11 +31,7 @@ const NO_HANDLERS = {
 
 class WikiMailer {
 
-  constructor({ host, git }) {
-    this.git = {
-      owner: git.owner,
-      repo: git.repo
-    };
+  constructor(host) {
     this.host = host;
     this.done = true;
     this.handlers = {...NO_HANDLERS};
@@ -42,14 +42,23 @@ class WikiMailer {
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
       const pasted = await toPasted(this.host);
-      if (isPastedToken(pasted)) {
-        const { token: data, pub } = pasted;
-        this.handle('token', { data, pub });
-        this.handlers.code = [];
+      if (isForApp(pasted)) {
+        const { register, client_auth_data } = pasted;
+        this.handle('app', { register, client_auth_data });
+        this.handlers.app = [];
       }
-      else if (isPastedCode(pasted)) {
-        const { code: data, pub } = pasted;
-        this.handle('code', { data, pub });
+      else if (isForInstall(pasted)) {
+        const { client_auth_result } = pasted;
+        this.handle('install', { client_auth_result });
+        this.handlers.install = [];
+        this.handlers.app = [];
+      }
+      else if (isForAuth(pasted)) {
+        const encrypted = pasted;
+        this.handle('auth', { encrypted });
+        this.handlers.install = [];
+        this.handlers.auth = [];
+        this.handlers.app = [];
       }
     }
   }

@@ -5,6 +5,8 @@ overrides:
   libsodium-wrappers-sumo: 0.7.8
 
 specifiers:
+  '@octokit/app': ^13.0.11
+  '@octokit/request': ^6.2.2
   '@types/eccrypto': ^1.1.3
   '@types/libsodium-wrappers': ^0.7.9
   '@types/node': ^18.7.19
@@ -16,7 +18,7 @@ specifiers:
   eslint: ^8.24.0
   libsodium-wrappers: 0.7.8
   octokit: ^2.0.7
-  opaque-low-io: ^2.0.3
+  opaque-low-io: ^2.2.1
   pkg: ^5.8.0
   project-sock: 1.1.1
   simple-git: ^3.14.1
@@ -24,11 +26,13 @@ specifiers:
   typescript: ^4.8.3
 
 dependencies:
+  '@octokit/app': 13.0.11
+  '@octokit/request': 6.2.2
   argon2: 0.29.1
   eccrypto: 1.1.6
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
-  opaque-low-io: 2.0.3
+  opaque-low-io: 2.2.1
   project-sock: 1.1.1
   simple-git: 3.14.1
   ts-node: 10.9.1_u7tj3mdglidusk2sd73zi6kt7q
@@ -202,16 +206,16 @@ packages:
       fastq: 1.13.0
     dev: true
 
-  /@octokit/app/13.0.8:
-    resolution: {integrity: sha512-rfU7PY8gxZugDUMkNAgXhaUQuOvZWuhclCkc1Np50QYsYM3+HswoJGgOwiRMnuema1qMxBbeeAFnVVCjcIWisA==}
+  /@octokit/app/13.0.11:
+    resolution: {integrity: sha512-qlUynCN1+BNYQ6VaJOMCqDdCo/2yzPixuoFnbcUThakRV+5969Tp+LTAtsZWjjb/tUHfutaAYOnsia1EGTAzfA==}
     engines: {node: '>= 14'}
     dependencies:
       '@octokit/auth-app': 4.0.5
       '@octokit/auth-unauthenticated': 3.0.2
       '@octokit/core': 4.0.5
       '@octokit/oauth-app': 4.0.8
-      '@octokit/plugin-paginate-rest': 4.3.1_@octokit+core@4.0.5
-      '@octokit/types': 7.5.0
+      '@octokit/plugin-paginate-rest': 5.0.1_@octokit+core@4.0.5
+      '@octokit/types': 8.0.0
       '@octokit/webhooks': 10.1.5
     transitivePeerDependencies:
       - encoding
@@ -223,7 +227,7 @@ packages:
     dependencies:
       '@octokit/auth-oauth-app': 5.0.2
       '@octokit/auth-oauth-user': 2.0.3
-      '@octokit/request': 6.2.1
+      '@octokit/request': 6.2.2
       '@octokit/request-error': 3.0.1
       '@octokit/types': 7.5.0
       '@types/lru-cache': 5.1.1
@@ -255,7 +259,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       '@octokit/oauth-methods': 2.0.3
-      '@octokit/request': 6.2.1
+      '@octokit/request': 6.2.2
       '@octokit/types': 7.5.0
       universal-user-agent: 6.0.0
     transitivePeerDependencies:
@@ -268,7 +272,7 @@ packages:
     dependencies:
       '@octokit/auth-oauth-device': 4.0.2
       '@octokit/oauth-methods': 2.0.3
-      '@octokit/request': 6.2.1
+      '@octokit/request': 6.2.2
       '@octokit/types': 7.5.0
       btoa-lite: 1.0.0
       universal-user-agent: 6.0.0
@@ -297,7 +301,7 @@ packages:
     dependencies:
       '@octokit/auth-token': 3.0.1
       '@octokit/graphql': 5.0.1
-      '@octokit/request': 6.2.1
+      '@octokit/request': 6.2.2
       '@octokit/request-error': 3.0.1
       '@octokit/types': 7.5.0
       before-after-hook: 2.2.2
@@ -327,7 +331,7 @@ packages:
     resolution: {integrity: sha512-sxmnewSwAixkP1TrLdE6yRG53eEhHhDTYUykUwdV9x8f91WcbhunIHk9x1PZLALdBZKRPUO2HRcm4kezZ79HoA==}
     engines: {node: '>= 14'}
     dependencies:
-      '@octokit/request': 6.2.1
+      '@octokit/request': 6.2.2
       '@octokit/types': 7.5.0
       universal-user-agent: 6.0.0
     transitivePeerDependencies:
@@ -361,7 +365,7 @@ packages:
     engines: {node: '>= 14'}
     dependencies:
       '@octokit/oauth-authorization-url': 5.0.0
-      '@octokit/request': 6.2.1
+      '@octokit/request': 6.2.2
       '@octokit/request-error': 3.0.1
       '@octokit/types': 7.5.0
       btoa-lite: 1.0.0
@@ -377,6 +381,10 @@ packages:
     resolution: {integrity: sha512-1QYzZrwnn3rTQE7ZoSxXrO8lhu0aIbac1c+qIPOPEaVXBWSaUyLV1x9yt4uDQOwmu6u5ywVS8OJgs+ErDLf6vQ==}
     dev: false
 
+  /@octokit/openapi-types/14.0.0:
+    resolution: {integrity: sha512-HNWisMYlR8VCnNurDU6os2ikx0s0VyEjDYHNS/h4cgb8DeOxQ0n72HyinUtdDVxJhFy3FWLGl0DJhfEWk3P5Iw==}
+    dev: false
+
   /@octokit/plugin-paginate-rest/4.3.1_@octokit+core@4.0.5:
     resolution: {integrity: sha512-h8KKxESmSFTcXX409CAxlaOYscEDvN2KGQRsLCGT1NSqRW+D6EXLVQ8vuHhFznS9MuH9QYw1GfsUN30bg8hjVA==}
     engines: {node: '>= 14'}
@@ -385,6 +393,16 @@ packages:
     dependencies:
       '@octokit/core': 4.0.5
       '@octokit/types': 7.5.0
+    dev: false
+
+  /@octokit/plugin-paginate-rest/5.0.1_@octokit+core@4.0.5:
+    resolution: {integrity: sha512-7A+rEkS70pH36Z6JivSlR7Zqepz3KVucEFVDnSrgHXzG7WLAzYwcHZbKdfTXHwuTHbkT1vKvz7dHl1+HNf6Qyw==}
+    engines: {node: '>= 14'}
+    peerDependencies:
+      '@octokit/core': '>=4'
+    dependencies:
+      '@octokit/core': 4.0.5
+      '@octokit/types': 8.0.0
     dev: false
 
   /@octokit/plugin-rest-endpoint-methods/6.6.2_@octokit+core@4.0.5:
@@ -446,13 +464,13 @@ packages:
       - encoding
     dev: false
 
-  /@octokit/request/6.2.1:
-    resolution: {integrity: sha512-gYKRCia3cpajRzDSU+3pt1q2OcuC6PK8PmFIyxZDWCzRXRSIBH8jXjFJ8ZceoygBIm0KsEUg4x1+XcYBz7dHPQ==}
+  /@octokit/request/6.2.2:
+    resolution: {integrity: sha512-6VDqgj0HMc2FUX2awIs+sM6OwLgwHvAi4KCK3mT2H2IKRt6oH9d0fej5LluF5mck1lRR/rFWN0YIDSYXYSylbw==}
     engines: {node: '>= 14'}
     dependencies:
       '@octokit/endpoint': 7.0.2
       '@octokit/request-error': 3.0.1
-      '@octokit/types': 7.5.0
+      '@octokit/types': 8.0.0
       is-plain-object: 5.0.0
       node-fetch: 2.6.7
       universal-user-agent: 6.0.0
@@ -470,6 +488,12 @@ packages:
     resolution: {integrity: sha512-aHm+olfIZjQpzoODpl+RCZzchKOrdSLJs+yfI7pMMcmB19Li6vidgx0DwUDO/Ic4Q3fq/lOjJORVCcLZefcrJw==}
     dependencies:
       '@octokit/openapi-types': 13.12.0
+    dev: false
+
+  /@octokit/types/8.0.0:
+    resolution: {integrity: sha512-65/TPpOJP1i3K4lBJMnWqPUJ6zuOtzhtagDvydAWbEXpbFYA0oMKKyLb95NFZZP0lSh/4b6K+DQlzvYQJQQePg==}
+    dependencies:
+      '@octokit/openapi-types': 14.0.0
     dev: false
 
   /@octokit/webhooks-methods/3.0.0:
@@ -1911,7 +1935,7 @@ packages:
     resolution: {integrity: sha512-Rf+pY3fCphmS4jjLqQ+D0xS1U+Ry/pAZHLJNvsQksuj4aopl7qFLlV4Id2KIlaUpKZrUCPzOkLiZOaoEb47RZQ==}
     engines: {node: '>= 14'}
     dependencies:
-      '@octokit/app': 13.0.8
+      '@octokit/app': 13.0.11
       '@octokit/core': 4.0.5
       '@octokit/oauth-app': 4.0.8
       '@octokit/plugin-paginate-rest': 4.3.1_@octokit+core@4.0.5
@@ -1928,8 +1952,8 @@ packages:
     dependencies:
       wrappy: 1.0.2
 
-  /opaque-low-io/2.0.3:
-    resolution: {integrity: sha512-R0itenVuQrMYHQf0hw/Qn1zXqUPsRSNF5YRec1gnmr+pHpU0cIn4griluP2vzPHwdD+K0IVctUo1LcEfjbbIHw==}
+  /opaque-low-io/2.2.1:
+    resolution: {integrity: sha512-wSlougeXoCvCUzl3o4hVXMp0w1EvW1n67ovuhlhtN5T/5QS/jZPIZeTaSgK7Tx475gSHKbTiW80YZ8dn9M8Oig==}
     dependencies:
       libsodium-wrappers-sumo: 0.7.8
       oprf: 2.0.0

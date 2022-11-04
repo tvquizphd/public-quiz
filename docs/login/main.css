@@ -125,7 +125,7 @@ a:link, a:visited, a:hover, a:active {
   border-radius: 1em;
   padding: 0.25em;
 }
-.wrap-shadow form {
+.wrap-shadow > form {
   gap: 0.5em;
   padding: 1em;
   display: grid;
@@ -174,7 +174,7 @@ a:link, a:visited, a:hover, a:active {
   grid-column: 2;
   display: block;
 }
-button {
+button, input[type=submit] {
   font-family: Kreon, Tahoma, Verdana, sans-serif;
   padding: min(3em, 1.5vh) min(3em, 1.5vw);
   filter: drop-shadow(0 0 0.5em black);

@@ -1,0 +1,40 @@
+.hidden {
+  display: none;
+}
+.copier {
+  cursor: pointer;
+}
+.wrap-shadow > .ol {
+  margin-bottom: 0.75em;
+  margin-top: 0.75em;
+  display: grid;
+  gap: 1em;
+}
+.wrap-shadow > .ol > div > span:first-child {
+  font-size: 1.5em;
+}
+.wrap-shadow > .ol > div {
+  gap: 0.5em;
+  display: grid;
+  border-radius: 1em;
+  align-items: center;
+  justify-items: center;
+  justify-content: start;
+  grid-auto-flow: column;
+  padding: 0.25em 0.5em;
+  text-align: start;
+  height: 100%;
+}
+.wrap-shadow > .ol button,
+.wrap-shadow > .ol input[type=submit] {
+  filter: drop-shadow(0 0 0.25em black);
+  box-shadow: 1px 4px black;
+  font-size: inherit;
+}
+.wrap-shadow > .ol a {
+  font-size: 1.1em;
+}
+.long-link {
+  word-break: break-all;
+  font-size: 0.5em;
+}

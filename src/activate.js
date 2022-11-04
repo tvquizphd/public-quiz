@@ -1,5 +1,5 @@
+/*
 import { simpleGit } from 'simple-git';
-import { needKeys } from "./util/keys.js";
 import { printSeconds } from "./util/time.js";
 import { addSecret } from "./util/secrets.js";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
@@ -9,7 +9,7 @@ import * as eccrypto from "eccrypto";
 import { Octokit } from "octokit";
 import path from 'node:path';
 import fs from 'fs'
-
+import { needKeys } from "./util/keys.js";
 import type { Git } from "./util/types.js";
 import type { Encrypted } from "./util/encrypt.js";
 
@@ -22,7 +22,6 @@ type HasClient = {
 type HasGit = {
   git: Git
 }
-type BasicInputs = HasClient & HasGit; 
 type CoreInputs = HasGit & {
   wiki_config: WikiConfig,
   prod: boolean,
@@ -32,12 +31,6 @@ type AskInputs = HasClient & {
   interval: number,
   device_code: string
 }
-type MainCodeInputs = BasicInputs & CoreInputs;
-type MainTokenInputs = BasicInputs & {
-  code_outputs: CodeOutputs,
-  env: string,
-  tok: string,
-};
 type WikiConfig = {
   home: string,
   tmp: string
@@ -55,7 +48,7 @@ type AuthError = {
   error: string;
   error_description: string;
 }
-type GoodAuthError = AuthError & HasInterval; 
+type GoodAuthError = AuthError & HasInterval;
 type AuthSuccess = {
   access_token: string,
   token_type: string,
@@ -79,10 +72,10 @@ interface AskUserOnce {
   (i: AskInputs, ts: string): Promise<AskOutputs>;
 }
 type HasMaster = {
-  master_key: Uint8Array 
+  master_key: Uint8Array
 }
 type Pasted = {
-  pub: Uint8Array 
+  pub: Uint8Array
 }
 type HasPubMaster = Pasted & HasMaster;
 type CodeOutputs = HasDevice & HasPubMaster;
@@ -94,16 +87,13 @@ type TokenOutputs = {
 type ToEncryptPublic = HasPubMaster & {
   plain_text: string,
   label: string
-} 
+}
 type Obj = Record<string, any>;
 export type SecretInputs = Git | CodeOutputs;
 type GitInputs = HasGit & {
-  secret: string  
+  secret: string
 }
-export type SecretOutputs = {
-  for_pages: string,
-  for_next: string,
-}
+
 interface ToPasted {
   (s: string) : Promise<Partial<Pasted>>
 }
@@ -120,13 +110,7 @@ interface UseGit {
   (i: CoreInputs): GitOutput
 }
 interface DoGit {
-  (i: CoreInputs): Promise<void> 
-}
-interface ActivateCode {
-  (i: MainCodeInputs): Promise<SecretOutputs>
-}
-interface ActivateToken {
-  (i: MainTokenInputs): Promise<SecretOutputs>
+  (i: CoreInputs): Promise<void>
 }
 interface GitEncrypt {
   (i: GitInputs): Promise<string>
@@ -134,9 +118,6 @@ interface GitEncrypt {
 interface GitDecrypt {
   (i: GitInputs): Promise<SecretInputs>
 }
-type Activation = [
-  ActivateCode, ActivateToken 
-];
 
 const SCOPES = [
   'repo', 'project'
@@ -155,7 +136,7 @@ const encryptPublic: EncryptPublic = async (inputs) => {
   const { plain_text } = inputs;
   const { pub, master_key, label } = inputs;
   const encrypted = await encryptQueryMaster({
-    master_key, plain_text 
+    master_key, plain_text
   });
   const decoded = fromB64urlQuery(encrypted);
   if (!hasData(decoded)) {
@@ -230,7 +211,7 @@ function isAuthError(a: AuthVerdict): a is AuthError {
 }
 
 function isAuthSuccess(a: AskOutputs): a is AuthSuccess {
-  const keys = 'access_token token_type scope' 
+  const keys = 'access_token token_type scope'
   try {
     needKeys((a as AuthSuccess), keys.split(' '));
   }
@@ -240,17 +221,7 @@ function isAuthSuccess(a: AskOutputs): a is AuthSuccess {
   return true;
 }
 
-function isGit(a: SecretInputs): a is Git {
-  const keys = 'repo owner owner_token';
-  const g = a as Git;
-  try {
-    needKeys(g, keys.split(' '));
-  }
-  catch (e: any) {
-    return false;
-  }
-  return true;
-}
+
 
 function isCodeOutputs(a: SecretInputs): a is CodeOutputs {
   const g = a as CodeOutputs;
@@ -287,7 +258,7 @@ const getConfigurable = (inputs: HasClient) => {
 const configureDevice: Configure = async (inputs) => {
   const { configurable, headers } = getConfigurable(inputs);
   const step1 = { headers, method: 'POST' };
-  const step2 = await fetch(configurable, step1); 
+  const step2 = await fetch(configurable, step1);
   const keys = 'interval device_code user_code';
   const result = await step2.json();
   needKeys(result, keys.split(' '));
@@ -314,7 +285,7 @@ const askUserOnce: AskUserOnce = async (inputs, timestamp) => {
   const { askable, headers } = getAskable(inputs);
   await new Promise(r => setTimeout(r, dt));
   const step1 = { headers, method: 'POST' };
-  const step2 = await fetch(askable, step1); 
+  const step2 = await fetch(askable, step1);
   const result: AuthVerdict = await step2.json();
   if (isAuthError(result)) {
     if (isBadAuthError(result)) {
@@ -362,7 +333,7 @@ const handleToken: HandleToken = async (inputs) => {
   const { master_key, access_token } = inputs;
   const encrypted = await encryptPublic({
     pub, master_key, label: "token",
-    plain_text: access_token 
+    plain_text: access_token
   });
   console.log('Encrypted GitHub access token');
   return { encrypted, secret: access_token };
@@ -404,17 +375,17 @@ const derive = async (priv: Uint8Array, pub: Uint8Array) => {
   return new Uint8Array(await b_key);
 }
 
-const activateCode: ActivateCode = async (main_in) => {
+const toAsym: ToAsym = async (main_in) => {
   const { client_id, ...core_in} = main_in;
   const { git } = core_in;
-  let enp: ToEncryptPublic; 
+  let enp: ToEncryptPublic;
   let secret: string;
   const outputs = {
     for_pages: "",
     for_next: "",
   };
   try {
-    const pasted = await awaitPasted(core_in); 
+    const pasted = await awaitPasted(core_in);
     const { priv, pub } =  await toKeyPair();
     const config = await configureDevice({ client_id });
     const master_key = await derive(priv, pasted.pub);
@@ -463,7 +434,7 @@ const gitDecrypt: GitDecrypt = async (inputs) => { //TODO rename
   throw new Error('Poorly formated secret input.');
 }
 
-const activateToken: ActivateToken = async (inputs) => {
+const toSym: ToSym = async (inputs) => {
   const { tok, code_outputs, client_id } = inputs;
   let token_in: TokenInputs;
   let token_out: TokenOutputs;
@@ -488,11 +459,11 @@ const activateToken: ActivateToken = async (inputs) => {
     console.error('Error issuing token.');
     throw e;
   }
-  const user_git = { 
+  const user_git = {
     ...inputs.git,
     owner_token: token_out.secret
   };
-  const add_inputs = { 
+  const add_inputs = {
     name: tok,
     git: user_git,
     env: inputs.env,
@@ -534,14 +505,4 @@ const activateToken: ActivateToken = async (inputs) => {
   }
   return outputs;
 }
-
-const activation: Activation = [
-  activateCode,
-  activateToken,
-];
-
-export {
-  isGit,
-  gitDecrypt,
-  activation,
-}
+*/

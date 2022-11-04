@@ -1,5 +1,22 @@
 import type { Git } from "./util/types.js";
+import type { Socket } from "./util/socket.js";
+import type { Op } from 'opaque-low-io';
 import type { Inputs as InIn } from "./inbox.js";
+declare type UserInputs = {
+    git: Git;
+    delay: number;
+    env: string;
+};
+declare type UserOutputs = {
+    Opaque: Op;
+    Sock: Socket;
+};
+interface ToUserSock {
+    (i: UserInputs): Promise<UserOutputs>;
+}
+interface ToSyncOp {
+    (): Promise<Op>;
+}
 declare type ConfigIn = {
     reset: boolean;
     login: boolean;
@@ -15,5 +32,7 @@ declare type Inputs = {
 interface Verifier {
     (i: Inputs): Promise<void>;
 }
+declare const toUserSock: ToUserSock;
+declare const toSyncOp: ToSyncOp;
 declare const verifier: Verifier;
-export { verifier };
+export { verifier, toUserSock, toSyncOp };

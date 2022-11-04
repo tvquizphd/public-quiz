@@ -1,6 +1,6 @@
 import { Mailer } from "mailer";
 import { DBTrio } from "dbtrio";
-
+import { WikiMailer } from "wiki";
 import { templates } from "templates";
 import { Workflow } from "workflow";
 import { toEnv } from "environment";
@@ -145,14 +145,15 @@ const runReef = (hasLocal, remote, env) => {
     newRows: [...EMPTY_NEW],
     tables: [...EMPTY_TABLES]
   });
+  const wikiMailer = new WikiMailer(host);
   const cleanRefresh = () => {
     DATA.loading = {...NO_LOADING};
     DATA.mailer = undefined;
+    wikiMailer.finish();
     DATA.step = 0;
   }
   const API = {
     mailer: null,
-    focus: null,
     get dbt() {
       const { mailer } = API;
       if (mailer instanceof Mailer) {
@@ -197,8 +198,23 @@ const runReef = (hasLocal, remote, env) => {
     DATA.loading.socket = true;
     const { hash: search } = window.location;
     const result = await decryptQuery(search, pass);
-    DATA.git.token = result.plain_text;
     const master_key = result.master_key;
+    const gh_key = result.plain_text;
+    if (!wikiMailer.done) {
+      throw new Error("Multiple login attempts");
+    }
+    wikiMailer.start();
+    const prom = new Promise((resolve, reject) => {
+      wikiMailer.addHandler('sym', (pasted) => {
+        decryptQuery(pasted, gh_key).then((token) => {
+          wikiMailer.finish();
+          resolve(token)
+        }).catch((e) => {
+          reject(e?.message);
+        });
+      });
+    });
+    DATA.git.token = await prom;
     const delay = 0.3333;
     const times = 1000;
     const { env, git } = DATA;

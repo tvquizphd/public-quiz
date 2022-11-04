@@ -174,15 +174,18 @@ class Workflow  {
     const tree = [].concat(...[
       roots, branch, branch_0, branch_1,
       branch_0_0, branch_0_1, branch_1_0, branch_1_1
-    ]).map(branch => {
-      const view = "modal";
-      const uuid = crypto.randomUUID();
-      const tail = {...(modal || {}), uuid, view };
-      const main = branch.map((node) => {
+    ]).map(nodes => {
+      const main = nodes.map((node) => {
         const uuid = crypto.randomUUID();
         return { ...node, uuid };
       });
-      return main.concat([[tail], []][+!modal]);
+      const tail = [];
+      if (modal) {
+        const view = "modal";
+        const uuid = crypto.randomUUID();
+        tail.push({...modal, uuid, view });
+      }
+      return main.concat(tail);
     });
     const len = tree.length;
     const idx = Math.max(0, step);

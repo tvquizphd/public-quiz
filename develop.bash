@@ -1,5 +1,4 @@
 #!/bin/bash
-DEVELOPMENT_CLIENT=f4ed3b82efd5c5407efa
 SET_TOKEN=$(cat .env | egrep "^ROOT_TOKEN")
 TOKEN=$(sed -r "s/.*=.(.+)./\1/" <<< $SET_TOKEN)
 GIT_URL=$(git config --get remote.origin.url)
@@ -26,23 +25,30 @@ if [ ! -z $TOKEN ]; then
     fi
     echo "Running login development action." $'\n'
     echo "Please open your personal login link." $'\n'
-    pnpm develop $TOKEN
+    pnpm develop LOGIN $TOKEN
     exit 0
   fi
 fi
 WIKI_IN="./tmp-wiki/$(basename $REMOTE).wiki"
-CLIENT=$DEVELOPMENT_CLIENT;
+mkdir -p $WIKI_IN
 SECRET_TXT="./secret.txt"
 WIKI_OUT="./docs/pub.txt"
-echo $'\n\nPaste your one-time public key:\n'
-read -r PUB
-echo "" > .env
-mkdir -p $WIKI_IN
 echo "" > $SECRET_TXT
-echo "$PUB" > $WIKI_IN/Home.md
-pnpm develop NONE $CLIENT
-echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
-pnpm develop NONE $CLIENT $(tail -n 1 $SECRET_TXT)
-echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
-pnpm develop NONE $CLIENT $(tail -n 1 $SECRET_TXT)
-echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
+echo "" > .env
+
+pnpm develop PUB DEV OPAQUE 
+echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT #pub to pages
+
+echo $'\n\nPaste your app code:\n'
+read -r PUB_STATE
+echo "$PUB_STATE" > $WIKI_IN/Home.md #code from wiki
+pnpm develop APP DEV $(tail -n 1 $SECRET_TXT) #from PUB step
+echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT #auth to pages
+
+echo $'\n\nPaste your installer key:\n'
+read -r PUB_STATE
+echo "$PUB_STATE" > $WIKI_IN/Home.md #key from wiki
+pnpm develop TOKEN DEV $(tail -n 1 $SECRET_TXT) #from APP step
+echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT #token to pages
+
+pnpm develop AUTH DEV $(tail -n 1 $SECRET_TXT) #from TOKEN step

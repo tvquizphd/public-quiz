@@ -1,6 +1,5 @@
-name: Register after Wiki
-on:
-  gollum:
+name: Register from Wiki
+on: workflow_dispatch
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
@@ -31,15 +30,6 @@ jobs:
           $ROOT/repos/$REMOTE/pages);
           PAGES_URL=$(jq -r '.html_url' <<< $JSON);
           echo "pages=$PAGES_URL" >> $GITHUB_OUTPUT
-      - name: Configure OAuth App Client ID
-        id: client
-        run: |
-          JSON=$(curl \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE);
-          CLIENT=$(jq -r '.description' <<< $JSON);
-          echo "client=$CLIENT" >> $GITHUB_OUTPUT
       - name: Configure Latest Release URL
         id: index
         run: |
@@ -49,12 +39,12 @@ jobs:
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
-      - name: To GitHub Device Code
+      - name: Publish Opaque codes on Pages
         run: |
           echo "" > secret.txt
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index ${{ github.token }} $CLIENT_ID
+          ./index PUB ${{ github.token }} OPAQUE
           echo $(head -n 1 secret.txt) > docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -62,16 +52,15 @@ jobs:
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           INDEX_URL: ${{ steps.index.outputs.index }}
-          CLIENT_ID: ${{ steps.client.outputs.client }}
           PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
-      - name: To GitHub OAuth Token
+      - name: Create GitHub App and share Auth to Pages
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
+          ./index APP ${{ github.token }} "${{ env.state }}"
           echo $(head -n 1 secret.txt) > docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -79,7 +68,22 @@ jobs:
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           INDEX_URL: ${{ steps.index.outputs.index }}
-          CLIENT_ID: ${{ steps.client.outputs.client }}
+          PAGES: ${{ steps.pages.outputs.pages }}
+      - uses: actions/upload-pages-artifact@v1
+        with: { path : 'docs' }
+      - uses: actions/deploy-pages@v1
+      - name: Install App and share token to Pages
+        run: |
+          curl -L -o index $INDEX_URL
+          chmod +x index
+          ./index TOKEN ${{ github.token }} "${{ env.state }}"
+          echo $(head -n 1 secret.txt) > docs/pub.txt
+          curl -o "docs/$CSV" "$PAGES/$CSV"
+          STATE=$(tail -n 1 secret.txt)
+          echo "::add-mask::$STATE"
+          echo "state=$STATE" >> $GITHUB_ENV
+        env:
+          INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
@@ -88,13 +92,6 @@ jobs:
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index ${{ github.token }} $CLIENT_ID "${{ env.state }}"
-          curl -o "docs/$CSV" "$PAGES/$CSV"
-          echo "" > docs/pub.txt
+          ./index AUTH ${{ github.token }} "${{ env.state }}"
         env:
           INDEX_URL: ${{ steps.index.outputs.index }}
-          CLIENT_ID: ${{ steps.client.outputs.client }}
-          PAGES: ${{ steps.pages.outputs.pages }}
-      - uses: actions/upload-pages-artifact@v1
-        with: { path : 'docs' }
-      - uses: actions/deploy-pages@v1

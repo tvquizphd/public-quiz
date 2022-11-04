@@ -1,15 +1,5 @@
-const to_random = (n) => {
-  const empty = new Uint8Array(Math.ceil(n / 2));
-  const bytes = [...crypto.getRandomValues(empty)];
-  const to_pair = x => {
-    const [p0, p1] = x.toString(36).padStart(2,'0');
-    const P0 = Math.random() > 0.5 ? p0.toUpperCase() : p0;
-    const P1 = Math.random() > 0.5 ? p1.toUpperCase() : p1;
-    const sep = Math.random() > 0.5 ? '' : '-';
-    return [P0, P1].join(sep);
-  }
-  return bytes.map(to_pair).join('');
-}
+import { toRandom } from "to-key";
+
 const saveTemplate = (inputs) => {
   const { title, loading } = inputs.node;
   const cls = "send-mail button black-blue";
@@ -130,7 +120,7 @@ const buttonsTemplate = (inputs) => {
     update(text);
   }
   const makePass = () => {
-    const text = to_random(16);
+    const text = toRandom(16);
     update(text);
   }
   const removePass = () => deletePass(idx);

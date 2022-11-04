@@ -14,9 +14,25 @@ import type { Socket } from "./util/socket.js";
 import type { Namespace } from "./config/sock.js";
 import type { SockInputs } from "./util/socket.js";
 import type { NameInterface } from "./config/sock.js";
-import type { Op, Pepper } from 'opaque-low-io';
+import type { Io, Op, Pepper } from 'opaque-low-io';
 import type { Inputs as InIn } from "./inbox.js";
 import type { Creds } from "./outbox.js";
+
+type UserInputs = {
+  git: Git,
+  delay: number,
+  env: string
+}
+type UserOutputs = {
+  Opaque: Op,
+  Sock: Socket
+}
+interface ToUserSock {
+  (i: UserInputs): Promise<UserOutputs>;
+}
+interface ToSyncOp {
+  (): Promise<Op>;
+}
 
 type ConfigIn = {
   reset: boolean,
@@ -116,15 +132,29 @@ const toOpaqueSock = async (inputs: SockInputs) => {
   return { Opaque, Sock };
 }
 
+const toUserSock: ToUserSock = async (inputs) => {
+  const { git, env, delay } = inputs;
+  const namespace: Namespace = configureNamespace(env);
+  return await toOpaqueSock({ git, delay, namespace });
+}
+
+const toSyncOp: ToSyncOp = async () => {
+  const Sock: Io = {
+    get: async () => null,
+    give: () => undefined
+  }
+  return await OP(Sock);
+}
+
 const verify: Verify = (config_in) => {
   const { git, env, pep, login, delay, reset } = config_in;
   const namespace: Namespace = configureNamespace(env);
   const opaque: NameInterface = namespace.opaque;
   const user = "root";
   const times = 1000;
-  const user_inputs = { git, delay, namespace };
+  const user_inputs = { git, delay, env };
   return new Promise((resolve: Resolver) => {
-    toOpaqueSock(user_inputs).then(({ Opaque, Sock }) => {
+    toUserSock(user_inputs).then(({ Opaque, Sock }) => {
       const pepper_inputs = {
         ...opaque, reset, git, env, pep, times, Opaque, Sock
       };
@@ -171,4 +201,4 @@ const verifier: Verifier = async (inputs) => {
   }
 }
 
-export { verifier };
+export { verifier, toUserSock, toSyncOp };

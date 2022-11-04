@@ -107,6 +107,7 @@ dist
 *.swp
 *.swo
 
+*.pem
 index
 pub.txt
 tmp-wiki

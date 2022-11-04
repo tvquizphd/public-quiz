@@ -24,11 +24,13 @@
   },
   "homepage": "https://github.com/tvquizphd/public-quiz-device#readme",
   "dependencies": {
+    "@octokit/app": "^13.0.11",
+    "@octokit/request": "^6.2.2",
     "argon2": "^0.29.1",
     "eccrypto": "^1.1.6",
     "libsodium-wrappers": "0.7.8",
     "octokit": "^2.0.7",
-    "opaque-low-io": "^2.0.3",
+    "opaque-low-io": "^2.2.1",
     "project-sock": "1.1.1",
     "simple-git": "^3.14.1",
     "ts-node": "^10.9.1"
