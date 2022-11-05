@@ -102,11 +102,11 @@ const goodInfo = async (search, app_manifest) => {
     typeof search?.installation_id === "string",
   ]);
   if (needs_3.every(v => v)) {
-    const pub_str = await toAppPublic(search.code);
+    const pub_str = await toInstallPublic(search.code);
     return { first: 3, pub_str, app_str: "" };
   }
   if (needs_1.every(v => v)) {
-    const pub_str = await toInstallPublic(search.code);
+    const pub_str = await toAppPublic(search.code);
     return { first: 1, pub_str, app_str: "" };
   }
   const app_val = JSON.stringify(app_manifest);
@@ -188,6 +188,33 @@ const runReef = (hasLocal, remote, env) => {
   const workflow = new Workflow(props);
   const final_step = workflow.paths.length - 1;
 
+  function mailerStart () {
+    wikiMailer.start();
+    wikiMailer.addHandler('app', async (pasted) => {
+      const Opaque = await toSyncOp();
+      const { toServerPepper, toServerSecret } = Opaque;
+      const { client_auth_data, register } = pasted;
+      const { pepper } = toServerPepper(register);
+      const out = toServerSecret({ pepper, client_auth_data});
+      const { server_auth_data } = out;
+      toServerAuth(server_auth_data);
+      toShared(out.token);
+    });
+    wikiMailer.addHandler('install', (pasted) => {
+      const { Au } = pasted.client_auth_result; 
+      DATA.Au = Au; // TODO
+    });
+    wikiMailer.addHandler('auth', (pasted) => {
+      const shared = toShared();
+      if (!shared) return cleanRefresh();
+      const token = decryptQuery(pasted, shared);
+      DATA.git.token = token;
+      DATA.step = final_step;
+      wikiMailer.finish();
+    });
+  }
+  mailerStart();
+
   const usePasswords = ({ target }) => {
     const passSelect = 'input[type="password"]';
     const passFields = target.querySelectorAll(passSelect);
@@ -227,32 +254,6 @@ const runReef = (hasLocal, remote, env) => {
     return await encryptSecrets(to_encrypt);
   }
 
-  function mailerStart () {
-    wikiMailer.start();
-    wikiMailer.addHandler('app', (pasted) => {
-      const Opaque = toSyncOp();
-      const { toServerPepper, toServerSecret } = Opaque;
-      const { client_auth_data, register } = pasted;
-      const { pepper } = toServerPepper(register);
-      const out = toServerSecret({ pepper, client_auth_data});
-      const { server_auth_data } = out;
-      toServerAuth(server_auth_data);
-      toShared(out.token);
-    });
-    wikiMailer.addHandler('install', (pasted) => {
-      const { Au } = pasted.client_auth_result; 
-      DATA.Au = Au; // TODO
-    });
-    wikiMailer.addHandler('auth', (pasted) => {
-      const shared = toShared();
-      if (!shared) return cleanRefresh();
-      const token = decryptQuery(pasted, shared);
-      DATA.git.token = token;
-      DATA.step = final_step;
-      wikiMailer.finish();
-    });
-  }
-
   function outageCheck () {
     outage().then((outages) => {
       DATA.unchecked = false;
@@ -268,7 +269,6 @@ const runReef = (hasLocal, remote, env) => {
 
   // Handle all click events
   function clickHandler (event) {
-    if (wikiMailer.done) mailerStart();
     if (DATA.unchecked) outageCheck();
     for (const handler of HANDLERS) {
       if (event.target.closest(handler.query)) {
@@ -278,7 +278,6 @@ const runReef = (hasLocal, remote, env) => {
   }
 
   function submitHandler (event) {
-    if (wikiMailer.done) mailerStart();
     if (DATA.unchecked) outageCheck();
     if (event.target.matches(`#${passFormId}`)) {
       event.preventDefault();

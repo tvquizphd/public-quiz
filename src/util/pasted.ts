@@ -4,6 +4,7 @@ import path from 'node:path';
 import fs from 'fs'
 
 import type { TreeAny, NodeAny } from "project-sock"
+import type { Secrets } from "./encrypt.js";
 import type { Git } from "./types.js";
 
 export type HasGit = { git: Git }
@@ -27,13 +28,13 @@ type ServerAuthData = {
   c: Record<"pu" | "Pu" | "Ps", ItemInC>
 }
 export type UserInstall = {
-  code: string
+  C: Secrets 
 }
 export type UserApp = UserInstall & {
-  server_auth_data: ServerAuthData
+  S: ServerAuthData
 }
 export type Pasted = UserInstall & {
-  server_auth_data?: ServerAuthData
+  S?: ServerAuthData
 }
 interface ReadUserInstall {
   (u: UserIn): Promise<UserInstall>;
@@ -61,10 +62,18 @@ export function isTree(u: NodeAny): u is TreeAny {
 }
 
 function hasCode(o: TreeAny): o is Pasted {
-  const needs = [ 
-    typeof o.code === "string"
+  if (!isTree(o.C)) {
+    return false;
+  }
+  const { salt, key, data } = o.C;
+  if (!isTree(key) || !isTree(data)) {
+    return false;
+  }
+  const needs = [
+    data.iv, data.tag, data.ev,
+    salt, key.iv, key.tag, key.ev
   ];
-  return needs.every(v => v);
+  return needs.every(v => v instanceof Uint8Array);
 }
 
 const useGit: UseGit = ({ git, wiki_config }) => {
@@ -113,7 +122,7 @@ const toPasted: ToPasted = async (src) => {
 }
 
 function isForApp(o: Pasted): o is UserApp {
-  const d = o?.server_auth_data;
+  const d = o?.S;
   if (!d || !isTree(d)) {
     return false;
   }

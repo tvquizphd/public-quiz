@@ -1,4 +1,5 @@
 import type { TreeAny, NodeAny } from "project-sock";
+import type { Secrets } from "./encrypt.js";
 import type { Git } from "./types.js";
 export declare type HasGit = {
     git: Git;
@@ -23,13 +24,13 @@ declare type ServerAuthData = {
     c: Record<"pu" | "Pu" | "Ps", ItemInC>;
 };
 export declare type UserInstall = {
-    code: string;
+    C: Secrets;
 };
 export declare type UserApp = UserInstall & {
-    server_auth_data: ServerAuthData;
+    S: ServerAuthData;
 };
 export declare type Pasted = UserInstall & {
-    server_auth_data?: ServerAuthData;
+    S?: ServerAuthData;
 };
 interface ReadUserInstall {
     (u: UserIn): Promise<UserInstall>;

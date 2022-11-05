@@ -38,7 +38,7 @@ class WikiMailer {
   }
 
   async mainLoop () {
-    const dt = 3000; // 3 seconds
+    const dt = 1000; // 1 second
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
       const pasted = await toPasted(this.host);

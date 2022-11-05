@@ -5,6 +5,7 @@ import { toSyncOp, verifier } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isJWK, toApp, toInstall } from "./create.js";
+import { getRandomValues } from "crypto";
 import dotenv from "dotenv";
 import argon2 from 'argon2';
 import fs from "fs";
@@ -125,7 +126,7 @@ function isDuo(args: string[]): args is Duo {
 
 const toNewPassword = () => {
   const empty = new Uint8Array(3*23);
-  const bytes = [...crypto.getRandomValues(empty)];
+  const bytes = [...getRandomValues(empty)];
   return (Buffer.from(bytes)).toString('base64');
 }
 
@@ -256,15 +257,17 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       const { r, xu, mask } = secret_in;
       try {
         const user_out = await readUserApp(user_in);
-        const { server_auth_data } = user_out;
+        const { C, S: server_auth_data } = user_out;
         const client_in = { r, xu, mask, server_auth_data };
+        console.log(client_in) //TODO
         const secret_out = toClientSecret(client_in, times);
         if (isNumber(secret_out)) {
           const msg = `Opaque error code: ${secret_out}`;
           throw new Error(`Error Making App. ${msg}`);
         }
         const shared = secret_out.token;
-        const code = (await decryptQuery(user_out.code, shared)).plain_text;
+        const c = decryptQuery(toB64urlQuery(C), shared);
+        const code = (await c).plain_text;
         const app_out = await toApp({ code });
         console.log("Created GitHub App.\n");
         writeSecretText(useSecrets(secret_out, app_out));
@@ -283,8 +286,9 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       console.log(`Creating GitHub Token.`);
       const { shared, app } = secret_in;
       try {
-        const user_out = await readUserInstall(user_in);
-        const code = (await decryptQuery(user_out.code, shared)).plain_text;
+        const { C } = await readUserInstall(user_in);
+        const c = decryptQuery(toB64urlQuery(C), shared);
+        const code = (await c).plain_text;
         const installed = await toInstall({ app, code });
         const new_git = {
           repo: git.repo,

@@ -1,6 +1,7 @@
 import { toRandom } from "to-key";
 import { encryptSecrets } from "encrypt";
 import { toB64urlQuery } from "project-sock";
+import { fromB64urlQuery } from "project-sock";
 
 const toPub = () => {
   const LOCAL_KEY = "private-state-key";
@@ -16,10 +17,12 @@ const toPub = () => {
 const toServerAuth = (server_auth_data) => {
   const LOCAL_KEY = "server-auth-data";
   if (server_auth_data) {
-    sessionStorage.setItem(LOCAL_KEY, server_auth_data);
+    const server_auth_str = toB64urlQuery(server_auth_data);
+    sessionStorage.setItem(LOCAL_KEY, server_auth_str);
     return server_auth_data;
   }
-  return sessionStorage.getItem(LOCAL_KEY);
+  const server_auth_str = sessionStorage.getItem(LOCAL_KEY);
+  return fromB64urlQuery(server_auth_str);
 }
 
 const toShared = (shared) => {
@@ -40,18 +43,15 @@ const toAppCode = (code) => {
   return sessionStorage.getItem(LOCAL_KEY);
 }
 
-const toAppPublic = async (code) => {
+const toAppPublic = async (code_in) => {
   const password = toShared();
-  const out = {
-    code: toAppCode(code),
-    server_auth_data: toServerAuth()
-  }
-  if (out.code && out.server_auth_data && password) {
-    const secret_text = toB64urlQuery(out);
-    const encrypted = await encryptSecrets({
-      password, secret_text
+  const S = toServerAuth();
+  const code = toAppCode(code_in);
+  if (code && S && password) {
+    const C = await encryptSecrets({
+      password, secret_text: code
     });
-    return toB64urlQuery(encrypted);
+    return toB64urlQuery({ C, S });
   }
   return "";
 }
@@ -65,17 +65,14 @@ const toInstallCode = (code) => {
   return sessionStorage.getItem(LOCAL_KEY);
 }
 
-const toInstallPublic = async (code) => {
+const toInstallPublic = async (in_code) => {
   const password = toShared();
-  const out = {
-    code: toInstallCode(code),
-  }
-  if (out.code && password) {
-    const secret_text = toB64urlQuery(out);
-    const encrypted = await encryptSecrets({
-      password, secret_text
+  const code = toInstallCode(in_code);
+  if (code && password) {
+    const C = await encryptSecrets({
+      password, secret_text: code
     });
-    return toB64urlQuery(encrypted);
+    return toB64urlQuery({ C });
   }
   return "";
 }
