@@ -1,6 +1,5 @@
 import { 
-  toPub, toShared, toServerAuth,
-  toInstallPublic, toAppPublic
+  toPub, toShared, toServerAuth, toAppPublic
 } from "pub";
 import { toB64urlQuery } from "project-sock";
 import { WikiMailer } from "wiki";
@@ -11,7 +10,7 @@ import { Workflow } from "workflow";
 import { toEnv } from "environment";
 import { configureNamespace } from "sock";
 import { findOp, toSock } from "finders";
-import { OP } from "opaque-low-io";
+import { OPS, OP } from "opaque-low-io";
 
 /*
  * Globals needed on window object:
@@ -41,11 +40,7 @@ async function toUserSock(inputs) {
 }
 
 const toSyncOp = async () => {
-  const Sock = {
-    get: async () => null,
-    give: () => undefined
-  }
-  return await OP(Sock);
+  return await OPS();
 }
 const outage = async () => {
   const fault = "GitHub internal outage";
@@ -97,15 +92,7 @@ const goodInfo = async (search, app_manifest) => {
     typeof search?.state === "string",
     typeof search?.code === "string",
   ]
-  const needs_3 = needs_1.concat([
-    search?.setup_action === "install",
-    typeof search?.installation_id === "string",
-  ]);
-  if (needs_3.every(v => v)) {
-    const pub_str = await toInstallPublic(search.code);
-    return { first: 3, pub_str, app_str: "" };
-  }
-  if (needs_1.every(v => v)) {
+  if (needs_1.every(v => v) && toShared()) {
     const pub_str = await toAppPublic(search.code);
     return { first: 1, pub_str, app_str: "" };
   }
@@ -115,6 +102,7 @@ const goodInfo = async (search, app_manifest) => {
     state: search.state,
     manifest: app_val,
   })).toString();
+  toShared("");
   return { first: 0, app_str, pub_str: "" };
 }
 
@@ -191,6 +179,7 @@ const runReef = (hasLocal, remote, env) => {
   function mailerStart () {
     wikiMailer.start();
     wikiMailer.addHandler('app', async (pasted) => {
+      if (toShared()) return;
       const Opaque = await toSyncOp();
       const { toServerPepper, toServerSecret } = Opaque;
       const { client_auth_data, register } = pasted;
@@ -200,16 +189,17 @@ const runReef = (hasLocal, remote, env) => {
       toServerAuth(server_auth_data);
       toShared(out.token);
     });
-    wikiMailer.addHandler('install', (pasted) => {
+    wikiMailer.addHandler('install', async (pasted) => {
       const { Au } = pasted.client_auth_result; 
       DATA.Au = Au; // TODO
     });
-    wikiMailer.addHandler('auth', (pasted) => {
+    wikiMailer.addHandler('auth', async (pasted) => {
       const shared = toShared();
+      const { encrypted } = pasted;
       if (!shared) return cleanRefresh();
-      const token = decryptQuery(pasted, shared);
-      DATA.git.token = token;
-      DATA.step = final_step;
+      const token = await decryptQuery(encrypted, shared);
+      DATA.git.token = token.plain_text;
+      DATA.step = final_step - 1;
       wikiMailer.finish();
     });
   }

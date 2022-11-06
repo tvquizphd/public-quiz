@@ -1,4 +1,5 @@
 import { fromB64urlQuery } from "project-sock";
+import { toB64urlQuery } from "project-sock";
 
 function isForApp(p) {
   return p.register && p.client_auth_data;
@@ -43,19 +44,17 @@ class WikiMailer {
       await new Promise(r => setTimeout(r, dt));
       const pasted = await toPasted(this.host);
       if (isForApp(pasted)) {
-        const { register, client_auth_data } = pasted;
-        this.handle('app', { register, client_auth_data });
+        await this.handle('app', pasted);
         this.handlers.app = [];
       }
       else if (isForInstall(pasted)) {
-        const { client_auth_result } = pasted;
-        this.handle('install', { client_auth_result });
+        await this.handle('install', pasted);
         this.handlers.install = [];
         this.handlers.app = [];
       }
       else if (isForAuth(pasted)) {
-        const encrypted = pasted;
-        this.handle('auth', { encrypted });
+        const encrypted = toB64urlQuery(pasted);
+        await this.handle('auth', { encrypted });
         this.handlers.install = [];
         this.handlers.auth = [];
         this.handlers.app = [];
@@ -63,12 +62,10 @@ class WikiMailer {
     }
   }
 
-  handle(key, value) {
+  async handle(key, v) {
     const handlers = this.handlers[key] || [];
-    [...handlers].forEach((handler) => {
-      handler(value);
-    });
-    this.handlers[key] = [];
+    const proms = [...handlers].map((h) => h(v));
+    await Promise.all(proms);
   }
 
   addHandler(key, handler) {

@@ -1,5 +1,9 @@
 import { request } from "@octokit/request";
 import { createPrivateKey } from "crypto";
+import type { Git } from "./util/types.js";
+import { sign } from 'jws';
+
+import type { Header } from 'jws';
 
 interface ToAppInput {
   code: string;
@@ -20,33 +24,49 @@ type JWK = {
   qi: string
 }
 type AppRaw = AppStrings & {
+  id: number,
   pem: string
 }
 export type AppOutput = AppStrings & {
+  id: string,
   jwk: JWK
 }
 interface ToApp {
   (i: ToAppInput): Promise<AppOutput>;
 }
-interface ToInstallInput {
-  code: string;
-  app: AppOutput;
+type HasToken = {
+  token: string
 }
-type InStrings = {
-  scope: string,
-  access_token: string,
-  refresh_token: string
+type InstalledRaw = HasToken & {
+  expires_at: string
 }
-type InstalledRaw = InStrings & {
-  expires_in: number,
-  refresh_token_expires_in: number
+export type Installed = HasToken & {
+  expiration: string
 }
-export type Installed = InStrings & {
-  expires_in: string,
-  refresh_token_expires_in: string
+export type UserInstallRaw = {
+  id: number,
+  permissions: Record<string, string>
+}
+export type UserInstall = UserInstallRaw & {
+  git: Git,
+  app: AppOutput,
 }
 interface ToInstall {
-  (i: ToInstallInput): Promise<Installed>;
+  (i: UserInstall): Promise<Installed>;
+}
+type Obj = Record<string, unknown>;
+type Payload = {
+  iss: number,
+  iat: number,
+  exp: number
+}
+
+function hasToken (o: Obj): o is InstalledRaw {
+  const needs = [
+    typeof o.token === "string",
+    typeof o.expires_at === "string",
+  ]
+  return needs.every(v => v);
 }
 
 function isJWK (o: JsonWebKey): o is JWK {
@@ -62,24 +82,10 @@ function isJWK (o: JsonWebKey): o is JWK {
 
 function isApp (o: Record<string, any>): o is AppRaw {
   const needs = [
+    typeof o.id === "number",
     typeof o.pem === "string",
     typeof o.client_id === "string",
     typeof o.client_secret === "string"
-  ];
-  return needs.every(v => v);
-}
-
-function isInstalled (a: unknown): a is InstalledRaw {
-  if (!a || typeof a !== "object") {
-    return false;
-  }
-  const u = a as Installed;
-  const needs = [
-    typeof u.scope === "string",
-    typeof u.expires_in === "number",
-    typeof u.access_token === "string",
-    typeof u.refresh_token === "string",
-    typeof u.refresh_token_expires_in === "number"
   ];
   return needs.every(v => v);
 }
@@ -120,6 +126,7 @@ const toApp: ToApp = async (inputs) => {
     throw new Error('Unable to create App');
   }
   const output = {
+    id: `${out.data.id}`,
     jwk: toJWK(out.data.pem),
     client_id: out.data.client_id,
     client_secret: out.data.client_id
@@ -127,23 +134,52 @@ const toApp: ToApp = async (inputs) => {
   return output;
 }
 
-const toInstall: ToInstall = async (inputs) => {
-  const { code, app } = inputs;
-  const { client_id, client_secret } = app;
-  const api_url = "/login/oauth/access_token";
+const toInstall: ToInstall = async (ins) => {
+  const { permissions, id, git } = ins;
+  const authorization = 'bearer ' + toSign(ins.app);
+  const api_url = `/app/installations/${id}/access_tokens`;
   const out = await request(`POST ${api_url}`, {
-    code, client_id, client_secret
+    headers: { authorization },
+    repository: git.repo,
+    permissions
   });
-  if(!isInstalled(out.data)) {
-    throw new Error('Unable to create App');
+  if(!hasToken(out.data)) {
+    throw new Error('Unable to create Token');
+  }
+  const ms = Date.parse(out.data.expires_at);
+  if (isNaN(ms)) {
+    throw new Error('Unable to create Token');
   }
   return {
-    scope: out.data.scope,
-    access_token: out.data.access_token,
-    refresh_token: out.data.refresh_token,
-    expires_in: `${out.data.expires_in}`,
-    refresh_token_expires_in: `${out.data.refresh_token_expires_in}`
+    token: out.data.token,
+    expiration: `${Math.floor(ms / 1000)}`
   };
 };
 
-export { toPEM, isJWK, toApp, toInstall };
+
+const toNow = (d: number) => {
+  return Math.floor(Date.now() / 1000) + d;
+}
+
+const toPayload = (iss: string): Payload => {
+  const o = {
+    iat: toNow(-60),
+    exp: toNow(10 * 60),
+    iss: parseInt(iss),
+  }
+  if (isNaN(o.iss)) {
+    throw new Error("Invalid JWT Payload");
+  }
+  return o;
+}
+
+const toSign = (app: AppOutput) => {
+  const payload = toPayload(app.id);
+  const privateKey = toPEM(app.jwk);
+  const header: Header = { alg: 'RS256' };
+  const to_sign = { privateKey, header, payload };
+  const authorization = sign(to_sign);
+  return authorization;
+}
+
+export { toPEM, isJWK, toSign, toApp, toInstall };

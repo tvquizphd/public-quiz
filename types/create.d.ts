@@ -1,3 +1,4 @@
+import type { Git } from "./util/types.js";
 interface ToAppInput {
     code: string;
 }
@@ -17,29 +18,32 @@ declare type JWK = {
     qi: string;
 };
 export declare type AppOutput = AppStrings & {
+    id: string;
     jwk: JWK;
 };
 interface ToApp {
     (i: ToAppInput): Promise<AppOutput>;
 }
-interface ToInstallInput {
-    code: string;
-    app: AppOutput;
-}
-declare type InStrings = {
-    scope: string;
-    access_token: string;
-    refresh_token: string;
+declare type HasToken = {
+    token: string;
 };
-export declare type Installed = InStrings & {
-    expires_in: string;
-    refresh_token_expires_in: string;
+export declare type Installed = HasToken & {
+    expiration: string;
+};
+export declare type UserInstallRaw = {
+    id: number;
+    permissions: Record<string, string>;
+};
+export declare type UserInstall = UserInstallRaw & {
+    git: Git;
+    app: AppOutput;
 };
 interface ToInstall {
-    (i: ToInstallInput): Promise<Installed>;
+    (i: UserInstall): Promise<Installed>;
 }
 declare function isJWK(o: JsonWebKey): o is JWK;
 declare const toPEM: (key: JWK) => string;
 declare const toApp: ToApp;
 declare const toInstall: ToInstall;
-export { toPEM, isJWK, toApp, toInstall };
+declare const toSign: (app: AppOutput) => string;
+export { toPEM, isJWK, toSign, toApp, toInstall };

@@ -50,10 +50,7 @@ class Workflow  {
     }),{
       text: "Install the ",
       link: { text: "GitHub App", href: install_app }
-    }, use_wiki({
-      copy: { text: "Copy", copy: this.DATA.pub_str },
-      what: "installation"
-    }), {
+    }, {
       text: "Choose master password"
     }];
     const to_app = [{

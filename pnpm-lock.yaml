@@ -8,6 +8,7 @@ specifiers:
   '@octokit/app': ^13.0.11
   '@octokit/request': ^6.2.2
   '@types/eccrypto': ^1.1.3
+  '@types/jws': ^3.2.4
   '@types/libsodium-wrappers': ^0.7.9
   '@types/node': ^18.7.19
   '@typescript-eslint/eslint-plugin': ^5.38.0
@@ -16,9 +17,10 @@ specifiers:
   dotenv: ^16.0.2
   eccrypto: ^1.1.6
   eslint: ^8.24.0
+  jws: ^4.0.0
   libsodium-wrappers: 0.7.8
   octokit: ^2.0.7
-  opaque-low-io: ^2.2.1
+  opaque-low-io: ^2.3.0
   pkg: ^5.8.0
   project-sock: 1.1.1
   simple-git: ^3.14.1
@@ -30,15 +32,17 @@ dependencies:
   '@octokit/request': 6.2.2
   argon2: 0.29.1
   eccrypto: 1.1.6
+  jws: 4.0.0
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
-  opaque-low-io: 2.2.1
+  opaque-low-io: 2.3.0
   project-sock: 1.1.1
   simple-git: 3.14.1
   ts-node: 10.9.1_u7tj3mdglidusk2sd73zi6kt7q
 
 devDependencies:
   '@types/eccrypto': 1.1.3
+  '@types/jws': 3.2.4
   '@types/libsodium-wrappers': 0.7.9
   '@types/node': 18.7.19
   '@typescript-eslint/eslint-plugin': 5.38.0_4gkcvl6qsi23tqqawfqgcwtp54
@@ -564,6 +568,12 @@ packages:
     dependencies:
       '@types/node': 18.7.19
     dev: false
+
+  /@types/jws/3.2.4:
+    resolution: {integrity: sha512-aqtH4dPw1wUjFZaeMD1ak/pf8iXlu/odFe+trJrvw0g1sTh93i+SCykg0Ek8C6B7rVK3oBORbfZAsKO7P10etg==}
+    dependencies:
+      '@types/node': 18.7.19
+    dev: true
 
   /@types/libsodium-wrappers/0.7.9:
     resolution: {integrity: sha512-LisgKLlYQk19baQwjkBZZXdJL0KbeTpdEnrAfz5hQACbklCY0gVFnsKUyjfNWF1UQsCSjw93Sj5jSbiO8RPfdw==}
@@ -1688,10 +1698,25 @@ packages:
       safe-buffer: 5.2.1
     dev: false
 
+  /jwa/2.0.0:
+    resolution: {integrity: sha512-jrZ2Qx916EA+fq9cEAeCROWPTfCwi1IVHqT2tapuqLEVVDKFDENFw1oL+MwrTvH6msKxsd1YTDVw6uKEcsrLEA==}
+    dependencies:
+      buffer-equal-constant-time: 1.0.1
+      ecdsa-sig-formatter: 1.0.11
+      safe-buffer: 5.2.1
+    dev: false
+
   /jws/3.2.2:
     resolution: {integrity: sha512-YHlZCB6lMTllWDtSPHz/ZXTsi8S00usEV6v1tjq8tOUZzw7DpSDWVXjXDre6ed1w/pd495ODpHZYSdkRTsa0HA==}
     dependencies:
       jwa: 1.4.1
+      safe-buffer: 5.2.1
+    dev: false
+
+  /jws/4.0.0:
+    resolution: {integrity: sha512-KDncfTmOZoOMTFG4mBlG0qUIOlc03fmzH+ru6RgYVZhPkyiy/92Owlt/8UEN+a4TXR1FQetfIpJE8ApdvdVxTg==}
+    dependencies:
+      jwa: 2.0.0
       safe-buffer: 5.2.1
     dev: false
 
@@ -1952,8 +1977,8 @@ packages:
     dependencies:
       wrappy: 1.0.2
 
-  /opaque-low-io/2.2.1:
-    resolution: {integrity: sha512-wSlougeXoCvCUzl3o4hVXMp0w1EvW1n67ovuhlhtN5T/5QS/jZPIZeTaSgK7Tx475gSHKbTiW80YZ8dn9M8Oig==}
+  /opaque-low-io/2.3.0:
+    resolution: {integrity: sha512-j0TCg/2acg903Z7pYZdMsP6GkLLpurUBkQA9H0bLJ8vApsLXViywdI8+s5F06nC+FjXayf4FJV6gYtxp+LpUeg==}
     dependencies:
       libsodium-wrappers-sumo: 0.7.8
       oprf: 2.0.0

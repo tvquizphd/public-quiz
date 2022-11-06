@@ -1,4 +1,6 @@
 import type { TreeAny, NodeAny } from "project-sock";
+import type { UserInstall } from "../create.js";
+import type { AppOutput } from "../create.js";
 import type { Secrets } from "./encrypt.js";
 import type { Git } from "./types.js";
 export declare type HasGit = {
@@ -13,6 +15,10 @@ export declare type UserIn = HasGit & {
     prod: boolean;
     wiki_config: WikiConfig;
 };
+declare type InstallIn = HasGit & {
+    delay: number;
+    app: AppOutput;
+};
 declare type ItemInC = {
     "body": Uint8Array;
     "mac_tag": Uint8Array;
@@ -23,17 +29,15 @@ declare type ServerAuthData = {
     beta: Uint8Array;
     c: Record<"pu" | "Pu" | "Ps", ItemInC>;
 };
-export declare type UserInstall = {
+export declare type Pasted = {
     C: Secrets;
-};
-export declare type UserApp = UserInstall & {
-    S: ServerAuthData;
-};
-export declare type Pasted = UserInstall & {
     S?: ServerAuthData;
 };
+export declare type UserApp = Pasted & {
+    S: ServerAuthData;
+};
 interface ReadUserInstall {
-    (u: UserIn): Promise<UserInstall>;
+    (u: InstallIn): Promise<UserInstall>;
 }
 interface ReadUserApp {
     (u: UserIn): Promise<UserApp>;

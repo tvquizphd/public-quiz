@@ -34,6 +34,7 @@ mkdir -p $WIKI_IN
 SECRET_TXT="./secret.txt"
 WIKI_OUT="./docs/pub.txt"
 echo "" > $SECRET_TXT
+echo "" > $WIKI_OUT
 echo "" > .env
 
 pnpm develop PUB DEV OPAQUE 
@@ -42,12 +43,10 @@ echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT #pub to pages
 echo $'\n\nPaste your app code:\n'
 read -r PUB_STATE
 echo "$PUB_STATE" > $WIKI_IN/Home.md #code from wiki
+
 pnpm develop APP DEV $(tail -n 1 $SECRET_TXT) #from PUB step
 echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT #auth to pages
 
-echo $'\n\nPaste your installer key:\n'
-read -r PUB_STATE
-echo "$PUB_STATE" > $WIKI_IN/Home.md #key from wiki
 pnpm develop TOKEN DEV $(tail -n 1 $SECRET_TXT) #from APP step
 echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT #token to pages
 

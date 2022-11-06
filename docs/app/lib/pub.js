@@ -56,31 +56,9 @@ const toAppPublic = async (code_in) => {
   return "";
 }
 
-const toInstallCode = (code) => {
-  const LOCAL_KEY = "app-install-code";
-  if (code) {
-    sessionStorage.setItem(LOCAL_KEY, code);
-    return code;
-  }
-  return sessionStorage.getItem(LOCAL_KEY);
-}
-
-const toInstallPublic = async (in_code) => {
-  const password = toShared();
-  const code = toInstallCode(in_code);
-  if (code && password) {
-    const C = await encryptSecrets({
-      password, secret_text: code
-    });
-    return toB64urlQuery({ C });
-  }
-  return "";
-}
-
 export { 
   toPub,
   toShared,
   toServerAuth,
-  toInstallPublic,
   toAppPublic,
 };

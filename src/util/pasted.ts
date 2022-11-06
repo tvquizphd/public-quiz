@@ -1,9 +1,14 @@
 import { fromB64urlQuery } from "project-sock";
+import { request } from "@octokit/request";
 import { simpleGit } from 'simple-git';
+import { toSign } from "../create.js";
 import path from 'node:path';
 import fs from 'fs'
 
 import type { TreeAny, NodeAny } from "project-sock"
+import type { UserInstallRaw } from "../create.js";
+import type { UserInstall } from "../create.js";
+import type { AppOutput } from "../create.js";
 import type { Secrets } from "./encrypt.js";
 import type { Git } from "./types.js";
 
@@ -17,6 +22,10 @@ export type UserIn = HasGit & {
   prod: boolean,
   wiki_config: WikiConfig
 }
+type InstallIn = HasGit & {
+  delay: number,
+  app: AppOutput
+}
 type ItemInC = {
   "body": Uint8Array,
   "mac_tag": Uint8Array
@@ -27,17 +36,18 @@ type ServerAuthData = {
   beta: Uint8Array,
   c: Record<"pu" | "Pu" | "Ps", ItemInC>
 }
-export type UserInstall = {
-  C: Secrets 
-}
-export type UserApp = UserInstall & {
-  S: ServerAuthData
-}
-export type Pasted = UserInstall & {
+export type Pasted = {
+  C: Secrets,
   S?: ServerAuthData
 }
+export type UserApp = Pasted & {
+  S: ServerAuthData
+}
+interface ToUserInstall {
+  (u: InstallIn): Promise<Obj>;
+}
 interface ReadUserInstall {
-  (u: UserIn): Promise<UserInstall>;
+  (u: InstallIn): Promise<UserInstall>;
 }
 interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
@@ -56,7 +66,11 @@ interface DoGit {
 interface UseGit {
   (i: UserIn): GitOutput
 }
+type Obj = Record<string, unknown>;
 
+function isObj(u: unknown): u is Obj {
+  return u != null && typeof u === "object";
+}
 export function isTree(u: NodeAny): u is TreeAny {
   return u != null && typeof u === "object";
 }
@@ -74,6 +88,17 @@ function hasCode(o: TreeAny): o is Pasted {
     salt, key.iv, key.tag, key.ev
   ];
   return needs.every(v => v instanceof Uint8Array);
+}
+
+function isForInstall(o: Obj): o is UserInstallRaw {
+  if (!isObj(o)) {
+    return false;
+  }
+  const needs = [
+    typeof o.id === "number",
+    isObj(o.permissions)
+  ];
+  return needs.every(v => v);
 }
 
 const useGit: UseGit = ({ git, wiki_config }) => {
@@ -129,7 +154,7 @@ function isForApp(o: Pasted): o is UserApp {
   if (!isTree(d.c)) {
     return false;
   }
-  if (![d.c.pu, d.c.Pu, d.c.Ps].every(isTree)) {
+  if (!isTree(d.c.pu) || !isTree(d.c.Pu) || !isTree(d.c.Ps)) {
     return false;
   }
   const needs = [
@@ -140,13 +165,7 @@ function isForApp(o: Pasted): o is UserApp {
   return needs.every(v => v instanceof Uint8Array);
 }
 
-function isForInstall(o: Pasted): o is UserInstall {
-  return Object.keys(o).length === 1;
-}
-
-async function awaitPasted(ins: UserIn, step: 0): Promise<UserApp>;
-async function awaitPasted(ins: UserIn, step: 1): Promise<UserInstall>;
-async function awaitPasted(ins: UserIn, step: 0 | 1): Promise<Pasted> {
+const readUserApp: ReadUserApp = async (ins) => {
   let tries = 0;
   const min15 = 60 * 15;
   const dt = ins.delay * 1000;
@@ -158,24 +177,54 @@ async function awaitPasted(ins: UserIn, step: 0 | 1): Promise<Pasted> {
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     const pasted = await toPasted(src);
-    if (hasCode(pasted)) {
-      const fn = [isForApp, isForInstall][step];
-      if (fn(pasted)) return pasted;
+    if (hasCode(pasted) && isForApp(pasted)) {
+      return pasted;
     }
     if (ins.prod) {
       await pullGit(ins);
     }
     tries += 1;
   }
-  throw new Error("Timeout waiting for wiki");
+  throw new Error("Timeout waiting for GitHub App");
 }
 
-const readUserApp: ReadUserApp = async (user_in) => {
-  return await awaitPasted(user_in, 0); 
+
+const toUserInstall: ToUserInstall = async (ins) => {
+  const authorization = 'bearer ' + toSign(ins.app);
+  const api_url = '/users/{username}/installation';
+  const out = await request(`GET ${api_url}`, {
+    username: ins.git.owner,
+    headers: { authorization }
+  })
+  return out.data;
 }
 
-const readUserInstall: ReadUserInstall = async (user_in) => {
-  return await awaitPasted(user_in, 1); 
+const readUserInstall: ReadUserInstall = async (ins) => {
+  let tries = 0;
+  const min15 = 60 * 15;
+  const dt = ins.delay * 1000;
+  const max_tries = min15 / ins.delay;
+  console.log('Awaiting app installation...');
+  while (tries < Math.ceil(max_tries)) {
+    await new Promise(r => setTimeout(r, dt));
+    let install: Obj = {};
+    try {
+      install = await toUserInstall(ins);
+    }
+    catch (e: any) {
+      if (e?.status !== 404) throw e;
+    }
+    if (isForInstall(install)) {
+      return {
+        git: ins.git,
+        app: ins.app,
+        id: install.id,
+        permissions: install.permissions
+      };
+    }
+    tries += 1;
+  }
+  throw new Error("Timeout waiting for installation");
 }
 
 export { readUserApp, readUserInstall }

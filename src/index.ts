@@ -90,6 +90,7 @@ function isTokenInputs (o: TreeAny): o is TokenIn {
     typeof o.shared === "string",
     typeof o.app.client_secret === "string",
     typeof o.app.client_id === "string",
+    typeof o.app.id === "string",
     isJWK(o.app.jwk)
   ];
   return needs.every(v => v);
@@ -154,6 +155,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   const next_obj = { 
     shared: shared,
     app: {
+      id: app.id,
       jwk: app.jwk,
       client_id: app.client_id,
       client_secret: app.client_secret
@@ -200,7 +202,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
     home: "Home.md",
     tmp: "tmp-wiki"
   }
-  const delay = 0.25;
+  const delay = 2; // 2 sec
   if (!prod) {
     console.log('DEVELOPMENT\n');
     dotenv.config();
@@ -259,7 +261,6 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
         const user_out = await readUserApp(user_in);
         const { C, S: server_auth_data } = user_out;
         const client_in = { r, xu, mask, server_auth_data };
-        console.log(client_in) //TODO
         const secret_out = toClientSecret(client_in, times);
         if (isNumber(secret_out)) {
           const msg = `Opaque error code: ${secret_out}`;
@@ -286,22 +287,20 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       console.log(`Creating GitHub Token.`);
       const { shared, app } = secret_in;
       try {
-        const { C } = await readUserInstall(user_in);
-        const c = decryptQuery(toB64urlQuery(C), shared);
-        const code = (await c).plain_text;
-        const installed = await toInstall({ app, code });
+        const install_in = { git, app, delay };
+        const install = await readUserInstall(install_in);
+        const installed = await toInstall(install);
         const new_git = {
           repo: git.repo,
           owner: git.owner,
-          owner_token: installed.access_token
+          owner_token: installed.token
         }
-        const created = `${Math.floor(Date.now() / 1000)}`;
         const secret = toB64urlQuery({
-          installed, created, shared, app
+          installed, shared, app
         });
         await addSecret({ git, env, secret, name: inst });
         const for_pages = toB64urlQuery(await encryptSecrets({
-          secret_text: new_git.owner_token,
+          secret_text: installed.token,
           password: shared
         }));
         const for_next = toB64urlQuery({ git: new_git });

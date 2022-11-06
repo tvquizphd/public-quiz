@@ -1,6 +1,6 @@
 import type { Git } from "./util/types.js";
 import type { Socket } from "./util/socket.js";
-import type { Op } from 'opaque-low-io';
+import type { Op, Ops } from 'opaque-low-io';
 import type { Inputs as InIn } from "./inbox.js";
 declare type UserInputs = {
     git: Git;
@@ -15,7 +15,7 @@ interface ToUserSock {
     (i: UserInputs): Promise<UserOutputs>;
 }
 interface ToSyncOp {
-    (): Promise<Op>;
+    (): Promise<Ops>;
 }
 declare type ConfigIn = {
     reset: boolean;

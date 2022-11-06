@@ -6,7 +6,7 @@ import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { toSock } from "./util/socket.js";
 import { inbox } from "./inbox.js";
-import { OP } from 'opaque-low-io';
+import { OP, OPS } from 'opaque-low-io';
 
 import type { Git } from "./util/types.js";
 import type { TreeAny } from 'project-sock';
@@ -14,7 +14,7 @@ import type { Socket } from "./util/socket.js";
 import type { Namespace } from "./config/sock.js";
 import type { SockInputs } from "./util/socket.js";
 import type { NameInterface } from "./config/sock.js";
-import type { Io, Op, Pepper } from 'opaque-low-io';
+import type { Op, Ops, Pepper } from 'opaque-low-io';
 import type { Inputs as InIn } from "./inbox.js";
 import type { Creds } from "./outbox.js";
 
@@ -31,7 +31,7 @@ interface ToUserSock {
   (i: UserInputs): Promise<UserOutputs>;
 }
 interface ToSyncOp {
-  (): Promise<Op>;
+  (): Promise<Ops>;
 }
 
 type ConfigIn = {
@@ -139,11 +139,7 @@ const toUserSock: ToUserSock = async (inputs) => {
 }
 
 const toSyncOp: ToSyncOp = async () => {
-  const Sock: Io = {
-    get: async () => null,
-    give: () => undefined
-  }
-  return await OP(Sock);
+  return await OPS();
 }
 
 const verify: Verify = (config_in) => {
