@@ -1,14 +1,13 @@
 import { request } from "@octokit/request";
 import _sodium from 'libsodium-wrappers';
 
-const sodiumize = async (git, value) => {
-  const { owner, repo, token } = git;
-  const api_root = `/repos/${owner}/${repo}/actions`;
+const sodiumize = async (token, id, env, value) => {
+  const api_root = `/repositories/${id}/environments/${env}`;
   const api_url = `${api_root}/secrets/public-key`;
-  const authorization = `token ${git.token}`;
+  const authorization = `token ${token}`;
   const get_r = await request(`GET ${api_url}`, {
     headers: { authorization }
-  });
+  })
   const { key, key_id } = get_r.data;
   const buff_key = Buffer.from(key, 'base64');
   const buff_in = Buffer.from(value);
@@ -20,39 +19,23 @@ const sodiumize = async (git, value) => {
   return { key_id, ev };
 }
 
-const check = async (git, now, secret_name) => {
-  const api_root = `/repos/${git.owner}/${git.repo}/actions`;
-  const api_url = `${api_root}/secrets/${secret_name}`;
-  const authorization = `token ${git.token}`;
-  let out = {
-    updated: 0
-  };
-  while (out.updated < now) {
-    try {
-      const o = await request(`GET ${api_url}`, {
-        headers: { authorization }
-      });
-      out.updated = Date.parse(o.data.updated_at);
-    }
-    catch (e) {
-      if (e?.status !== 404) throw e;
-    }
-  }
-  return true;
-}
-
-const main = async (secret_text) => {
+const main = async (secret) => {
+  const env = process.env.DEPLOYMENT;
   const git = {
     owner: "tvquizphd",
     repo: "public-quiz-device",
-    token: process.argv[2] || ""
+    owner_token: process.argv[2] || ""
   };
-  const secret_name = 'TEMP_OUT';
-  const now = (new Date()).getTime();
-  const e_secret = await sodiumize(git, secret_text);
-  const api_root = `/repos/${git.owner}/${git.repo}/actions`;
-  const api_url = `${api_root}/secrets/${secret_name}`;
-  const authorization = `token ${git.token}`;
+  const name = 'TEMP_OUT';
+  const get_api = `/repos/${git.owner}/${git.repo}`;
+  const authorization = `token ${git.owner_token}`;
+  const get_r = await request(`GET ${get_api}`, {
+    headers: { authorization }
+  });
+  const { id } = get_r.data;
+  const e_secret = await sodiumize(git.owner_token, id, env, secret);
+  const api_root = `/repositories/${id}/environments/${env}`;
+  const api_url = `${api_root}/secrets/${name}`;
   await request(`PUT ${api_url}`, {
     repo: git.repo,
     owner: git.owner,
@@ -60,7 +43,6 @@ const main = async (secret_text) => {
     encrypted_value: e_secret.ev,
     headers: { authorization }
   });
-  await check(git, now, secret_name);
   await new Promise(r => setTimeout(r, 5000));
 }
 
