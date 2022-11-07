@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-    <link href="./login/main.css" rel="stylesheet" type="text/css">
+    <link href="../login/main.css" rel="stylesheet" type="text/css">
     <link href="./index.css" rel="stylesheet" type="text/css">
 </head>
 <body>
@@ -16,13 +16,16 @@
 {
   "imports": {
     "index": "./index.js",
+    "pub": "./lib/pub.js",
+    "workflow": "./lib/workflow.js",
+    "templates": "./lib/templates.js",
     "sock": "./config/sock.js",
-    "wiki": "./scripts/wiki.js",
+    "wiki": "./lib/wiki.js",
     "to-key": "./scripts/toKey.js",
     "finders": "./scripts/finders.js",
     "encrypt": "./scripts/encrypt.js",
     "decrypt": "./scripts/decrypt.js",
-    "environment": "./config/environment.js",
+    "environment": "../config/environment.js",
     "buffer": "https://cdn.jsdelivr.net/npm/@jspm/core@2.0.0-beta.27/nodelibs/browser/buffer.js",
     "eccrypto/browser": "https://ga.jspm.io/npm:eccrypto@1.1.6/browser.js",
     "opaque-low-io": "https://cdn.jsdelivr.net/npm/opaque-low-io@2.3.0/dist/index.mjs",

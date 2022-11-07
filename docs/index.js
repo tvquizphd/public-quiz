@@ -1,64 +1,25 @@
 import { 
-  fromB64urlQuery, toB64urlQuery 
-} from "project-sock";
-import * as eccrypto from "eccrypto/browser";
+  toPub, toShared, toServerAuth, toAppPublic
+} from "pub";
+import { toB64urlQuery } from "project-sock";
 import { WikiMailer } from "wiki";
-import { decryptQueryMaster } from "decrypt";
 import { encryptSecrets } from "encrypt";
+import { decryptQuery } from "decrypt";
+import { templates } from "templates";
+import { Workflow } from "workflow";
 import { toEnv } from "environment";
 import { configureNamespace } from "sock";
 import { findOp, toSock } from "finders";
-import { OP } from "opaque-low-io";
-import { Buffer } from "buffer"
+import { OPS, OP } from "opaque-low-io";
+
 /*
  * Globals needed on window object:
  *
  * reef 
  */
 
-const toPrivate = () => {
-  const LOCAL_KEY = "private-session-key";
-  const old_priv_str = sessionStorage.getItem(LOCAL_KEY);
-  if (old_priv_str) {
-    return fromB64urlQuery(old_priv_str).priv;
-  }
-  const priv = new Uint8Array(eccrypto.generatePrivate());
-  sessionStorage.setItem(LOCAL_KEY, toB64urlQuery({ priv }));
-  return priv;
-}
-
-const toKeyPair = () => {
-  const priv = toPrivate();
-  const b_priv = Buffer.from(priv);
-  const b_pub = eccrypto.getPublic(b_priv);
-  const pub = new Uint8Array(b_pub);
-  return { priv, pub };
-}
-
-const derive = async (priv, pub) => {
-  const b_priv = Buffer.from(priv);
-  const b_pub = Buffer.from(pub);
-  const b_key = eccrypto.derive(b_priv, b_pub);
-  return new Uint8Array(await b_key);
-}
-
-const decryptPublic = async (inputs) => {
-  const { pub, priv, data } = inputs;
-  const master_key = await derive(priv, pub);
-  const search = toB64urlQuery({ data });
-  try {
-    const decrypted = await decryptQueryMaster({
-      master_key, search 
-    });
-    return decrypted.plain_text;
-  }
-  catch (e) {
-    throw new Error("Unable to decrypt");
-  }
-}
-
 const clearOpaqueClient = (Sock, { commands }) => {
-  const client_subs = ['sid', 'pw'];
+  const client_subs = ['register'];
   const toClear = commands.filter((cmd) => {
     return client_subs.includes(cmd.subcommand);
   });
@@ -72,35 +33,33 @@ async function toOpaqueSock(inputs) {
   return Sock;
 }
 
-async function encryptWithPassword (event, DATA) {
-  event.preventDefault();
-  DATA.loading.socket = true;
-  const { target } = event;
-  const { git, env } = DATA;
-  const { token } = git;
-
-  const passSelect = 'input[type="password"]';
-  const passField = target.querySelector(passSelect);
-  const pass = passField.value;
-
+async function toUserSock(inputs) {
+  const { git, env, delay } = inputs;
   const namespace = configureNamespace(env);
-  const to_encrypt = {
-    password: pass,
-    secret_text: token,
+  return await toOpaqueSock({ git, delay, namespace });
+}
+
+const toSyncOp = async () => {
+  return await OPS();
+}
+const outage = async () => {
+  const fault = "GitHub internal outage";
+  const matches = (update) => {
+    return !!update?.body?.match(/actions/i);
   }
-  const delay = 0.3333;
-  const result = await encryptSecrets(to_encrypt);
-  const sock_inputs = { git, delay, ...namespace };
-  const Sock = await toOpaqueSock(sock_inputs);
-  DATA.loading.socket = false;
-  DATA.loading.verify = true;
-  // Start verification
-  const Opaque = await OP(Sock);
-  const op = findOp(namespace.opaque, "registered");
-  await Opaque.clientRegister(pass, "root", op);
-  Sock.sock.project.done = true;
-  DATA.loading.verify = false;
-  return result;
+  const api_root = "https://www.githubstatus.com/api/v2";
+  const api_url = api_root + "/incidents/unresolved.json";
+  const { incidents } = await (await fetch(api_url)).json();
+  const action_outages = incidents.filter((outage) => {
+    return outage.incident_updates.some(matches)
+  });
+  return action_outages.map((outage) => {
+    const update = outage.incident_updates.find(matches) || {};
+    const body = update.body || "Unknown Actions Issue";
+    const time = update.updated_at || null;
+    const date = new Date(Date.parse(time));
+    return { body, date, fault };
+  });
 }
 
 const noTemplate = () => {
@@ -113,26 +72,79 @@ const noTemplate = () => {
   `;
 }
 
+function giver (logger, op_id, tag, msg) {
+  const k = this.sock.toKey(op_id, tag);
+  this.sock.sendMail(k, msg);
+  logger(k, msg);
+}
+
+const parseSearch = (state, { search }) => {
+  const entries = (new URLSearchParams(search)).entries();
+  const out = Object.fromEntries(entries);
+  if (out.state && out.state !== state) {
+    throw new Error('Invalid verification state');
+  }
+  return { ...out, state };
+}
+
+const useSearch = async (search, app_manifest) => {
+  const needs_1 = [
+    typeof search?.state === "string",
+    typeof search?.code === "string",
+  ]
+  if (needs_1.every(v => v) && toShared()) {
+    const pub_str = await toAppPublic(search.code);
+    return { first: 1, pub_str, app_str: "" };
+  }
+  const app_val = JSON.stringify(app_manifest);
+  const app_root = `https://github.com/settings/apps/new?`;
+  const app_str = app_root + (new URLSearchParams({
+    state: search.state,
+    manifest: app_val,
+  })).toString();
+  toShared("");
+  return { first: 0, app_str, pub_str: "" };
+}
+
 const runReef = (hasLocal, remote, env) => {
 
   const passFormId = "pass-form";
+  const href = window.location.href;
   const host = window.location.origin;
-  let {store, component} = window.reef;
-
-  const KEY_PAIR = toKeyPair();
+  const {store, component} = window.reef;
 
   if (!remote || !env) {
     component(`#reef-main`, noTemplate);
     return;
   }
 
-  // Create reactive data store
+  let HANDLERS = [];
+  const NO_LOADING = {
+    socket: false,
+    finish: false
+  }
+  const app_name = `QUIZ-${env}`;
+  const MANIFEST = {
+   "url": href,
+   "name": app_name,
+   "redirect_url": href,
+   "callback_urls": [href],
+   "public": true,
+   "default_permissions": {
+     "administration": "write"
+   }
+  }
   const DATA = store({
+    app_name,
+    pub_str: "",
+    app_str: "",
+    Au: null, //TODO
     local: hasLocal,
-    failure: false,
+    unchecked: true,
+    reset: false,
     login: null,
-    code: null,
-    phase: 0,
+    modal: null,
+    step: 0,
     host,
     env,
     git: {
@@ -141,232 +153,147 @@ const runReef = (hasLocal, remote, env) => {
       repo: remote[1]
     },
     remote: remote.join('/'),
-    loading: {
-      socket: false,
-      verify: false
-    },
+    loading: { ...NO_LOADING },
     wiki_ext: ""
   });
-  const wikiMailer = new WikiMailer(DATA);
-  const wiki_root = "https://raw.githubusercontent.com/wiki";
-  const wiki_home = `${wiki_root}/${DATA.remote}/Home.md`;
-  fetch(wiki_home).then(({ ok }) => {
-    DATA.wiki_ext = ok ? 'Home/_edit' : '_new';
-  });
-
-  function clickHandler (event) {
-    const reload = event.target.closest('.force-reload');
-    const copy = event.target.closest('.copier');
-    const { priv } = KEY_PAIR;
-    if (reload) {
-      return window.location.reload();
+  const readSearch = async () => {
+    const search = parseSearch(toPub(), window.location);
+    const opts = await useSearch(search, MANIFEST);
+    const { first, app_str, pub_str } = opts;
+    DATA.app_str = app_str;
+    DATA.pub_str = pub_str;
+    DATA.step = first;
+    return first;
+  }
+  const wikiMailer = new WikiMailer(host);
+  const mailerStart = (first_step) => {
+    wikiMailer.start();
+    if (first_step === 0) {
+      wikiMailer.addHandler('app', async (pasted) => {
+        const Opaque = await toSyncOp();
+        const { toServerPepper, toServerSecret } = Opaque;
+        const { client_auth_data, register } = pasted;
+        const { pepper } = toServerPepper(register);
+        const out = toServerSecret({ pepper, client_auth_data});
+        const { server_auth_data } = out;
+        toServerAuth(server_auth_data);
+        toShared(out.token);
+      });
     }
-    if (copy) {
-      const { innerText } = copy.querySelector('.hidden');
-      const written = navigator.clipboard.writeText(innerText);
-      if (wikiMailer.done) {
-        written.then(() => {
-          wikiMailer.start();
-          wikiMailer.addHandler('code', (pasted) => {
-            DATA.phase = Math.max(1, DATA.phase);
-            const decrypt_in = { ...pasted, priv };
-            decryptPublic(decrypt_in).then((code) => {
-              DATA.code = code;
-            }).catch((e) => {
-              console.error(e?.message);
-            });
-          });
-          wikiMailer.addHandler('token', (pasted) => {
-            DATA.phase = Math.max(2, DATA.phase);
-            const decrypt_in = { ...pasted, priv };
-            decryptPublic(decrypt_in).then((token) => {
-              wikiMailer.finish();
-              DATA.git.token = token;
-            }).catch((e) => {
-              console.error(e?.message);
-            });
-          });
-        });
+    wikiMailer.addHandler('install', async (pasted) => {
+      const { Au } = pasted.client_auth_result; 
+      DATA.Au = Au; // TODO
+    });
+    wikiMailer.addHandler('auth', async (pasted) => {
+      const shared = toShared();
+      const { encrypted } = pasted;
+      if (!shared) return cleanRefresh();
+      const token = await decryptQuery(encrypted, shared);
+      DATA.git.token = token.plain_text;
+      DATA.step = final_step - 1;
+      wikiMailer.finish();
+    });
+  }
+  const cleanRefresh = () => {
+    DATA.loading = { ...NO_LOADING };
+    wikiMailer.finish();
+    readSearch().then((first_step) => {
+      mailerStart(first_step);
+    });
+  }
+  cleanRefresh();
+  const props = { DATA, templates };
+  const workflow = new Workflow(props);
+  const final_step = workflow.paths.length - 1;
+
+  const usePasswords = ({ target }) => {
+    const passSelect = 'input[type="password"]';
+    const passFields = target.querySelectorAll(passSelect);
+    const pass = [...passFields].find((el) => {
+      return el.autocomplete === "current-password";
+    })?.value;
+    return { pass };
+  }
+
+  async function encryptWithPassword ({ pass }) {
+    DATA.loading.socket = true;
+    const { git, env } = DATA;
+    if (!git?.token) {
+      throw new Error("Missing GitHub Token.");
+    }
+    const delay = 0.3333;
+    const namespace = configureNamespace(env);
+    const Sock = await toUserSock({ git, env, delay });
+    Sock.give = giver.bind(Sock, (k, msg) => {
+      const reg_k = k.match(/register$/);
+      const reg_x = ArrayBuffer.isView(msg?.pw);
+      if (reg_k & reg_x) {
+        DATA.loading.socket = false;
+        DATA.loading.finish = true;
+      }
+    });
+    // Start verification
+    const Opaque = await OP(Sock);
+    const op = findOp(namespace.opaque, "registered");
+    await Opaque.clientRegister(pass, "root", op);
+    Sock.sock.project.done = true;
+    DATA.loading.finish = false;
+    const to_encrypt = {
+      password: pass,
+      secret_text: toShared(),
+    }
+    return await encryptSecrets(to_encrypt);
+  }
+
+  function outageCheck () {
+    outage().then((outages) => {
+      DATA.unchecked = false;
+      if (outages.length < 1) {
+        return;
+      }
+      const { body, date, fault } = outages.pop();
+      const message = `${fault}: ${body} (${date})`;
+      DATA.modal = { error: true, message };
+      cleanRefresh();
+    });
+  }
+
+  // Handle all click events
+  function clickHandler (event) {
+    if (DATA.unchecked) outageCheck();
+    for (const handler of HANDLERS) {
+      if (event.target.closest(handler.query)) {
+        return handler.fn(event);
       }
     }
   }
 
   function submitHandler (event) {
+    if (DATA.unchecked) outageCheck();
     if (event.target.matches(`#${passFormId}`)) {
-      encryptWithPassword(event, DATA).then((encrypted) => {
+      event.preventDefault();
+      const passwords = usePasswords(event);
+      encryptWithPassword(passwords).then((encrypted) => {
         const query = toB64urlQuery(encrypted);
         DATA.login = `${DATA.host}/login${query}`;
-        DATA.phase = 4;
-      }).catch((e) => {
-        console.error(e?.message);
-        DATA.failure = true;
+      }).catch(() => {
+        DATA.modal = {
+          error: true,
+          message: "Unable to register"
+        }
+        cleanRefresh();
       });
     }
   }
 
-  function statusTemplate (props) {
-    const { verb, failure } = props;
-    if (!failure) {
-      const gerrund = {
-        "connect": "Connecting...",
-        "register": "Registering...",
-      }[verb] || verb;
-      return `<div class="loading">
-        <div> ${gerrund} </div>
-      </div>`;
-    }
-    return `<div>
-      <p class="failure"> Failed to ${verb}. </p>
-      <button class="button true-pink force-reload">Retry?</button>
-    </div>`;
-  }
 
-  function passTemplate() {
-    const { phase } = DATA;
-    if (phase < 2) {
-      return "";
-    }
-    const u_id = "user-root";
-    const p_id = "password-input";
-    const user_auto = 'readonly="readonly" autocomplete="username"';
-    const user_props = `id="u-root" value="root" ${user_auto}`;
-    const pwd_auto = 'autocomplete="new-password"';
-    const pwd_props = `id="${p_id}" ${pwd_auto}`;
-    return `
-      <div class="wrap-shadow">
-        <form id="${passFormId}">
-          <label for="${u_id}">Username:</label>
-          <input id="${u_id} "type="text" ${user_props}>
-          <label for="${p_id}">Password:</label>
-          <input type="password" ${pwd_props}>
-          <button class="button true-blue">Log in</button>
-        </form>
-      </div>
-    `;
-  }
-
-  function loadingTemplate () {
-    const { login, loading, failure } = DATA;
-    const loadingInfo = (() => {
-      if (loading.socket) {
-        return statusTemplate({ failure, verb: "connect" });
-      } 
-      if (loading.verify) {
-        return statusTemplate({ failure, verb: "register" });
-      } 
-      return passTemplate();
-    })();
-    if (login !== null) {
-      const link_props = [
-        `href="${login}"`,
-        'target="_blank"',
-        'rel="noopener noreferrer"'
-      ].join(" ");
-      const login_link = `<a ${link_props}>${login}</a>`
-      return `
-        <p>You are now registered! Use this link from now on:</p>
-        <p class="long-link">${login_link}</p>
-      `
-    }
-    return `
-      <div> ${loadingInfo} </div>
-    `;
-  }
-
-  function listTemplate (props) {
-    const { items } = props;
-    const all_li = items.map(({ spans, cls }, i) => {
-      const inner = spans.join(' ');
-      return `
-        <div class="${cls}">
-          <span>${i+1}.</span>
-          ${inner}
-        </div>
-      `;
-    }).join('');
-    return `<div class="ol">` + all_li + "</div>";
-  }
-
-  function inliner (...args) {
-    return args.map((a, i) => {
-      if (i < 2) {
-        return `<span>${a}</span>`;
-      }
-      return `<span class="hidden">${a}</span>`;
-    });
-  }
-
-  function isCopyKeyPhase() {
-    return DATA.phase === 0;
-  }
-  function isCopyCodePhase() {
-    const { phase, code } = DATA;
-    return phase === 1 && !!code;
-  }
-
-  function toCopyKeySpans(root, placeholder) {
-    const { pub } = KEY_PAIR;
-    const pub_str = toB64urlQuery({ pub });
-    if (isCopyKeyPhase()) {
-      const { local, remote, wiki_ext } = DATA;
-      const wiki = `${root}/${remote}/wiki/${wiki_ext}`;
-      const link_props = [
-        `href="${wiki}"`,
-        'target="_blank"',
-        'rel="noopener noreferrer"'
-      ].join(" ");
-      const wiki_link = `<a ${link_props}>the Wiki</a>`;
-      const target = local ? "develop.bash" : wiki_link;
-      const button = '<button class="button true-tan">Copy</button>';
-      const spans = inliner(button, `Public key to ${target}`, pub_str);
-      return { spans, cls: "dark-blue copier" };
-    }
-    const spans = inliner("", placeholder);
-    return { spans, cls: "" };
-  }
-
-  function toCopyCodeSpans(root, placeholder) {
-    if (isCopyCodePhase()) {
-      const { code } = DATA;
-      const device = `${root}/login/device/`;
-      const link_props = [
-        `href="${device}"`,
-        'target="_blank"',
-        'rel="noopener noreferrer"'
-      ].join(" ");
-      const device_link = `<a ${link_props}>GitHub</a>.`;
-      const button = '<button class="button true-tan">Copy</button>';
-      const spans = inliner(button, `${code} to ${device_link}`, code);
-      return { spans, cls: "dark-blue copier" };
-    }
-    const spans = inliner("", placeholder);
-    return { spans, cls: "" };
-  }
 
   function appTemplate () {
-      const root = "https://github.com";
-      const { phase } = DATA;
-      const items = [
-        toCopyKeySpans(root, 'Pasted Key!'),
-        toCopyCodeSpans(root, 'Await GitHub Code'),
-        {
-          spans: inliner("", "Choose master password!"),
-          cls: phase > 1 ? "dark-blue" : ""
-        }
-      ];
-      const list_props = { items };
-      return `
-        <div class="container">
-          <div class="contained">
-            <div class="wrap-shadow">
-              ${listTemplate(list_props)}
-            </div>
-          </div>
-          <div class="contained">
-            ${loadingTemplate()}
-          </div>
-        </div>
-      `;
+    const { html, handlers } = workflow.render;
+    HANDLERS = handlers;
+    return `<div class="container">
+      <div class="contained">${html}</div>
+    </div>`;
   }
 
   // Create reactive component

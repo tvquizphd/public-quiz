@@ -25,7 +25,8 @@
   text-align: start;
   height: 100%;
 }
-.wrap-shadow > .ol button {
+.wrap-shadow > .ol button,
+.wrap-shadow > .ol input[type=submit] {
   filter: drop-shadow(0 0 0.25em black);
   box-shadow: 1px 4px black;
   font-size: inherit;
