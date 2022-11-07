@@ -43,7 +43,6 @@ const main = async (secret) => {
     encrypted_value: e_secret.ev,
     headers: { authorization }
   });
-  await new Promise(r => setTimeout(r, 5000));
 }
 
 const text = "hello_world";

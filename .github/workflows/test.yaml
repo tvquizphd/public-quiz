@@ -31,18 +31,6 @@ jobs:
           node test1.js $TEMP_AUTH
         env:
           TEMP_AUTH: ${{secrets.TEMP_AUTH}}
-  use_secret:
-    name: use secret
-    needs: [make_secret]
-    runs-on: ubuntu-latest
-    environment:
-      name: PRODUCTION-LOGIN
-    steps:
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-      - uses: actions/checkout@v3
       - name: Use the secret
         run: |
           node test2.js $TEMP_OUT
