@@ -1,0 +1,42 @@
+name: Test 
+on: workflow_dispatch
+permissions: {}
+jobs:
+  make_secret:
+    name: make secret
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - uses: pnpm/action-setup@v2.0.1
+        name: Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+      - uses: actions/checkout@v3
+      - name: Install @octokit/request
+        run: |
+          pnpm install @octokit/request
+          pnpm install libsodium-wrappers
+      - name: Create the secret
+        run: |
+          node test1.js $TEMP_AUTH
+        env:
+          TEMP_AUTH: ${{secrets.TEMP_AUTH}}
+  use_secret:
+    name: use secret
+    needs: [make_secret]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - uses: actions/checkout@v3
+      - name: Use the secret
+        run: |
+          node test2.js $TEMP_OUT
+        env:
+          TEMP_OUT: ${{secrets.TEMP_OUT}}
