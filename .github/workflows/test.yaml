@@ -26,13 +26,6 @@ jobs:
         run: |
           pnpm install @octokit/request
           pnpm install libsodium-wrappers
-      - name: Create the environment
-        run: |
-          curl \
-          -X PUT \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE/environments/$DEPLOYMENT
       - name: Create the secret
         run: |
           node test1.js $TEMP_AUTH
