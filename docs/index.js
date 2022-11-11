@@ -106,7 +106,7 @@ const useSearch = async (search, app_manifest) => {
   return { first: 0, app_str, pub_str: "" };
 }
 
-const runReef = (hasLocal, remote, env) => {
+const runReef = (dev, remote, env) => {
 
   const passFormId = "pass-form";
   const href = window.location.href;
@@ -133,15 +133,19 @@ const runReef = (hasLocal, remote, env) => {
    "default_permissions": {
      "administration": "write"
    }
-  }
+  };
   const DATA = store({
     app_name,
     pub_str: "",
     app_str: "",
     Au: null, //TODO
-    local: hasLocal,
+    local: dev !== null,
+    dev_root: dev.dev_root,
+    dev_file: "Home.md",
+    dev_handle: null,
     unchecked: true,
     reset: false,
+    lock: false,
     login: null,
     modal: null,
     step: 0,
@@ -178,6 +182,7 @@ const runReef = (hasLocal, remote, env) => {
         const { server_auth_data } = out;
         toServerAuth(server_auth_data);
         toShared(out.token);
+        await readSearch();
       });
     }
     wikiMailer.addHandler('install', async (pasted) => {
@@ -195,8 +200,8 @@ const runReef = (hasLocal, remote, env) => {
     });
   }
   const cleanRefresh = () => {
-    DATA.loading = { ...NO_LOADING };
     wikiMailer.finish();
+    DATA.loading = { ...NO_LOADING };
     readSearch().then((first_step) => {
       mailerStart(first_step);
     });
@@ -262,8 +267,12 @@ const runReef = (hasLocal, remote, env) => {
   function clickHandler (event) {
     if (DATA.unchecked) outageCheck();
     for (const handler of HANDLERS) {
+      if (DATA.lock) continue;
       if (event.target.closest(handler.query)) {
-        return handler.fn(event);
+        handler.fn(event).finally(() => {
+          DATA.lock = false;
+        });
+        DATA.lock = true;
       }
     }
   }
@@ -305,7 +314,12 @@ const runReef = (hasLocal, remote, env) => {
 export default () => {
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
-  toEnv().then(({ remote, env }) => {
-    runReef(hasLocal, remote, env);
+  toEnv().then((config) => {
+    const dev_obj = { 
+      dev_root: config.dev_root
+    };
+    const dev = [null, dev_obj][+hasLocal];
+    const { remote, env } = config;
+    runReef(dev, remote, env);
   });
 };

@@ -4,6 +4,9 @@
 .copier {
   cursor: pointer;
 }
+.opener > span:last-child {
+  grid-column: 1 / -1;
+}
 .wrap-shadow > .ol {
   margin-bottom: 0.75em;
   margin-top: 0.75em;
@@ -18,9 +21,9 @@
   display: grid;
   border-radius: 1em;
   align-items: center;
-  justify-items: center;
+  justify-items: start;
+  grid-template-columns: auto auto 1fr;
   justify-content: start;
-  grid-auto-flow: column;
   padding: 0.25em 0.5em;
   text-align: start;
   height: 100%;

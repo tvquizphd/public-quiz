@@ -24,70 +24,99 @@ const formTemplate = (inputs) => {
       <input type="text" ${user_props}>
       <label for="${p_id}">Password:</label>
       <input type="password" ${pwd_props}>
-      ${bottom} 
+      ${bottom}
     </form>
   </div>`
   return { html, handlers: [] };
 }
+
+const isValid = async (dir) => {
+  for await (const [k0, v0] of dir.entries()) {
+    if (k0 !== "tmp-wiki") continue;
+    for await (const [k1, v1] of v0.entries()) {
+      if (k1 !== "public-quiz-device.wiki") continue;
+      return v1;
+    }
+  }
+  return null
+} 
+
+const actionTemplate = (step, is_idx, act) => {
+  if (is_idx && act?.act === "copy") {
+    const cls = "copier";
+    const action_content = `
+      <button class="button true-tan">${act.text}</button>
+    `;
+    const fn = async () => {
+      navigator.clipboard.writeText(act.target);
+      step();
+    };
+    const handlers = [{ query: `.${cls}`, fn }];
+    return { cls, action, handlers };
+  }
+  else if (is_idx && act?.act === "go") {
+    const action = `<form action="${act.target}" method="post">
+       <input type="submit" value="${act.text}" class="true-tan">
+    </form>
+    `;
+    const cls = "redirection";
+    return { cls, action, handlers: [] };
+  }
+  else if (is_idx && act?.act === "open") {
+    const cls = "opener";
+    const action = `
+      <button class="button true-tan">${act.text}</button>
+      <span>${act.target}</span>
+    `;
+    const fn = async () => {
+      const dir_opts = { mode: "readwrite" };
+      const dir = await window.showDirectoryPicker(dir_opts);
+      let dev_root = null;
+      while (!dev_root) {
+        dev_root = await isValid(dir);
+      }
+      step(dev_root);
+    };
+    const handlers = [{ query: `.${cls}`, fn }];
+    return { cls, action, handlers };
+  }
+  const action = `
+    <span>${act?.text || ""}</span>
+  `;
+  return { cls: "", action, handlers: [] };
+}
+
 const listTemplate = (inputs) => {
-  const { stepNext } = inputs;
+  const { stepNext, setDevHandle } = inputs;
   const { index, items } = inputs.node;
   const colors = [ "", "dark-blue" ];
-  const handlers = []
+  let handlers = []
   const lines = items.map((item, idx) => {
-    const { go, copy, text, link } = item;
+    const { text, link, act } = item;
     const is_idx = (idx === index);
     const cls = [colors[+is_idx]];
-    const action_content = [];
-    if (copy?.text) {
-      if (is_idx && copy?.copy) {
-        const copy_class = "copier";
-        cls.push(copy_class);
-        action_content.push(
-          `<button class="button true-tan">${copy.text}</button>`
-        );
-        const fn = () => {
-          navigator.clipboard.writeText(copy.copy);
-          stepNext(idx + 1);
-        };
-        const query = "."+copy_class;
-        handlers.push({ query, fn });
-      }
-      else {
-        action_content.push(`<span>${copy.text}</span>`);
-      }
+    const fn = async (dev_root) => {
+      await setDevHandle(dev_root);
+      stepNext(idx + 1);
     }
-    else if (go?.text) {
-      if (is_idx && go?.href) {
-        const redirect = `<form action="${go.href}" method="post">
-           <input type="submit" value="${go.text}" class="true-tan">
-        </form>
-        `;
-        const go_class = "redirection";
-        cls.push(go_class);
-        action_content.push(redirect);
-      }
-      else {
-        action_content.push(`<span>${go.text}</span>`);
-      }
-    }
+    const out = actionTemplate(fn, is_idx, act);
+    handlers = handlers.concat(out.handlers);
+    cls.push(out.cls);
     let core_content = text;
-    if (link?.text) {
-      if (is_idx && link?.href) {
-        const a_props = [
-          `href="${link.href}"`,
-          'target="_blank"',
-          'rel="noopener noreferrer"'
-        ].join(" ");
-        core_content += `<a ${a_props}>${link.text}</a>`;
-      }
-      else {
-        core_content += `<span>${link.text}</span>`;
-      }
+    if (is_idx && link?.href) {
+      const a_props = [
+        `href="${link.href}"`,
+        'target="_blank"',
+        'rel="noopener noreferrer"'
+      ].join(" ");
+      core_content += `<a ${a_props}>${link.text}</a>`;
+    }
+    else if (link?.text) {
+      core_content += `<span>${link.text}</span>`;
     }
     const content = [
       `<span>${idx+1}.</span>`,
-      action_content?.[0] || "",
+      out.action,
       `<span>${core_content}</span>`,
     ].join("");
     const props = `class="${cls.join(" ")}"`;
@@ -104,7 +133,8 @@ const modalTemplate = (inputs) => {
   const color = ["dark-pink", "black-blue"][+!error];
   const content = `<div>${message}</div>`;
   const close_id = `${uuid}-modal-close`;
-  const handlers = [{id: close_id, fn: hideModal}];
+  const fn = async () => hideModal();
+  const handlers = [{id: close_id, fn }];
   const close_props = `id="${close_id}" class="dark-pink"`;
   const close_button = `<button ${close_props}>close</button>`
   const core = `<div class="${color}">

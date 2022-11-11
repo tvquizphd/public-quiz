@@ -5,7 +5,8 @@ const toRows = (s) => {
 const toEnv = async () => {
   const valid = {
     REMOTE: "remote",
-    DEPLOYMENT: "env"
+    DEPLOYMENT: "env",
+    DEV_PATH_ROOT: "dev_root"
   };
   const modifiers = {
     REMOTE: (s) => s.split('/')

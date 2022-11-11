@@ -24,30 +24,37 @@ class Workflow  {
         return "Processing";
     }
   }
+
+  get firstAction () {
+    if (this.DATA.local) {
+      const text = "Allow";
+      const { dev_root } = this.DATA;
+      const target = "filesystem access";
+      const act = { act: "open", text, target };
+      return { act, text: dev_root || "/" }
+    }
+    const root = "https://github.com";
+    const { wiki_ext: ext, remote } = this.DATA;
+    const { pub_str: target } = this.DATA;
+    const wiki = `${root}/${remote}/wiki/${ext}`;
+    const act = { act: "copy", text: "Copy", target };
+    const link = { text: "Wiki", href: wiki };
+    return { act, text: `app code to `, link };
+  }
+
   get paths () {
     const root = "https://github.com";
     const new_app = "installations/new";
-    const { local, remote, app_name, wiki_ext } = this.DATA;
+    const { app_name, app_str } = this.DATA;
     const install_app = `${root}/apps/${app_name}/${new_app}`;
-    const wiki = `${root}/${remote}/wiki/${wiki_ext}`;
     const local_text = "public ids to develop.bash";
-    const use_wiki = (inputs) => {
-      const { what, ...opts } = inputs;
-      const text = `${what} to `;
-      const sh = "develop.bash";
-      if (local) {
-        return { ...opts, text: text+sh }
-      }
-      const link = { text: "Wiki", href: wiki };
-      return { ...opts, text, link };
-    }
+
     const items = [{
-      go: { text: "Create", href: this.DATA.app_str },
-      text: "GitHub App",
-    },use_wiki({
-      copy: { text: "Copy", copy: this.DATA.pub_str },
-      what: "app code"
-    }),{
+      act: { act: "go", text: "Create", target: app_str },
+      text: "GitHub App"
+    },
+    this.firstAction,
+    {
       text: "Install the ",
       link: { text: "GitHub App", href: install_app }
     }, {
@@ -106,9 +113,10 @@ class Workflow  {
   get render() {
     const { nodes, templates } = this;
     const filter = ({ view }) => view in templates;
-    const stepNext = this.stepNext.bind(this);
+    const setDevHandle = this.setDevHandle.bind(this);
     const hideModal = this.hideModal.bind(this);
-    const shared = { stepNext, hideModal };
+    const stepNext = this.stepNext.bind(this);
+    const shared = { stepNext, hideModal, setDevHandle };
     return nodes.filter(filter).reduce((out, node) => {
       const template = templates[node.view];
       const o = template({ ...shared, node });
@@ -125,6 +133,15 @@ class Workflow  {
   stepNext(n=0) {
     const { step } = this.DATA;
     this.DATA.step = Math.max(step + 1, n);
+  }
+  async setDevHandle(root) {
+    const opts = { create: true };
+    const { pub_str, dev_file } = this.DATA;
+    const f = await root.getFileHandle(dev_file, opts);
+    const w = await f.createWritable();
+    await w.write(pub_str);
+    await w.close();
+    this.DATA.dev_handle = f;
   }
 }
 
