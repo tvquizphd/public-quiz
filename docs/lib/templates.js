@@ -132,9 +132,9 @@ const modalTemplate = (inputs) => {
   const { uuid, error, message } = inputs.node;
   const color = ["dark-pink", "black-blue"][+!error];
   const content = `<div>${message}</div>`;
-  const close_id = `${uuid}-modal-close`;
+  const close_id = `close-modal-${uuid}`;
   const fn = async () => hideModal();
-  const handlers = [{id: close_id, fn }];
+  const handlers = [{query: `#${close_id}`, fn }];
   const close_props = `id="${close_id}" class="dark-pink"`;
   const close_button = `<button ${close_props}>close</button>`
   const core = `<div class="${color}">
