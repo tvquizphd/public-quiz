@@ -42,7 +42,28 @@ interface ReadUserInstall {
 interface ReadUserApp {
     (u: UserIn): Promise<UserApp>;
 }
+declare type Tries = {
+    max_tries: number;
+    dt: number;
+};
+interface ToTries {
+    (u: number): Tries;
+}
+interface ToPasted {
+    (s: string): Promise<string>;
+}
+declare type GitOutput = {
+    repo_url: string;
+    tmp_dir: string;
+    tmp_file: string;
+};
+interface UseGit {
+    (i: UserIn): GitOutput;
+}
 export declare function isTree(u: NodeAny): u is TreeAny;
+declare const useGit: UseGit;
+declare const toPasted: ToPasted;
+declare const toTries: ToTries;
 declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
-export { readUserApp, readUserInstall };
+export { readUserApp, readUserInstall, toTries, toPasted, useGit };

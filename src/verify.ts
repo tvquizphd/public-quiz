@@ -6,34 +6,44 @@ import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { toSock } from "./util/socket.js";
 import { inbox } from "./inbox.js";
-import { OP, OPS } from 'opaque-low-io';
+import { OP, OPS } from "opaque-low-io";
+import { toSockServer } from "sock-secret";
+import { toPasted, useGit, isTree, toTries } from "./util/pasted.js";
+import { encryptQueryMaster } from "./util/encrypt.js";
 
-import type { Git } from "./util/types.js";
-import type { TreeAny } from 'project-sock';
-import type { Socket } from "./util/socket.js";
+import type { SockServer } from "sock-secret";
+import type { UserIn } from "./util/pasted.js";
+import type { Git, Trio } from "./util/types.js";
+import type { TreeAny } from "project-sock";
 import type { Namespace } from "./config/sock.js";
-import type { SockInputs } from "./util/socket.js";
 import type { NameInterface } from "./config/sock.js";
-import type { Op, Ops, Pepper } from 'opaque-low-io';
+import type { ServerFinal, ServerOut } from "opaque-low-io";
+import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
 import type { Inputs as InIn } from "./inbox.js";
 import type { Creds } from "./outbox.js";
 
-type UserInputs = {
+type Need = "first" | "last";
+type Needs = Record<Need, string[]>;
+type SockInputs = {
   git: Git,
-  delay: number,
-  env: string
+  env: string,
+  secrets: string,
+  needs: Partial<Needs>
 }
 type UserOutputs = {
-  Opaque: Op,
-  Sock: Socket
+  Sock: SockServer,
+  Opaque: Op
 }
 interface ToUserSock {
-  (i: UserInputs): Promise<UserOutputs>;
+  (i: SockInputs): Promise<UserOutputs>;
 }
 interface ToSyncOp {
   (): Promise<Ops>;
 }
-
+type SecretOut = {
+  for_pages: string,
+  for_next: string
+}
 type ConfigIn = {
   reset: boolean,
   login: boolean,
@@ -43,11 +53,14 @@ type ConfigIn = {
   git: Git
 }
 interface COS {
-  (s: Socket, i: NameInterface): Promise<void>;
+  (s: SockServer, i: NameInterface): Promise<void>;
 }
-type PepperInputs = NameInterface & {
+type Register = {
+  sid: string,
+  pw: Uint8Array
+}
+type PepperInputs = Register & {
   Opaque: Op,
-  Sock: Socket,
   times: number,
   reset: boolean,
   env: string,
@@ -60,8 +73,20 @@ interface ToPepper {
 }
 type Output = string;
 type Inputs = {
-  inbox_in: InIn,
+  secrets: string,
+  user_in: UserIn,
   log_in: ConfigIn
+}
+type InputsFirst = Inputs & Register; 
+type InputsFinal = Inputs & ServerFinal & {
+  sec: Trio, ses: string
+}; 
+type Quit = SockServer["quit"];
+type QuitIn = UserIn & {
+  names: string[],
+}
+type Quitter = {
+  apply: (q: Quit) => Promise<string>;
 }
 interface Resolver {
   (o: Output): void;
@@ -71,6 +96,36 @@ interface Verify {
 }
 interface Verifier {
   (i: Inputs): Promise<void>
+}
+interface ReadNames {
+  (i: QuitIn): Promise<void>;
+}
+interface ToQuit {
+  (i: QuitIn): Quitter;
+}
+interface Start {
+  (i: InputsFirst): Promise<SecretOut>
+}
+interface Login {
+  (i: InputsFinal): Promise<SecretOut>
+}
+
+const isServerOut = (o: TreeAny): o is ServerOut => {
+  const t = (o as ServerOut).server_auth_data;
+  if (t && !isTree(t)) {
+    return false;
+  }
+  const { beta, Xs, As, c } = t;
+  if (c && c.pu && c.Pu && c.Ps) {
+    const keys = [ 
+      c.pu.mac_tag, c.Pu.mac_tag, c.Ps.mac_tag,
+      c.pu.body, c.Pu.body, c.Ps.body
+    ];
+    return [ ...keys, beta, Xs, As ].every(v => {
+      return v.constructor === Uint8Array;
+    });
+  }
+  return false
 }
 
 const isPepper = (t: TreeAny): t is Pepper => {
@@ -86,115 +141,134 @@ const isPepper = (t: TreeAny): t is Pepper => {
 
 const toPepper: ToPepper = async (inputs) => {
   const { git, env, times, pep } = inputs;
-  const { Opaque, Sock, reset } = inputs;
+  const { Opaque, reset, sid, pw } = inputs;
   const secret_str = process.env[pep] || '';
   const pepper = fromB64urlQuery(secret_str);
-  const op = findOp(inputs, "registered");
   if (reset) {
     console.log('Allowing password reset!');
   }
   if (!reset && isPepper(pepper)) {
-    const registered = true;
     console.log('Loaded pepper from secrets.');
-    const op_id = opId(inputs, "registered");
-    Sock.give(op_id, "registered", { registered });
     return { pepper };
   }
-  const reg = await Opaque.serverRegister(times, op);
+  const pep_in = { sid, pw };
+  const reg = await Opaque.toServerPepper(pep_in, times);
   if (!isPepper(reg.pepper)) {
     throw new Error('Unable to register Opaque client');
   }
   const secret = toB64urlQuery(reg.pepper);
-  const add_inputs = {git, secret, env, name: pep};
-  addSecret(add_inputs).then(() => {
+  const add_inputs = { git, secret, env, name: pep };
+  try {
+    await addSecret(add_inputs);
     console.log('Saved pepper to secrets.');
-  }).catch((e: any) => {
+  }
+  catch (e: any) {
     console.error('Can\'t save pepper to secrets.');
     console.error(e.message);
-  })
+  }
   return { pepper: reg.pepper };
 }
 
-const clearOpaqueServer: COS = (Sock, inputs) => {
-  const { commands } = inputs;
-  const client_subs = ['register'];
-  const toClear = commands.filter((cmd) => {
-    return !client_subs.includes(cmd.subcommand);
-  });
-  return Sock.sock.project.clear({ commands: toClear });
-}
-
-const toOpaqueSock = async (inputs: SockInputs) => {
-  const opaque: NameInterface = inputs.namespace.opaque;
-  const Sock = await toSock(inputs, "opaque");
-  await clearOpaqueServer(Sock, opaque);
-  const Opaque = await OP(Sock);
-  return { Opaque, Sock };
-}
-
 const toUserSock: ToUserSock = async (inputs) => {
-  const { git, env, delay } = inputs;
-  const namespace: Namespace = configureNamespace(env);
-  return await toOpaqueSock({ git, delay, namespace });
+  const Sock = await toSockServer(inputs);
+  if (Sock === null) {
+    throw new Error('Unable to make socket.');
+  }
+  const Opaque = await OP(Sock as Io);
+  return { Opaque, Sock };
 }
 
 const toSyncOp: ToSyncOp = async () => {
   return await OPS();
 }
 
-const verify: Verify = (config_in) => {
-  const { git, env, pep, login, delay, reset } = config_in;
-  const namespace: Namespace = configureNamespace(env);
-  const opaque: NameInterface = namespace.opaque;
-  const user = "root";
-  const times = 1000;
-  const user_inputs = { git, delay, env };
-  return new Promise((resolve: Resolver) => {
-    toUserSock(user_inputs).then(({ Opaque, Sock }) => {
-      const pepper_inputs = {
-        ...opaque, reset, git, env, pep, times, Opaque, Sock
-      };
-      // Authenticate server with opaque sequence
-      const op = findOp(opaque, "registered");
-      toPepper(pepper_inputs).then(({ pepper }) => {
-        if (!login) {
-          const finish = () => resolve("");
-          Sock.sock.project.finish().finally(finish);
-        }
-        const auth = Opaque.serverAuthenticate(user, pepper, op);
-        auth.then((session: string) => {
-          const finish = () => resolve(session);
-          Sock.sock.project.finish().finally(finish);
-        });
-        console.log('Waiting');
-      });
-    });
-  });
-}
-
-const verifier: Verifier = async (inputs) => {
-  const { inbox_in, log_in } = inputs;
-  const { trio } = await inbox(inbox_in);
-  const creds: Creds = { 
-    login: log_in.login,
-    name: inbox_in.ses,
-    registered: false
-  };
-  while (!isOkCreds(creds)) {
-    console.log("\nVerifying your credentials:");
-    const session = await verify(log_in);
-    creds.registered = true;
-    creds.secret = session;
-  }
-  if (creds.login && !!creds.secret) {
-    const { git, env, delay } = inbox_in;
-    console.log("\nVerified your credentials.");
-    const outbox_in = { git, env, delay, creds, trio };
-    const exported = await outbox(outbox_in);
-    if (exported) {
-      console.log("\nExported your secrets.");
+const readNames: ReadNames = async (ins) => {
+  const { dt, max_tries } = toTries(ins.delay);
+  const { tmp_file: src } = useGit(ins);
+  let tries = 0;
+  while (tries < Math.ceil(max_tries)) {
+    await new Promise(r => setTimeout(r, dt));
+    const text = await toPasted(src);
+    const pasted = fromB64urlQuery(text);
+    if (ins.names.every((n: string) => n in pasted)) {
+      return;
     }
   }
 }
 
-export { verifier, toUserSock, toSyncOp };
+const toQuit: ToQuit = (ins) => {
+  const quitter = async (fn: Quit) => {
+    await readNames(ins);
+    return await fn();
+  }
+  return { apply: quitter };
+}
+
+const to_bytes = (s: string) => {
+  const a: string[] = s.match(/../g) || [];
+  const bytes = a.map(h =>parseInt(h,16)); 
+  return new Uint8Array(bytes);
+}
+
+const vStart: Start = async (inputs) => {
+  const { git, env, pep, reset } = inputs.log_in;
+  const { sid, pw, user_in, secrets } = inputs;
+  const { prod } = user_in;
+  const first = ["client_auth_data"];
+  const result_names = ["client_auth_result"];
+  const last = prod ? result_names : [];
+  const needs = { first, last };
+  const sock_in = { git, env, needs, secrets };
+  const { Opaque, Sock } = await toUserSock(sock_in);
+  if (!prod) {
+    const quit_in = { ...user_in, names: result_names };
+    Sock.quit = new Proxy(Sock.quit, toQuit(quit_in));
+  }
+  const times = 1000;
+  const pepper_in = {
+    Opaque, times, reset, env, pep, git, sid, pw
+  };
+  const reg = await toPepper(pepper_in);
+  const out = await Opaque.serverStep(reg, "op");
+  const sent = await Sock.quit();
+  const server_out = fromB64urlQuery(sent);
+  if (!isServerOut(server_out)) {
+    throw new Error('Cannot send invalid data.');
+  }
+  return {
+    for_next: toB64urlQuery(out),
+    for_pages: toB64urlQuery(server_out)
+  }
+}
+
+const vLogin: Login = async (inputs) => {
+  const { secrets, user_in, Au, ses } = inputs;
+  const { token: secret } = inputs;
+  const master_key = to_bytes(secret);
+  const { git, env } = inputs.log_in;
+  const step = { token: secret, Au };
+  const { prod } = user_in;
+  const first = ["client_auth_result"];
+  const needs = { first, last: [] };
+  const sock_in = { git, env, needs, secrets };
+  const { Opaque, Sock } = await toUserSock(sock_in);
+  const out = await Opaque.serverStep(step, "op");
+  // Authorized the client
+  const add_inputs = { git, secret, env, name: ses };
+  try {
+    await addSecret(add_inputs);
+    console.log('Saved session to secrets.');
+  }
+  catch (e: any) {
+    console.error('Can\'t save session to secrets.');
+    console.error(e.message);
+  }
+  const plain_text = inputs.sec.map((name: string) => {
+    return process.env[name] || '';
+  }).join('\n');
+  const to_encrypt = { plain_text, master_key };
+  const for_pages = await encryptQueryMaster(to_encrypt);
+  return { for_next: "", for_pages };
+}
+
+export { toUserSock, toSyncOp, vStart, vLogin };

@@ -1,7 +1,8 @@
 import { readUserApp, readUserInstall, isTree } from "./util/pasted.js";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { addSecret, isProduction } from "./util/secrets.js";
-import { toSyncOp, verifier } from "./verify.js";
+import { vStart, vLogin } from "./verify.js";
+import { toSyncOp } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isJWK, toApp, toInstall } from "./create.js";
@@ -14,9 +15,12 @@ import type { AppOutput } from "./create.js";
 import type { TreeAny } from "project-sock"
 import type { HasGit } from "./util/pasted.js";
 import type { WikiConfig } from "./util/pasted.js";
+import type { ClientOut, NewClientOut } from "opaque-low-io";
+import type { ServerFinal } from "opaque-low-io";
 import type { Git, Trio } from "./util/types.js";
 
 type Env = Record<string, string | undefined>;
+type Quad = [string, string, string, string];
 type Duo = [string, string];
 type Result = {
   success: boolean,
@@ -38,16 +42,8 @@ type ClientState = {
   xu: Uint8Array,
   mask: Uint8Array,
 }
-type ClientAuthData = {
-  alpha: Uint8Array,
-  Xu: Uint8Array
-}
-type PubStepPub = {
-  register: {sid: string, pw: Uint8Array },
-  client_auth_data: ClientAuthData 
-}
-type NewClientAuthOut = ClientState & PubStepPub;
-type ClientAuthResult = { Au: Uint8Array };
+type ClientAuthResult = ClientOut["client_auth_result"];
+type ClientAuthData = NewClientOut["client_auth_data"];
 type ClientSecretOut = {
   token: string,
   client_auth_result: ClientAuthResult
@@ -66,6 +62,28 @@ function isGit(o: TreeAny): o is Git {
     typeof o.repo === "string",
     typeof o.owner === "string",
     typeof o.owner_token === "string"
+  ];
+  return needs.every(v => v);
+}
+
+function isLoginStart (o: TreeAny): o is ClientAuthData {
+  const needs = [
+    typeof o.sid === "string",
+    o.pw instanceof Uint8Array,
+    o.Xu instanceof Uint8Array,
+    o.alpha instanceof Uint8Array,
+  ]
+  return needs.every(v => v);
+}
+
+function isLoginEnd(o: TreeAny): o is ClientAuthResult {
+  return o.Au instanceof Uint8Array;
+}
+
+function isServerFinal(o: TreeAny): o is ServerFinal {
+  const needs = [
+    s.Au instanceof Uint8Array,
+    typeof s.token === "string"
   ];
   return needs.every(v => v);
 }
@@ -117,6 +135,10 @@ function mayReset(env: Env): env is MayReset {
   return vars.every(s => typeof s === "string" && s.length > 0);
 } 
 
+function isQuad(args: string[]): args is Quad {
+  return args.length === 4;
+} 
+
 function isTrio(args: string[]): args is Trio {
   return args.length === 3;
 } 
@@ -140,7 +162,7 @@ const writeSecretText: WriteSecretText = (inputs) => {
   console.log(`Wrote to ${out_file}.`);
 }
 
-const toNew = (opts: NewClientAuthOut) => {
+const toNew = (opts: NewClientOut) => {
   const { register, client_auth_data, ...rest } = opts;
   const pub_obj = { register, client_auth_data };
   return {
@@ -189,14 +211,14 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
     const message = "Invalid env: DEPLOYMENT";
     return { success: false, message };
   }
-  if (!isDuo(args) && !isTrio(args)) {
-    const message = "2 or 3 arguments required";
+  if (!isQuad(args) && !isTrio(args)) {
+    const message = "3 or 4 arguments required";
     return { success: false, message };
   }
   const git = {
     repo: remote[1],
     owner: remote[0],
-    owner_token: args[1],
+    owner_token: "",
   }
   const wiki_config: WikiConfig = {
     home: "Home.md",
@@ -210,17 +232,54 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   else {
     console.log('PRODUCTION\n');
   }
-  const login = isDuo(args);
   const v_in = { git, env, delay };
-  const inbox_in = { ...v_in, sec, ses };
+  const login = isQuad(args) && args[0] === "LOGIN";
+  const setup = isTrio(args) && args[0] === "SETUP";
   const log_in = { ...v_in, pep, login, reset: false };
+  const user_in = { git, prod, delay, wiki_config };
   if (login) {
     try {
       if (mayReset(process.env)) {
         log_in.reset = await canReset(process.env);
       }
-      await verifier({ inbox_in, log_in });
-      console.log('Verified user.\n');
+      const secrets = args[3];
+      const secret_in = args[2];
+      const work = fromB64urlQuery(secrets);
+      const given = fromB64urlQuery(secret_in);
+      if (args[1] === "OPEN") {
+        if (!work.client_auth_data) {
+          throw new Error('No workflow inputs.');
+        }
+        if (!isLoginStart(work.client_auth_data)) {
+          throw new Error('Invalid workflow inputs.');
+        }
+        const { sid, pw } = work.client_auth_data;
+        const start_in = {
+          sid, pw, log_in, user_in, secrets
+        };
+        const started = await vStart(start_in);
+        const { for_next, for_pages } = started;
+        writeSecretText({ for_pages, for_next });
+        console.log('Began to verify user.\n');
+      }
+      else if (args[1] === "CLOSE") {
+        if (!work.client_auth_result) {
+          throw new Error('No workflow inputs.');
+        }
+        if (!isLoginEnd(work.client_auth_result)) {
+          throw new Error('Invalid workflow inputs.');
+        }
+        if (!isServerFinal(given)) {
+          throw new Error('Invalid server inputs.');
+        }
+        const end_in = { 
+          ...given, log_in, user_in, secrets, sec, ses
+        };
+        const payload = await vLogin(end_in);
+        const { for_next, for_pages } = payload;
+        writeSecretText({ for_pages, for_next });
+        console.log('Verified user.\n');
+      }
     }
     catch (e: any) {
       console.error(e?.message);
@@ -228,12 +287,11 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       return { success: false, message };
     }
   }
-  else if (isTrio(args)) {
+  else if (setup) {
     const user_id = "root";
     const Opaque = await toSyncOp();
     const { toNewClientAuth, toClientSecret } = Opaque;
-    const user_in = { git, prod, delay, wiki_config };
-    if (args[0] === "PUB") {
+    if (args[1] === "PUB") {
       const password = toNewPassword();
       const client_in = { user_id, password };
       console.log(`Creating new secure public channel.`);
@@ -249,14 +307,15 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       }
     }
     const times = 1000;
-    const secret_in = fromB64urlQuery(args[2]);
-    if (args[0] === "APP") {
-      if (!isClientState(secret_in)) {
+    const secret_in = args[2];
+    const given = fromB64urlQuery(secret_in);
+    if (args[1] === "APP") {
+      if (!isClientState(given)) {
         const message = "Can't create App.";
         return { success: false, message };
       }
       console.log(`Creating GitHub App.`);
-      const { r, xu, mask } = secret_in;
+      const { r, xu, mask } = given;
       try {
         const user_out = await readUserApp(user_in);
         const { C, S: server_auth_data } = user_out;
@@ -279,13 +338,13 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
         return { success: false, message };
       }
     }
-    if (args[0] === "TOKEN") {
-      if (!isTokenInputs(secret_in)) {
+    if (args[1] === "TOKEN") {
+      if (!isTokenInputs(given)) {
         const message = "Can't create Token.";
         return { success: false, message };
       }
       console.log(`Creating GitHub Token.`);
-      const { shared, app } = secret_in;
+      const { shared, app } = given;
       try {
         const install_in = { git, app, delay };
         const install = await readUserInstall(install_in);
@@ -310,24 +369,6 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       catch (e: any) {
         console.error(e?.message);
         const message = "Unable to make GitHub Token.";
-        return { success: false, message };
-      }
-    }
-    if (args[0] === "AUTH") {
-      if (!isAuthInputs(secret_in)) {
-        const message = "Can't begin Auth.";
-        return { success: false, message };
-      }
-      console.log(`Using GitHub Token.`);
-      try {
-        log_in.git = { ...secret_in.git };
-        inbox_in.git = { ...secret_in.git };
-        await verifier({ inbox_in, log_in });
-        console.log('Verified user.');
-      }
-      catch (e: any) {
-        console.error(e?.message);
-        const message = "Unable to verify";
         return { success: false, message };
       }
     }

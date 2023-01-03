@@ -52,8 +52,15 @@ interface ReadUserInstall {
 interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
 }
+type Tries = {
+  max_tries: number,
+  dt: number
+}
+interface ToTries {
+  (u: number): Tries; 
+}
 interface ToPasted {
-  (s: string) : Promise<TreeAny>
+  (s: string) : Promise<string>;
 }
 type GitOutput = {
   repo_url: string,
@@ -142,8 +149,7 @@ const cloneGit: DoGit = async (input) => {
 const toPasted: ToPasted = async (src) => {
   const encoding = 'utf-8';
   const txt = fs.readFileSync(src, { encoding });
-  const text = txt.replaceAll('\n', '');
-  return fromB64urlQuery(text);
+  return txt.replaceAll('\n', '');
 }
 
 function isForApp(o: Pasted): o is UserApp {
@@ -165,18 +171,24 @@ function isForApp(o: Pasted): o is UserApp {
   return needs.every(v => v instanceof Uint8Array);
 }
 
-const readUserApp: ReadUserApp = async (ins) => {
-  let tries = 0;
+const toTries: ToTries = (delay) => {
   const min15 = 60 * 15;
-  const dt = ins.delay * 1000;
-  const max_tries = min15 / ins.delay;
+  const dt = delay * 1000;
+  const max_tries = min15 / delay;
+  return { dt, max_tries };
+}
+
+const readUserApp: ReadUserApp = async (ins) => {
+  const { dt, max_tries } = toTries(ins.delay);
   const { tmp_file: src } = useGit(ins);
   if (ins.prod) {
     await cloneGit(ins);
   }
+  let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const pasted = await toPasted(src);
+    const text = await toPasted(src);
+    const pasted = fromB64urlQuery(text);
     if (hasCode(pasted) && isForApp(pasted)) {
       return pasted;
     }
@@ -200,11 +212,9 @@ const toUserInstall: ToUserInstall = async (ins) => {
 }
 
 const readUserInstall: ReadUserInstall = async (ins) => {
-  let tries = 0;
-  const min15 = 60 * 15;
-  const dt = ins.delay * 1000;
-  const max_tries = min15 / ins.delay;
+  const { dt, max_tries } = toTries(ins.delay);
   console.log('Awaiting app installation...');
+  let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     let install: Obj = {};
@@ -227,4 +237,4 @@ const readUserInstall: ReadUserInstall = async (ins) => {
   throw new Error("Timeout waiting for installation");
 }
 
-export { readUserApp, readUserInstall }
+export { readUserApp, readUserInstall, toTries, toPasted, useGit }

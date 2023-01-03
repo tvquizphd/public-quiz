@@ -1,22 +1,30 @@
-import type { Git } from "./util/types.js";
-import type { Socket } from "./util/socket.js";
+import type { SockServer } from "sock-secret";
+import type { UserIn } from "./util/pasted.js";
+import type { Git, Trio } from "./util/types.js";
+import type { ServerFinal } from "opaque-low-io";
 import type { Op, Ops } from 'opaque-low-io';
-import type { Inputs as InIn } from "./inbox.js";
-declare type UserInputs = {
+declare type Need = "first" | "last";
+declare type Needs = Record<Need, string[]>;
+declare type SockInputs = {
     git: Git;
-    delay: number;
     env: string;
+    secrets: string;
+    needs: Partial<Needs>;
 };
 declare type UserOutputs = {
+    Sock: SockServer;
     Opaque: Op;
-    Sock: Socket;
 };
 interface ToUserSock {
-    (i: UserInputs): Promise<UserOutputs>;
+    (i: SockInputs): Promise<UserOutputs>;
 }
 interface ToSyncOp {
     (): Promise<Ops>;
 }
+declare type SecretOut = {
+    for_pages: string;
+    for_next: string;
+};
 declare type ConfigIn = {
     reset: boolean;
     login: boolean;
@@ -25,14 +33,28 @@ declare type ConfigIn = {
     env: string;
     git: Git;
 };
+declare type Register = {
+    sid: string;
+    pw: Uint8Array;
+};
 declare type Inputs = {
-    inbox_in: InIn;
+    secrets: string;
+    user_in: UserIn;
     log_in: ConfigIn;
 };
-interface Verifier {
-    (i: Inputs): Promise<void>;
+declare type InputsFirst = Inputs & Register;
+declare type InputsFinal = Inputs & ServerFinal & {
+    sec: Trio;
+    ses: string;
+};
+interface Start {
+    (i: InputsFirst): Promise<SecretOut>;
+}
+interface Login {
+    (i: InputsFinal): Promise<SecretOut>;
 }
 declare const toUserSock: ToUserSock;
 declare const toSyncOp: ToSyncOp;
-declare const verifier: Verifier;
-export { verifier, toUserSock, toSyncOp };
+declare const vStart: Start;
+declare const vLogin: Login;
+export { toUserSock, toSyncOp, vStart, vLogin };
