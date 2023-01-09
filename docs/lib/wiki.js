@@ -13,7 +13,7 @@ function isForAuth(p) {
   return p.salt && p.key && p.data; 
 }
 
-const toPasted = async (url) => {
+const toPastedText = async (url) => {
   const wiki = `${url}/pub.txt`;
   const headers = {
     "Cache-Control": "no-store",
@@ -21,7 +21,11 @@ const toPasted = async (url) => {
   };
   const opts = { headers };
   const result = await fetch(wiki, opts);
-  const text = await (result).text();
+  return await (result).text();
+}
+
+const toPasted = async (url) => {
+  const text = await toPastedText(url);
   return fromB64urlQuery(text.replaceAll('\n',''));
 }
 
@@ -90,4 +94,4 @@ class WikiMailer {
   }
 }
 
-export { WikiMailer }
+export { WikiMailer, toPastedText }

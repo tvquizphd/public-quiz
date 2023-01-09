@@ -19,6 +19,7 @@ type SockInputs = {
   git: Git,
   env: string,
   secrets: string,
+  lister?: Lister | null,
   needs: Partial<Needs>
 }
 type UserOutputs = {
@@ -68,18 +69,14 @@ type InputsFirst = Inputs & Register;
 type InputsFinal = Inputs & ServerFinal & {
   sec: Trio, ses: string
 }; 
-type Quit = SockServer["quit"];
-type QuitIn = UserIn & {
-  names: string[],
-}
-type Quitter = {
-  apply: (q: Quit) => Promise<string>;
+type Lister = {
+  (): Promise<string[]>;
 }
 interface ReadNames {
-  (i: QuitIn): Promise<void>;
+  (i: UserIn): Promise<string[]>;
 }
-interface ToQuit {
-  (i: QuitIn): Quitter;
+interface ToList {
+  (i: UserIn): Lister;
 }
 interface Start {
   (i: InputsFirst): Promise<SecretOut>
@@ -161,26 +158,16 @@ const toSyncOp: ToSyncOp = async () => {
 }
 
 const readNames: ReadNames = async (ins) => {
-  const { dt, max_tries } = toTries(ins.delay);
   const { tmp_file: src } = useGit(ins);
-  let tries = 0;
-  while (tries < Math.ceil(max_tries)) {
-    await new Promise(r => setTimeout(r, dt));
-    const text = await toPasted(src);
-    const pasted = fromB64urlQuery(text);
-    if (ins.names.every((n: string) => n in pasted)) {
-      return;
-    }
-    tries += 1;
-  }
+  const text = await toPasted(src);
+  const pasted = fromB64urlQuery(text);
+  return Object.keys(pasted);
 }
 
-const toQuit: ToQuit = (ins) => {
-  const quitter = async (fn: Quit) => {
-    await readNames(ins);
-    return await fn();
+const toList: ToList = (ins) => {
+  return async () => {
+    return await readNames(ins);
   }
-  return { apply: quitter };
 }
 
 const to_bytes = (s: string) => {
@@ -194,15 +181,11 @@ const vStart: Start = async (inputs) => {
   const { sid, pw, user_in, secrets } = inputs;
   const { prod } = user_in;
   const first = ["client_auth_data"];
-  const result_names = ["client_auth_result"];
-  const last = prod ? result_names : [];
+  const last = ["client_auth_result"];
   const needs = { first, last };
-  const sock_in = { git, env, needs, secrets };
+  const lister = prod ? null : toList(user_in);
+  const sock_in = { git, env, needs, lister, secrets };
   const { Opaque, Sock } = await toUserSock(sock_in);
-  if (!prod) {
-    const quit_in = { ...user_in, names: result_names };
-    Sock.quit = new Proxy(Sock.quit, toQuit(quit_in));
-  }
   const times = 1000;
   const pepper_in = {
     Opaque, times, reset, env, pep, git, sid, pw
@@ -229,9 +212,10 @@ const vLogin: Login = async (inputs) => {
   const first = ["client_auth_result"];
   const needs = { first, last: [] };
   const sock_in = { git, env, needs, secrets };
-  const { Opaque } = await toUserSock(sock_in);
+  const { Sock, Opaque } = await toUserSock(sock_in);
   // Authorized the client
   await Opaque.serverStep(step, "op");
+  await Sock.quit();
   const add_inputs = { git, secret, env, name: ses };
   try {
     await addSecret(add_inputs);

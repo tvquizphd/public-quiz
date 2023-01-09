@@ -2,12 +2,13 @@ import {
   toPub, toShared, toServerAuth, toAppPublic
 } from "pub";
 import { toB64urlQuery } from "project-sock";
-import { WikiMailer } from "wiki";
+import { WikiMailer, toPastedText } from "wiki";
+import { toSockClient } from "sock-secret";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
 import { templates } from "templates";
-import { Workflow } from "workflow";
 import { toEnv } from "environment";
+import { Workflow, writeText } from "workflow";
 import { configureNamespace } from "sock";
 import { findOp, toSock } from "finders";
 import { OPS, OP } from "opaque-low-io";
@@ -26,17 +27,34 @@ const clearOpaqueClient = (Sock, { commands }) => {
   return Sock.sock.project.clear({ commands: toClear });
 }
 
-async function toOpaqueSock(inputs) {
-  const { opaque } = inputs;
-  const Sock = await toSock(inputs, "opaque");
-  await clearOpaqueClient(Sock, opaque);
-  return Sock;
+const toSender = ({ local, delay, host }) => {
+  const dt = delay * 1000;
+  console.log(`TODO ${local}`) // TODO
+  return ({ name, secret }) => {
+    console.log(`${name} ${secret}`) // TODO
+  }
+}
+
+const toSeeker = ({ local, delay, host }) => {
+  const dt = delay * 1000;
+  console.log(`TODO ${local}`) // TODO
+  return async () => {
+    await new Promise(r => setTimeout(r, dt));
+    return toPastedText(host);
+  }
 }
 
 async function toUserSock(inputs) {
-  const { git, env, delay } = inputs;
-  const namespace = configureNamespace(env);
-  return await toOpaqueSock({ git, delay, namespace });
+  const { git, local, env, delay, host } = inputs;
+  const sender = toSender({ local, delay, host });
+  const seeker = toSeeker({ local, delay, host });
+  const sock_in = { git, env, seeker, sender };
+  const Sock = await toSockClient(sock_in);
+  if (Sock === null) {
+    throw new Error('Unable to make socket.');
+  }
+  const Opaque = await OP(Sock);
+  return { Opaque, Sock };
 }
 
 const toSyncOp = async () => {
@@ -220,28 +238,37 @@ const runReef = (dev, remote, env) => {
     return { pass };
   }
 
+  async function clientRegister(inputs) {
+    const { user_in, user_id, pass, times } = inputs;
+    const c_first = { password: pass, user_id };
+    const { Sock, Opaque } = await toUserSock(user_in);
+    const c_final = await Opaque.clientStep(c_first, times, "op");
+    Sock.quit();
+    return c_final;
+  }
+
+  async function clientVerify(inputs) {
+    const { user_in, c_final, times } = inputs;
+    const { Sock, Opaque } = await toUserSock(user_in);
+    const c_out = await Opaque.clientStep(c_final, times, "op");
+    Sock.quit();
+    return c_out.token;
+  }
+
   async function encryptWithPassword ({ pass }) {
+    const { git, env, local, host } = DATA;
     DATA.loading.socket = true;
-    const { git, env } = DATA;
     if (!git?.token) {
       throw new Error("Missing GitHub Token.");
     }
+    const times = 1000;
     const delay = 0.3333;
-    const namespace = configureNamespace(env);
-    const Sock = await toUserSock({ git, env, delay });
-    Sock.give = giver.bind(Sock, (k, msg) => {
-      const reg_k = k.match(/register$/);
-      const reg_x = ArrayBuffer.isView(msg?.pw);
-      if (reg_k & reg_x) {
-        DATA.loading.socket = false;
-        DATA.loading.finish = true;
-      }
-    });
-    // Start verification
-    const Opaque = await OP(Sock);
-    const op = findOp(namespace.opaque, "registered");
-    await Opaque.clientRegister(pass, "root", op);
-    Sock.sock.project.done = true;
+    const user_id = "root";
+    const user_in = { git, env, local, delay, host };
+    const reg_in = { user_id, user_in, pass, times };
+    const c_final = await clientRegister(reg_in);
+    const ver_in = { user_in, c_final, times };
+    await clientVerify(ver_in);
     DATA.loading.finish = false;
     const to_encrypt = {
       password: pass,
@@ -294,8 +321,6 @@ const runReef = (dev, remote, env) => {
       });
     }
   }
-
-
 
   function appTemplate () {
     const { html, handlers } = workflow.render;

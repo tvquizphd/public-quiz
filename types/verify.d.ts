@@ -9,6 +9,7 @@ declare type SockInputs = {
     git: Git;
     env: string;
     secrets: string;
+    lister?: Lister | null;
     needs: Partial<Needs>;
 };
 declare type UserOutputs = {
@@ -46,6 +47,9 @@ declare type InputsFirst = Inputs & Register;
 declare type InputsFinal = Inputs & ServerFinal & {
     sec: Trio;
     ses: string;
+};
+declare type Lister = {
+    (): Promise<string[]>;
 };
 interface Start {
     (i: InputsFirst): Promise<SecretOut>;

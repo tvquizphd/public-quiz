@@ -1,3 +1,13 @@
+const writeText = async (inputs) => {
+  const opts = { create: true };
+  const { root, fname, text } = inputs;
+  const f = await root.getFileHandle(fname, opts);
+  const w = await f.createWritable();
+  await w.write(text);
+  await w.close();
+  return f;
+}
+
 class Workflow  {
 
   constructor ({ DATA, templates }) {
@@ -135,14 +145,13 @@ class Workflow  {
     this.DATA.step = Math.max(step + 1, n);
   }
   async setDevHandle(root) {
-    const opts = { create: true };
     const { pub_str, dev_file } = this.DATA;
-    const f = await root.getFileHandle(dev_file, opts);
-    const w = await f.createWritable();
-    await w.write(pub_str);
-    await w.close();
+    const text = this.DATA.pub_str;
+    const fname = this.DATA.dev_file;
+    const write_in = { root, fname, text };
+    const f = await writeText(write_in); 
     this.DATA.dev_handle = f;
   }
 }
 
-export { Workflow }
+export { Workflow, writeText }
