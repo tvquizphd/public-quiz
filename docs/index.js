@@ -9,8 +9,6 @@ import { decryptQuery } from "decrypt";
 import { templates } from "templates";
 import { toEnv } from "environment";
 import { Workflow, writeText } from "workflow";
-import { configureNamespace } from "sock";
-import { findOp, toSock } from "finders";
 import { OPS, OP } from "opaque-low-io";
 
 /*
@@ -19,19 +17,10 @@ import { OPS, OP } from "opaque-low-io";
  * reef 
  */
 
-const clearOpaqueClient = (Sock, { commands }) => {
-  const client_subs = ['register'];
-  const toClear = commands.filter((cmd) => {
-    return client_subs.includes(cmd.subcommand);
-  });
-  return Sock.sock.project.clear({ commands: toClear });
-}
-
-const toSender = ({ local, delay, host }) => {
-  const dt = delay * 1000;
+const toSender = ({ local, send }) => {
   console.log(`TODO ${local}`) // TODO
   return ({ name, secret }) => {
-    console.log(`${name} ${secret}`) // TODO
+    send([name, secret].join('\n')) // TODO
   }
 }
 
@@ -45,8 +34,8 @@ const toSeeker = ({ local, delay, host }) => {
 }
 
 async function toUserSock(inputs) {
-  const { git, local, env, delay, host } = inputs;
-  const sender = toSender({ local, delay, host });
+  const { git, local, env, delay, host, send } = inputs;
+  const sender = toSender({ local, send });
   const seeker = toSeeker({ local, delay, host });
   const sock_in = { git, env, seeker, sender };
   const Sock = await toSockClient(sock_in);
@@ -88,12 +77,6 @@ const noTemplate = () => {
       </div>
     </div>
   `;
-}
-
-function giver (logger, op_id, tag, msg) {
-  const k = this.sock.toKey(op_id, tag);
-  this.sock.sendMail(k, msg);
-  logger(k, msg);
 }
 
 const parseSearch = (state, { search }) => {
@@ -266,7 +249,11 @@ const runReef = (dev, remote, env) => {
     }
     const times = 1000;
     const delay = 0.3333;
-    const user_in = { git, env, local, delay, host };
+    const send = (text) => {
+      const f = DATA.dev_handle;
+      if (f) writeText(f, text);
+    }
+    const user_in = { git, env, local, delay, host, send };
     const reg_in = { user_id, user_in, pass, times };
     const c_final = await clientRegister(reg_in);
     const ver_in = { user_in, c_final, times };

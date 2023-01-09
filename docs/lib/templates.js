@@ -96,7 +96,9 @@ const listTemplate = (inputs) => {
     const is_idx = (idx === index);
     const cls = [colors[+is_idx]];
     const fn = async (dev_root) => {
-      await setDevHandle(dev_root);
+      if (dev_root) {
+        await setDevHandle(dev_root);
+      }
       stepNext(idx + 1);
     }
     const out = actionTemplate(fn, is_idx, act);

@@ -1,10 +1,14 @@
-const writeText = async (inputs) => {
-  const opts = { create: true };
-  const { root, fname, text } = inputs;
-  const f = await root.getFileHandle(fname, opts);
+const writeText = async (f, text) => {
   const w = await f.createWritable();
   await w.write(text);
   await w.close();
+}
+
+const writeFile = async (inputs) => {
+  const opts = { create: true };
+  const { root, fname, text } = inputs;
+  const f = await root.getFileHandle(fname, opts);
+  await writeText(f, text);
   return f;
 }
 
@@ -149,7 +153,7 @@ class Workflow  {
     const text = this.DATA.pub_str;
     const fname = this.DATA.dev_file;
     const write_in = { root, fname, text };
-    const f = await writeText(write_in); 
+    const f = await writeFile(write_in); 
     this.DATA.dev_handle = f;
   }
 }
