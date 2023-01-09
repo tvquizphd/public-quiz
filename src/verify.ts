@@ -1,11 +1,6 @@
 import { toB64urlQuery, fromB64urlQuery } from "project-sock";
-import { configureNamespace } from "./config/sock.js";
-import { opId, findOp } from "./util/lookup.js";
-import { outbox, isOkCreds } from "./outbox.js";
 import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
-import { toSock } from "./util/socket.js";
-import { inbox } from "./inbox.js";
 import { OP, OPS } from "opaque-low-io";
 import { toSockServer } from "sock-secret";
 import { toPasted, useGit, isTree, toTries } from "./util/pasted.js";
@@ -15,12 +10,8 @@ import type { SockServer } from "sock-secret";
 import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
 import type { TreeAny } from "project-sock";
-import type { Namespace } from "./config/sock.js";
-import type { NameInterface } from "./config/sock.js";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
 import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
-import type { Inputs as InIn } from "./inbox.js";
-import type { Creds } from "./outbox.js";
 
 type Need = "first" | "last";
 type Needs = Record<Need, string[]>;
@@ -52,9 +43,6 @@ type ConfigIn = {
   env: string,
   git: Git
 }
-interface COS {
-  (s: SockServer, i: NameInterface): Promise<void>;
-}
 type Register = {
   sid: string,
   pw: Uint8Array
@@ -71,7 +59,6 @@ type HasPepper = Record<"pepper", Pepper>
 interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
-type Output = string;
 type Inputs = {
   secrets: string,
   user_in: UserIn,
@@ -87,15 +74,6 @@ type QuitIn = UserIn & {
 }
 type Quitter = {
   apply: (q: Quit) => Promise<string>;
-}
-interface Resolver {
-  (o: Output): void;
-}
-interface Verify {
-  (i: ConfigIn): Promise<Output>
-}
-interface Verifier {
-  (i: Inputs): Promise<void>
 }
 interface ReadNames {
   (i: QuitIn): Promise<void>;
@@ -193,6 +171,7 @@ const readNames: ReadNames = async (ins) => {
     if (ins.names.every((n: string) => n in pasted)) {
       return;
     }
+    tries += 1;
   }
 }
 
@@ -242,18 +221,17 @@ const vStart: Start = async (inputs) => {
 }
 
 const vLogin: Login = async (inputs) => {
-  const { secrets, user_in, Au, ses } = inputs;
+  const { secrets, Au, ses } = inputs;
   const { token: secret } = inputs;
   const master_key = to_bytes(secret);
   const { git, env } = inputs.log_in;
   const step = { token: secret, Au };
-  const { prod } = user_in;
   const first = ["client_auth_result"];
   const needs = { first, last: [] };
   const sock_in = { git, env, needs, secrets };
-  const { Opaque, Sock } = await toUserSock(sock_in);
-  const out = await Opaque.serverStep(step, "op");
+  const { Opaque } = await toUserSock(sock_in);
   // Authorized the client
+  await Opaque.serverStep(step, "op");
   const add_inputs = { git, secret, env, name: ses };
   try {
     await addSecret(add_inputs);

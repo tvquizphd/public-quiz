@@ -12,12 +12,11 @@ import argon2 from 'argon2';
 import fs from "fs";
 
 import type { AppOutput } from "./create.js";
-import type { TreeAny } from "project-sock"
-import type { HasGit } from "./util/pasted.js";
+import type { TreeAny, NodeAny } from "project-sock"
 import type { WikiConfig } from "./util/pasted.js";
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { ServerFinal } from "opaque-low-io";
-import type { Git, Trio } from "./util/types.js";
+import type { Trio } from "./util/types.js";
 
 type Env = Record<string, string | undefined>;
 type Quad = [string, string, string, string];
@@ -57,16 +56,8 @@ function isNumber(u: unknown): u is number {
   return typeof u === "number";
 }
 
-function isGit(o: TreeAny): o is Git {
-  const needs = [ 
-    typeof o.repo === "string",
-    typeof o.owner === "string",
-    typeof o.owner_token === "string"
-  ];
-  return needs.every(v => v);
-}
-
-function isLoginStart (o: TreeAny): o is ClientAuthData {
+function isLoginStart (o: NodeAny): o is ClientAuthData {
+  if (!isTree(o)) return false;
   const needs = [
     typeof o.sid === "string",
     o.pw instanceof Uint8Array,
@@ -76,14 +67,15 @@ function isLoginStart (o: TreeAny): o is ClientAuthData {
   return needs.every(v => v);
 }
 
-function isLoginEnd(o: TreeAny): o is ClientAuthResult {
+function isLoginEnd(o: NodeAny): o is ClientAuthResult {
+  if (!isTree(o)) return false;
   return o.Au instanceof Uint8Array;
 }
 
 function isServerFinal(o: TreeAny): o is ServerFinal {
   const needs = [
-    s.Au instanceof Uint8Array,
-    typeof s.token === "string"
+    o.Au instanceof Uint8Array,
+    typeof o.token === "string"
   ];
   return needs.every(v => v);
 }
@@ -111,14 +103,6 @@ function isTokenInputs (o: TreeAny): o is TokenIn {
     typeof o.app.id === "string",
     isJWK(o.app.jwk)
   ];
-  return needs.every(v => v);
-}
-
-function isAuthInputs (o: TreeAny): o is HasGit {
-  if (!isTree(o.git)) {
-    return false;
-  }
-  const needs = [ isGit(o?.git) ];
   return needs.every(v => v);
 }
 
@@ -163,8 +147,8 @@ const writeSecretText: WriteSecretText = (inputs) => {
 }
 
 const toNew = (opts: NewClientOut) => {
-  const { register, client_auth_data, ...rest } = opts;
-  const pub_obj = { register, client_auth_data };
+  const { client_auth_data, ...rest } = opts;
+  const pub_obj = { client_auth_data };
   return {
     for_pages: toB64urlQuery(pub_obj),
     for_next: toB64urlQuery(rest)
