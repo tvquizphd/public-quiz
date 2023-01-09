@@ -2,7 +2,7 @@ import { fromB64urlQuery } from "project-sock";
 import { toB64urlQuery } from "project-sock";
 
 function isForApp(p) {
-  return p.register && p.client_auth_data;
+  return p.client_auth_data;
 }
 
 function isForInstall(p) {

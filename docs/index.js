@@ -160,6 +160,7 @@ const runReef = (dev, remote, env) => {
     local: dev !== null,
     dev_root: dev.dev_root,
     dev_file: "Home.md",
+    user_id: "root",
     dev_handle: null,
     unchecked: true,
     reset: false,
@@ -190,13 +191,15 @@ const runReef = (dev, remote, env) => {
   const wikiMailer = new WikiMailer(host);
   const mailerStart = (first_step) => {
     wikiMailer.start();
+    const { user_id } = DATA;
     if (first_step === 0) {
       wikiMailer.addHandler('app', async (pasted) => {
         const Opaque = await toSyncOp();
         const { toServerPepper, toServerSecret } = Opaque;
-        const { client_auth_data, register } = pasted;
-        const { pepper } = toServerPepper(register);
-        const out = toServerSecret({ pepper, client_auth_data});
+        const { client_auth_data } = pasted;
+        const { pw } = client_auth_data;
+        const { pepper } = toServerPepper({ user_id, pw });
+        const out = toServerSecret({ pepper, client_auth_data });
         const { server_auth_data } = out;
         toServerAuth(server_auth_data);
         toShared(out.token);
@@ -256,14 +259,13 @@ const runReef = (dev, remote, env) => {
   }
 
   async function encryptWithPassword ({ pass }) {
-    const { git, env, local, host } = DATA;
+    const { git, env, user_id, local, host } = DATA;
     DATA.loading.socket = true;
     if (!git?.token) {
       throw new Error("Missing GitHub Token.");
     }
     const times = 1000;
     const delay = 0.3333;
-    const user_id = "root";
     const user_in = { git, env, local, delay, host };
     const reg_in = { user_id, user_in, pass, times };
     const c_final = await clientRegister(reg_in);
