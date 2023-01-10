@@ -149,7 +149,6 @@ const toPepper: ToPepper = async (inputs) => {
 }
 
 const toUserSock: ToUserSock = async (inputs) => {
-  console.log(fromB64urlQuery(inputs.secrets))
   const Sock = await toSockServer(inputs);
   if (Sock === null) {
     throw new Error('Unable to make socket.');

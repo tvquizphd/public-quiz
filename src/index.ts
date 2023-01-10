@@ -98,7 +98,7 @@ const addPrefix: AddPrefix = (prefix, tree) => {
   const output: TreeAny =  {};
   for (const key in tree) {
     const pre_key = [prefix, key].join('');
-    output[pre_key] = tree[key];
+    output[pre_key] = { [key]: tree[key] };
   }
   return toB64urlQuery(output);
 }
@@ -241,7 +241,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       }
       const work_in = args[3];
       const secret_in = args[2];
-      const prefix = 'op:_pake__'; //TODO
+      const prefix = 'op:pake__'; //TODO
       const work = fromB64urlQuery(work_in);
       const secrets = addPrefix(prefix, work);
       const given = fromB64urlQuery(secret_in);
