@@ -33,7 +33,7 @@
     "octokit": "^2.0.7",
     "opaque-low-io": "^3.2.1",
     "project-sock": "1.1.1",
-    "sock-secret": "1.4.0",
+    "sock-secret": "1.4.1",
     "simple-git": "^3.14.1",
     "ts-node": "^10.9.1"
   },

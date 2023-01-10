@@ -5,6 +5,7 @@ import { toSign } from "../create.js";
 import path from 'node:path';
 import fs from 'fs'
 
+import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { TreeAny, NodeAny } from "project-sock"
 import type { UserInstallRaw } from "../create.js";
 import type { UserInstall } from "../create.js";
@@ -52,6 +53,12 @@ interface ReadUserInstall {
 interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
 }
+interface ReadLoginStart {
+  (u: UserIn): Promise<boolean>;
+}
+interface ReadLoginEnd {
+  (u: UserIn): Promise<boolean>;
+}
 type Tries = {
   max_tries: number,
   dt: number
@@ -78,7 +85,7 @@ type Obj = Record<string, unknown>;
 function isObj(u: unknown): u is Obj {
   return u != null && typeof u === "object";
 }
-export function isTree(u: NodeAny): u is TreeAny {
+function isTree(u: NodeAny): u is TreeAny {
   return u != null && typeof u === "object";
 }
 
@@ -106,6 +113,24 @@ function isForInstall(o: Obj): o is UserInstallRaw {
     isObj(o.permissions)
   ];
   return needs.every(v => v);
+}
+
+type ClientAuthData = NewClientOut["client_auth_data"];
+function isLoginStart (o: NodeAny): o is ClientAuthData {
+  if (!isTree(o)) return false;
+  const needs = [
+    typeof o.sid === "string",
+    o.pw instanceof Uint8Array,
+    o.Xu instanceof Uint8Array,
+    o.alpha instanceof Uint8Array,
+  ]
+  return needs.every(v => v);
+}
+
+type ClientAuthResult = ClientOut["client_auth_result"];
+function isLoginEnd(o: NodeAny): o is ClientAuthResult {
+  if (!isTree(o)) return false;
+  return o.Au instanceof Uint8Array;
 }
 
 const useGit: UseGit = ({ git, wiki_config }) => {
@@ -178,6 +203,46 @@ const toTries: ToTries = (delay) => {
   return { dt, max_tries };
 }
 
+const readLoginStart: ReadLoginStart = async (ins) => {
+  const { dt, max_tries } = toTries(ins.delay);
+  const { tmp_file: src } = useGit(ins);
+  if (ins.prod) {
+    throw new Error('Data only in Home.md during development');
+  }
+  let tries = 0;
+  while (tries < Math.ceil(max_tries)) {
+    await new Promise(r => setTimeout(r, dt));
+    const text = await toPasted(src);
+    const pasted = fromB64urlQuery(text);
+    const obj = pasted.client_auth_data || "";
+    if (isLoginStart(obj)) {
+      return true;
+    }
+    tries += 1;
+  }
+  throw new Error("Timeout waiting for GitHub App");
+}
+
+const readLoginEnd: ReadLoginEnd = async (ins) => {
+  const { dt, max_tries } = toTries(ins.delay);
+  const { tmp_file: src } = useGit(ins);
+  if (ins.prod) {
+    throw new Error('Data only in Home.md during development');
+  }
+  let tries = 0;
+  while (tries < Math.ceil(max_tries)) {
+    await new Promise(r => setTimeout(r, dt));
+    const text = await toPasted(src);
+    const pasted = fromB64urlQuery(text);
+    const obj = pasted.client_auth_result || "";
+    if (isLoginEnd(obj)) {
+      return true;
+    }
+    tries += 1;
+  }
+  throw new Error("Timeout waiting for GitHub App");
+}
+
 const readUserApp: ReadUserApp = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
   const { tmp_file: src } = useGit(ins);
@@ -237,4 +302,8 @@ const readUserInstall: ReadUserInstall = async (ins) => {
   throw new Error("Timeout waiting for installation");
 }
 
-export { readUserApp, readUserInstall, toTries, toPasted, useGit }
+export { 
+  readUserApp, readUserInstall, toTries, toPasted, useGit,
+  isTree, isLoginStart, isLoginEnd,
+  readLoginStart, readLoginEnd
+}

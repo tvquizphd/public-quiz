@@ -31,12 +31,16 @@ waiter () {
 }
 
 enter () {
+  pnpm develop DEV OPEN
+  WORK=$(head -n 1 $MD)
   # Must have client_auth_data
-  pnpm develop LOGIN OPEN ?noop $(tail -n 1 $1)
+  pnpm develop LOGIN OPEN ?noop $WORK
   # Must send server_auth_data
   echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
+  pnpm develop DEV CLOSE
+  WORK=$(head -n 1 $MD)
   # Must have Au + token + client_auth_result
-  pnpm develop LOGIN CLOSE $(tail -n 1 $1) $(tail -n 1 $1)
+  pnpm develop LOGIN CLOSE $(tail -n 1 $1) $WORK
   # Must send clients, servers, secrets
   echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
 }
@@ -54,7 +58,6 @@ if [ ! -z $TOKEN ]; then
     echo "Running login development action." $'\n'
     echo "Please open your personal login link." $'\n'
     # Simulate wait for workflow dispatch
-    waiter $MD
     enter $MD
     exit 0
   fi
@@ -73,5 +76,4 @@ echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
 pnpm develop SETUP TOKEN $(tail -n 1 $SECRET_TXT)
 echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
 
-waiter $MD
 enter $MD

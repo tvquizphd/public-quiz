@@ -1,3 +1,4 @@
+import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { TreeAny, NodeAny } from "project-sock";
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
@@ -42,6 +43,12 @@ interface ReadUserInstall {
 interface ReadUserApp {
     (u: UserIn): Promise<UserApp>;
 }
+interface ReadLoginStart {
+    (u: UserIn): Promise<boolean>;
+}
+interface ReadLoginEnd {
+    (u: UserIn): Promise<boolean>;
+}
 declare type Tries = {
     max_tries: number;
     dt: number;
@@ -60,10 +67,16 @@ declare type GitOutput = {
 interface UseGit {
     (i: UserIn): GitOutput;
 }
-export declare function isTree(u: NodeAny): u is TreeAny;
+declare function isTree(u: NodeAny): u is TreeAny;
+declare type ClientAuthData = NewClientOut["client_auth_data"];
+declare function isLoginStart(o: NodeAny): o is ClientAuthData;
+declare type ClientAuthResult = ClientOut["client_auth_result"];
+declare function isLoginEnd(o: NodeAny): o is ClientAuthResult;
 declare const useGit: UseGit;
 declare const toPasted: ToPasted;
 declare const toTries: ToTries;
+declare const readLoginStart: ReadLoginStart;
+declare const readLoginEnd: ReadLoginEnd;
 declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
-export { readUserApp, readUserInstall, toTries, toPasted, useGit };
+export { readUserApp, readUserInstall, toTries, toPasted, useGit, isTree, isLoginStart, isLoginEnd, readLoginStart, readLoginEnd };

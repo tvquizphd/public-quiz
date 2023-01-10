@@ -20,7 +20,8 @@ import { OPS, OP } from "opaque-low-io";
 const toSender = ({ local, send }) => {
   console.log(`TODO ${local}`) // TODO
   return ({ name, secret }) => {
-    send([name, secret].join('\n')) // TODO
+    console.log({ name, secret });
+    send(secret);
   }
 }
 

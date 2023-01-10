@@ -39,6 +39,7 @@ declare type Register = {
     pw: Uint8Array;
 };
 declare type Inputs = {
+    prefix: string;
     secrets: string;
     user_in: UserIn;
     log_in: ConfigIn;

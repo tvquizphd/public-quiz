@@ -3,7 +3,7 @@ import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
 import { toSockServer } from "sock-secret";
-import { toPasted, useGit, isTree, toTries } from "./util/pasted.js";
+import { toPasted, useGit, isTree } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
 
 import type { SockServer } from "sock-secret";
@@ -61,6 +61,7 @@ interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
 type Inputs = {
+  prefix: string,
   secrets: string,
   user_in: UserIn,
   log_in: ConfigIn
@@ -83,6 +84,9 @@ interface Start {
 }
 interface Login {
   (i: InputsFinal): Promise<SecretOut>
+}
+interface RemovePrefix {
+  (p: string, t: TreeAny): string;
 }
 
 const isServerOut = (o: TreeAny): o is ServerOut => {
@@ -145,6 +149,7 @@ const toPepper: ToPepper = async (inputs) => {
 }
 
 const toUserSock: ToUserSock = async (inputs) => {
+  console.log(fromB64urlQuery(inputs.secrets))
   const Sock = await toSockServer(inputs);
   if (Sock === null) {
     throw new Error('Unable to make socket.');
@@ -176,12 +181,21 @@ const to_bytes = (s: string) => {
   return new Uint8Array(bytes);
 }
 
+const removePrefix: RemovePrefix = (prefix, tree) => {
+  const output: TreeAny =  {};
+  for (const key in tree) {
+    const pre_key = key.replace(prefix, "");
+    output[pre_key] = tree[key];
+  }
+  return toB64urlQuery(output);
+}
+
 const vStart: Start = async (inputs) => {
   const { git, env, pep, reset } = inputs.log_in;
-  const { sid, pw, user_in, secrets } = inputs;
+  const { sid, pw, user_in, secrets, prefix } = inputs;
   const { prod } = user_in;
-  const first = ["client_auth_data"];
-  const last = ["client_auth_result"];
+  const first = ["client_auth_data"].map(n => prefix + n);
+  const last = ["client_auth_result"].map(n => prefix + n);
   const needs = { first, last };
   const lister = prod ? null : toList(user_in);
   const sock_in = { git, env, needs, lister, secrets };
@@ -199,17 +213,17 @@ const vStart: Start = async (inputs) => {
   }
   return {
     for_next: toB64urlQuery(out),
-    for_pages: toB64urlQuery(server_out)
+    for_pages: removePrefix(prefix, server_out) 
   }
 }
 
 const vLogin: Login = async (inputs) => {
-  const { secrets, Au, ses } = inputs;
+  const { secrets, prefix, Au, ses } = inputs;
   const { token: secret } = inputs;
   const master_key = to_bytes(secret);
   const { git, env } = inputs.log_in;
   const step = { token: secret, Au };
-  const first = ["client_auth_result"];
+  const first = ["client_auth_result"].map(n => prefix + n);
   const needs = { first, last: [] };
   const sock_in = { git, env, needs, secrets };
   const { Sock, Opaque } = await toUserSock(sock_in);

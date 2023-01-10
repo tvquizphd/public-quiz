@@ -1,4 +1,6 @@
-import { readUserApp, readUserInstall, isTree } from "./util/pasted.js";
+import { isLoginStart, isLoginEnd, isTree } from "./util/pasted.js";
+import { readUserApp, readUserInstall } from "./util/pasted.js";
+import { readLoginStart, readLoginEnd } from "./util/pasted.js";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { addSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin } from "./verify.js";
@@ -12,7 +14,7 @@ import argon2 from 'argon2';
 import fs from "fs";
 
 import type { AppOutput } from "./create.js";
-import type { TreeAny, NodeAny } from "project-sock"
+import type { TreeAny } from "project-sock"
 import type { WikiConfig } from "./util/pasted.js";
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { ServerFinal } from "opaque-low-io";
@@ -32,6 +34,9 @@ type SecretOutputs = {
 interface WriteSecretText {
   (i: Partial<SecretOutputs>): void;
 }
+interface AddPrefix {
+  (p: string, t: TreeAny): string;
+}
 type MayReset = {
   OLD_HASH: string,
   SESSION: string
@@ -42,7 +47,6 @@ type ClientState = {
   mask: Uint8Array,
 }
 type ClientAuthResult = ClientOut["client_auth_result"];
-type ClientAuthData = NewClientOut["client_auth_data"];
 type ClientSecretOut = {
   token: string,
   client_auth_result: ClientAuthResult
@@ -54,22 +58,6 @@ type TokenIn = {
 
 function isNumber(u: unknown): u is number {
   return typeof u === "number";
-}
-
-function isLoginStart (o: NodeAny): o is ClientAuthData {
-  if (!isTree(o)) return false;
-  const needs = [
-    typeof o.sid === "string",
-    o.pw instanceof Uint8Array,
-    o.Xu instanceof Uint8Array,
-    o.alpha instanceof Uint8Array,
-  ]
-  return needs.every(v => v);
-}
-
-function isLoginEnd(o: NodeAny): o is ClientAuthResult {
-  if (!isTree(o)) return false;
-  return o.Au instanceof Uint8Array;
 }
 
 function isServerFinal(o: TreeAny): o is ServerFinal {
@@ -104,6 +92,15 @@ function isTokenInputs (o: TreeAny): o is TokenIn {
     isJWK(o.app.jwk)
   ];
   return needs.every(v => v);
+}
+
+const addPrefix: AddPrefix = (prefix, tree) => {
+  const output: TreeAny =  {};
+  for (const key in tree) {
+    const pre_key = [prefix, key].join('');
+    output[pre_key] = tree[key];
+  }
+  return toB64urlQuery(output);
 }
 
 const canReset = async (inputs: MayReset) => {
@@ -195,8 +192,8 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
     const message = "Invalid env: DEPLOYMENT";
     return { success: false, message };
   }
-  if (!isQuad(args) && !isTrio(args)) {
-    const message = "3 or 4 arguments required";
+  if (!isQuad(args) && !isTrio(args) && !isDuo(args)) {
+    const message = "2 to 4 arguments required";
     return { success: false, message };
   }
   const git = {
@@ -219,16 +216,34 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   const v_in = { git, env, delay };
   const login = isQuad(args) && args[0] === "LOGIN";
   const setup = isTrio(args) && args[0] === "SETUP";
+  const dev = isDuo(args) && args[0] === "DEV";
   const log_in = { ...v_in, pep, login, reset: false };
   const user_in = { git, prod, delay, wiki_config };
-  if (login) {
+  if (dev) {
+    try {
+      if (args[1] === "OPEN") {
+        await readLoginStart(user_in);
+      }
+      else if (args[1] === "CLOSE") {
+        await readLoginEnd(user_in);
+      }
+    }
+    catch (e: any) {
+      console.error(e?.message);
+      const message = "Unable to verify";
+      return { success: false, message };
+    }
+  }
+  else if (login) {
     try {
       if (mayReset(process.env)) {
         log_in.reset = await canReset(process.env);
       }
-      const secrets = args[3];
+      const work_in = args[3];
       const secret_in = args[2];
-      const work = fromB64urlQuery(secrets);
+      const prefix = 'op:_pake__'; //TODO
+      const work = fromB64urlQuery(work_in);
+      const secrets = addPrefix(prefix, work);
       const given = fromB64urlQuery(secret_in);
       if (args[1] === "OPEN") {
         if (!work.client_auth_data) {
@@ -239,7 +254,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
         }
         const { sid, pw } = work.client_auth_data;
         const start_in = {
-          sid, pw, log_in, user_in, secrets
+          sid, pw, log_in, user_in, secrets, prefix
         };
         const started = await vStart(start_in);
         const { for_next, for_pages } = started;
@@ -257,7 +272,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
           throw new Error('Invalid server inputs.');
         }
         const end_in = { 
-          ...given, log_in, user_in, secrets, sec, ses
+          ...given, log_in, user_in, secrets, prefix, sec, ses
         };
         const payload = await vLogin(end_in);
         const { for_next, for_pages } = payload;
@@ -266,7 +281,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       }
     }
     catch (e: any) {
-      console.error(e?.message);
+      console.error(e);
       const message = "Unable to verify";
       return { success: false, message };
     }
