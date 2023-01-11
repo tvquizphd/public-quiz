@@ -94,4 +94,4 @@ class WikiMailer {
   }
 }
 
-export { WikiMailer, toPastedText }
+export { WikiMailer, toPasted }

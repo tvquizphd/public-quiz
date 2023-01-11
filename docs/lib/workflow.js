@@ -122,6 +122,7 @@ class Workflow  {
       }
       return main.concat(tail);
     });
+    const total = workflow.length;
     return workflow[index];
   }
   get render() {

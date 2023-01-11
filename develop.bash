@@ -32,15 +32,16 @@ waiter () {
 
 enter () {
   pnpm develop DEV OPEN
-  WORK=$(head -n 1 $MD)
+  WORK=$(head -n 1 $1)
   # Must have client_auth_data
   pnpm develop LOGIN OPEN ?noop $WORK
   # Must send server_auth_data
   echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
   pnpm develop DEV CLOSE
-  WORK=$(head -n 1 $MD)
+  WORK=$(head -n 1 $1)
+  echo "LOL TODO"
   # Must have Au + token + client_auth_result
-  pnpm develop LOGIN CLOSE $(tail -n 1 $1) $WORK
+  pnpm develop LOGIN CLOSE $(tail -n 1 $SECRET_TXT) $WORK
   # Must send clients, servers, secrets
   echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
 }

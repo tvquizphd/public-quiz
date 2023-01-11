@@ -2,7 +2,7 @@ import {
   toPub, toShared, toServerAuth, toAppPublic
 } from "pub";
 import { toB64urlQuery } from "project-sock";
-import { WikiMailer, toPastedText } from "wiki";
+import { WikiMailer, toPasted } from "wiki";
 import { toSockClient } from "sock-secret";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
@@ -25,12 +25,23 @@ const toSender = ({ local, send }) => {
   }
 }
 
+const addPrefix = (prefix, tree) => {
+  const output =  {};
+  for (const key in tree) {
+    const pre_key = [prefix, key].join('');
+    output[pre_key] = { [key]: tree[key] };
+  }
+  return toB64urlQuery(output);
+}
+
 const toSeeker = ({ local, delay, host }) => {
   const dt = delay * 1000;
   console.log(`TODO ${local}`) // TODO
+  const prefix = 'op:pake__'; //TODO
   return async () => {
     await new Promise(r => setTimeout(r, dt));
-    return toPastedText(host);
+    const t = await toPasted(host);
+    return addPrefix(prefix, t);
   }
 }
 
@@ -172,6 +183,9 @@ const runReef = (dev, remote, env) => {
     DATA.step = first;
     return first;
   }
+  const props = { DATA, templates };
+  const workflow = new Workflow(props);
+  const final_step = workflow.paths.length - 1;
   const wikiMailer = new WikiMailer(host);
   const mailerStart = (first_step) => {
     wikiMailer.start();
@@ -212,9 +226,6 @@ const runReef = (dev, remote, env) => {
     });
   }
   cleanRefresh();
-  const props = { DATA, templates };
-  const workflow = new Workflow(props);
-  const final_step = workflow.paths.length - 1;
 
   const usePasswords = ({ target }) => {
     const passSelect = 'input[type="password"]';
@@ -258,7 +269,7 @@ const runReef = (dev, remote, env) => {
     const reg_in = { user_id, user_in, pass, times };
     const c_final = await clientRegister(reg_in);
     const ver_in = { user_in, c_final, times };
-    await clientVerify(ver_in);
+    const token = await clientVerify(ver_in);
     DATA.loading.finish = false;
     const to_encrypt = {
       password: pass,
@@ -302,6 +313,7 @@ const runReef = (dev, remote, env) => {
       encryptWithPassword(passwords).then((encrypted) => {
         const query = toB64urlQuery(encrypted);
         DATA.login = `${DATA.host}/login${query}`;
+        DATA.step = final_step;
       }).catch(() => {
         DATA.modal = {
           error: true,

@@ -74,10 +74,10 @@ type Lister = {
   (): Promise<string[]>;
 }
 interface ReadNames {
-  (i: UserIn): Promise<string[]>;
+  (p: string, i: UserIn): Promise<string[]>;
 }
 interface ToList {
-  (i: UserIn): Lister;
+  (p: string, i: UserIn): Lister;
 }
 interface Start {
   (i: InputsFirst): Promise<SecretOut>
@@ -91,7 +91,7 @@ interface RemovePrefix {
 
 const isServerOut = (o: TreeAny): o is ServerOut => {
   const t = (o as ServerOut).server_auth_data;
-  if (t && !isTree(t)) {
+  if (!t || !isTree(t)) {
     return false;
   }
   const { beta, Xs, As, c } = t;
@@ -161,16 +161,16 @@ const toSyncOp: ToSyncOp = async () => {
   return await OPS();
 }
 
-const readNames: ReadNames = async (ins) => {
+const readNames: ReadNames = async (prefix, ins) => {
   const { tmp_file: src } = useGit(ins);
   const text = await toPasted(src);
   const pasted = fromB64urlQuery(text);
-  return Object.keys(pasted);
+  return Object.keys(pasted).map(n => prefix + n);
 }
 
-const toList: ToList = (ins) => {
+const toList: ToList = (prefix, ins) => {
   return async () => {
-    return await readNames(ins);
+    return await readNames(prefix, ins);
   }
 }
 
@@ -183,8 +183,11 @@ const to_bytes = (s: string) => {
 const removePrefix: RemovePrefix = (prefix, tree) => {
   const output: TreeAny =  {};
   for (const key in tree) {
+    const t = tree[key];
     const pre_key = key.replace(prefix, "");
-    output[pre_key] = tree[key];
+    if (isTree(t) && pre_key in t) {
+      output[pre_key] = t[pre_key];
+    }
   }
   return toB64urlQuery(output);
 }
@@ -194,9 +197,8 @@ const vStart: Start = async (inputs) => {
   const { sid, pw, user_in, secrets, prefix } = inputs;
   const { prod } = user_in;
   const first = ["client_auth_data"].map(n => prefix + n);
-  const last = ["client_auth_result"].map(n => prefix + n);
-  const needs = { first, last };
-  const lister = prod ? null : toList(user_in);
+  const needs = { first, last: [] };
+  const lister = prod ? null : toList(prefix, user_in);
   const sock_in = { git, env, needs, lister, secrets };
   const { Opaque, Sock } = await toUserSock(sock_in);
   const times = 1000;
@@ -207,12 +209,13 @@ const vStart: Start = async (inputs) => {
   const out = await Opaque.serverStep(reg, "op");
   const sent = await Sock.quit();
   const server_out = fromB64urlQuery(sent);
-  if (!isServerOut(server_out)) {
+  const for_pages = removePrefix(prefix, server_out);
+  if (!isServerOut(fromB64urlQuery(for_pages))) {
     throw new Error('Cannot send invalid data.');
   }
   return {
     for_next: toB64urlQuery(out),
-    for_pages: removePrefix(prefix, server_out) 
+    for_pages: for_pages 
   }
 }
 

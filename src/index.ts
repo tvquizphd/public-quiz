@@ -281,7 +281,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       }
     }
     catch (e: any) {
-      console.error(e);
+      console.error(e?.message);
       const message = "Unable to verify";
       return { success: false, message };
     }
