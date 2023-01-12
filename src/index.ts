@@ -1,12 +1,13 @@
 import { isLoginStart, isLoginEnd, isTree } from "./util/pasted.js";
+import { readLoginStart, readLoginEnd, toNameTree } from "./util/pasted.js";
 import { readUserApp, readUserInstall } from "./util/pasted.js";
-import { readLoginStart, readLoginEnd } from "./util/pasted.js";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { addSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin } from "./verify.js";
 import { toSyncOp } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
+import { isQuad, isTrio, isDuo } from "./util/types.js";
 import { isJWK, toApp, toInstall } from "./create.js";
 import { getRandomValues } from "crypto";
 import dotenv from "dotenv";
@@ -21,8 +22,6 @@ import type { ServerFinal } from "opaque-low-io";
 import type { Trio } from "./util/types.js";
 
 type Env = Record<string, string | undefined>;
-type Quad = [string, string, string, string];
-type Duo = [string, string];
 type Result = {
   success: boolean,
   message: string
@@ -33,9 +32,6 @@ type SecretOutputs = {
 }
 interface WriteSecretText {
   (i: Partial<SecretOutputs>): void;
-}
-interface AddPrefix {
-  (p: string, t: TreeAny): string;
 }
 type MayReset = {
   OLD_HASH: string,
@@ -94,15 +90,6 @@ function isTokenInputs (o: TreeAny): o is TokenIn {
   return needs.every(v => v);
 }
 
-const addPrefix: AddPrefix = (prefix, tree) => {
-  const output: TreeAny =  {};
-  for (const key in tree) {
-    const pre_key = [prefix, key].join('');
-    output[pre_key] = { [key]: tree[key] };
-  }
-  return toB64urlQuery(output);
-}
-
 const canReset = async (inputs: MayReset) => {
   const { OLD_HASH, SESSION } = inputs;
   if (!OLD_HASH || !SESSION) {
@@ -116,18 +103,6 @@ function mayReset(env: Env): env is MayReset {
   return vars.every(s => typeof s === "string" && s.length > 0);
 } 
 
-function isQuad(args: string[]): args is Quad {
-  return args.length === 4;
-} 
-
-function isTrio(args: string[]): args is Trio {
-  return args.length === 3;
-} 
-
-function isDuo(args: string[]): args is Duo {
-  return args.length === 2;
-}
-
 const toNewPassword = () => {
   const empty = new Uint8Array(3*23);
   const bytes = [...getRandomValues(empty)];
@@ -138,7 +113,6 @@ const writeSecretText: WriteSecretText = (inputs) => {
   const out_file = "secret.txt";
   const a = inputs?.for_pages || "";
   const b = inputs?.for_next || "";
-  console.log(`${a}\n${b}`); // TODO
   fs.writeFileSync(out_file, `${a}\n${b}`);
   console.log(`Wrote to ${out_file}.`);
 }
@@ -235,26 +209,33 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
     }
   }
   else if (login) {
+    const commands = {
+      OPEN: "op:pake__client_auth_data",
+      FINISH: "op:pake__server_auth_data",
+      CLOSE: "op:pake__client_auth_result"
+    }
     try {
       if (mayReset(process.env)) {
         log_in.reset = await canReset(process.env);
       }
       const work_in = args[3];
       const secret_in = args[2];
-      const prefix = 'op:pake__'; //TODO
-      const work = fromB64urlQuery(work_in);
-      const secrets = addPrefix(prefix, work);
+      const { command, tree } = toNameTree(work_in);
       const given = fromB64urlQuery(secret_in);
       if (args[1] === "OPEN") {
-        if (!work.client_auth_data) {
+        if (!tree.client_auth_data) {
           throw new Error('No workflow inputs.');
         }
-        if (!isLoginStart(work.client_auth_data)) {
+        if (!isLoginStart(tree.client_auth_data)) {
           throw new Error('Invalid workflow inputs.');
         }
-        const { sid, pw } = work.client_auth_data;
+        if (command !== commands.OPEN) {
+          throw new Error('Invalid workflow command.');
+        }
+        const { sid, pw } = tree.client_auth_data;
+        const finish = commands.FINISH;
         const start_in = {
-          sid, pw, log_in, user_in, secrets, prefix
+          sid, pw, log_in, user_in, finish, command, tree 
         };
         const started = await vStart(start_in);
         const { for_next, for_pages } = started;
@@ -262,17 +243,20 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
         console.log('Began to verify user.\n');
       }
       else if (args[1] === "CLOSE") {
-        if (!work.client_auth_result) {
+        if (!tree.client_auth_result) {
           throw new Error('No workflow inputs.');
         }
-        if (!isLoginEnd(work.client_auth_result)) {
+        if (!isLoginEnd(tree.client_auth_result)) {
           throw new Error('Invalid workflow inputs.');
         }
         if (!isServerFinal(given)) {
           throw new Error('Invalid server inputs.');
         }
+        if (command !== commands.CLOSE) {
+          throw new Error('Invalid workflow command.');
+        }
         const end_in = { 
-          ...given, log_in, user_in, secrets, prefix, sec, ses
+          ...given, log_in, user_in, command, tree, sec, ses
         };
         const payload = await vLogin(end_in);
         const { for_next, for_pages } = payload;

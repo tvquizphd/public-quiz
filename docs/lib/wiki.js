@@ -21,7 +21,8 @@ const toPastedText = async (url) => {
   };
   const opts = { headers };
   const result = await fetch(wiki, opts);
-  return await (result).text();
+  const txt = await (result).text();
+  return txt.replaceAll('\n', '');
 }
 
 const toPasted = async (url) => {
@@ -94,4 +95,21 @@ class WikiMailer {
   }
 }
 
-export { WikiMailer, toPasted }
+const toNameTree = (s) => {
+  if (!s.length) {
+    return { command: "", tree: {} }
+  }
+  const trio = s.split(/(#.*)/s);
+  if (trio.length !== 3) {
+    throw new Error('Poorly formatted server data');
+  }
+  const [command, rest] = trio;
+  const tree = fromB64urlQuery(rest);
+  return { command, tree };
+}
+
+const fromNameTree = ({ command, tree }) => {
+  return command + toB64urlQuery(tree);
+}
+
+export { WikiMailer, toPastedText, toNameTree, fromNameTree }

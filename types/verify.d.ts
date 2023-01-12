@@ -1,6 +1,7 @@
 import type { SockServer } from "sock-secret";
 import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
+import type { TreeAny } from "project-sock";
 import type { ServerFinal } from "opaque-low-io";
 import type { Op, Ops } from 'opaque-low-io';
 declare type Need = "first" | "last";
@@ -8,7 +9,7 @@ declare type Needs = Record<Need, string[]>;
 declare type SockInputs = {
     git: Git;
     env: string;
-    secrets: string;
+    secrets: TreeAny;
     lister?: Lister | null;
     needs: Partial<Needs>;
 };
@@ -39,12 +40,14 @@ declare type Register = {
     pw: Uint8Array;
 };
 declare type Inputs = {
-    prefix: string;
-    secrets: string;
+    command: string;
+    tree: TreeAny;
     user_in: UserIn;
     log_in: ConfigIn;
 };
-declare type InputsFirst = Inputs & Register;
+declare type InputsFirst = Inputs & Register & {
+    finish: string;
+};
 declare type InputsFinal = Inputs & ServerFinal & {
     sec: Trio;
     ses: string;

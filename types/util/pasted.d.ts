@@ -56,7 +56,7 @@ declare type Tries = {
 interface ToTries {
     (u: number): Tries;
 }
-interface ToPasted {
+interface ToPastedText {
     (s: string): Promise<string>;
 }
 declare type GitOutput = {
@@ -67,16 +67,28 @@ declare type GitOutput = {
 interface UseGit {
     (i: UserIn): GitOutput;
 }
+declare type NameTree = {
+    command: string;
+    tree: TreeAny;
+};
+interface ToNameTree {
+    (t: string): NameTree;
+}
+interface FromNameTree {
+    (t: NameTree): string;
+}
 declare function isTree(u: NodeAny): u is TreeAny;
 declare type ClientAuthData = NewClientOut["client_auth_data"];
 declare function isLoginStart(o: NodeAny): o is ClientAuthData;
 declare type ClientAuthResult = ClientOut["client_auth_result"];
 declare function isLoginEnd(o: NodeAny): o is ClientAuthResult;
 declare const useGit: UseGit;
-declare const toPasted: ToPasted;
+declare const toPastedText: ToPastedText;
 declare const toTries: ToTries;
 declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;
 declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
-export { readUserApp, readUserInstall, toTries, toPasted, useGit, isTree, isLoginStart, isLoginEnd, readLoginStart, readLoginEnd };
+declare const toNameTree: ToNameTree;
+declare const fromNameTree: FromNameTree;
+export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd };

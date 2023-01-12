@@ -1,8 +1,9 @@
 import { 
   toPub, toShared, toServerAuth, toAppPublic
 } from "pub";
-import { toB64urlQuery } from "project-sock";
-import { WikiMailer, toPasted } from "wiki";
+import { toB64urlQuery, fromB64urlQuery } from "project-sock";
+import { toNameTree, fromNameTree } from "wiki";
+import { WikiMailer, toPastedText } from "wiki";
 import { toSockClient } from "sock-secret";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
@@ -18,30 +19,23 @@ import { OPS, OP } from "opaque-low-io";
  */
 
 const toSender = ({ local, send }) => {
-  console.log(`TODO ${local}`) // TODO
-  return ({ name, secret }) => {
-    console.log({ name, secret });
-    send(secret);
+  return (kv) => {
+    const { name: command, secret } = kv;
+    const tree = fromB64urlQuery(secret);
+    console.log(command)
+    console.log(tree)
+    send(fromNameTree({ command, tree }));
   }
-}
-
-const addPrefix = (prefix, tree) => {
-  const output =  {};
-  for (const key in tree) {
-    const pre_key = [prefix, key].join('');
-    output[pre_key] = { [key]: tree[key] };
-  }
-  return toB64urlQuery(output);
 }
 
 const toSeeker = ({ local, delay, host }) => {
   const dt = delay * 1000;
-  console.log(`TODO ${local}`) // TODO
-  const prefix = 'op:pake__'; //TODO
   return async () => {
     await new Promise(r => setTimeout(r, dt));
-    const t = await toPasted(host);
-    return addPrefix(prefix, t);
+    const text = await toPastedText(host);
+    const nt = toNameTree(text);
+    const { command, tree } = nt;
+    return tree;
   }
 }
 
@@ -123,7 +117,7 @@ const runReef = (dev, remote, env) => {
 
   const passFormId = "pass-form";
   const href = window.location.href;
-  const host = window.location.origin;
+const host = window.location.origin;
   const {store, component} = window.reef;
 
   if (!remote || !env) {
@@ -269,7 +263,8 @@ const runReef = (dev, remote, env) => {
     const reg_in = { user_id, user_in, pass, times };
     const c_final = await clientRegister(reg_in);
     const ver_in = { user_in, c_final, times };
-    const token = await clientVerify(ver_in);
+    //const token = await clientVerify(ver_in);
+    await clientVerify(ver_in);
     DATA.loading.finish = false;
     const to_encrypt = {
       password: pass,
@@ -314,7 +309,8 @@ const runReef = (dev, remote, env) => {
         const query = toB64urlQuery(encrypted);
         DATA.login = `${DATA.host}/login${query}`;
         DATA.step = final_step;
-      }).catch(() => {
+      }).catch((e) => {
+        console.error(e);
         DATA.modal = {
           error: true,
           message: "Unable to register"

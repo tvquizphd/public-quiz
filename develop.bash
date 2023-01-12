@@ -39,7 +39,6 @@ enter () {
   echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
   pnpm develop DEV CLOSE
   WORK=$(head -n 1 $1)
-  echo "LOL TODO"
   # Must have Au + token + client_auth_result
   pnpm develop LOGIN CLOSE $(tail -n 1 $SECRET_TXT) $WORK
   # Must send clients, servers, secrets

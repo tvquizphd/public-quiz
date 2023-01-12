@@ -3,13 +3,14 @@ import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
 import { toSockServer } from "sock-secret";
-import { toPasted, useGit, isTree } from "./util/pasted.js";
+import { toPastedText, useGit, isTree } from "./util/pasted.js";
+import { toNameTree, fromNameTree } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
 
 import type { SockServer } from "sock-secret";
 import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
-import type { TreeAny } from "project-sock";
+import type { NodeAny, TreeAny } from "project-sock";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
 import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
 
@@ -18,7 +19,7 @@ type Needs = Record<Need, string[]>;
 type SockInputs = {
   git: Git,
   env: string,
-  secrets: string,
+  secrets: TreeAny,
   lister?: Lister | null,
   needs: Partial<Needs>
 }
@@ -61,12 +62,14 @@ interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
 type Inputs = {
-  prefix: string,
-  secrets: string,
+  command: string,
+  tree: TreeAny,
   user_in: UserIn,
   log_in: ConfigIn
 }
-type InputsFirst = Inputs & Register; 
+type InputsFirst = Inputs & Register & {
+  finish: string
+}; 
 type InputsFinal = Inputs & ServerFinal & {
   sec: Trio, ses: string
 }; 
@@ -74,10 +77,10 @@ type Lister = {
   (): Promise<string[]>;
 }
 interface ReadNames {
-  (p: string, i: UserIn): Promise<string[]>;
+  (i: UserIn): Promise<string[]>;
 }
 interface ToList {
-  (p: string, i: UserIn): Lister;
+  (i: UserIn): Lister;
 }
 interface Start {
   (i: InputsFirst): Promise<SecretOut>
@@ -85,11 +88,8 @@ interface Start {
 interface Login {
   (i: InputsFinal): Promise<SecretOut>
 }
-interface RemovePrefix {
-  (p: string, t: TreeAny): string;
-}
 
-const isServerOut = (o: TreeAny): o is ServerOut => {
+const isServerOut = (o: NodeAny): o is ServerOut => {
   const t = (o as ServerOut).server_auth_data;
   if (!t || !isTree(t)) {
     return false;
@@ -161,16 +161,16 @@ const toSyncOp: ToSyncOp = async () => {
   return await OPS();
 }
 
-const readNames: ReadNames = async (prefix, ins) => {
+const readNames: ReadNames = async (ins) => {
   const { tmp_file: src } = useGit(ins);
-  const text = await toPasted(src);
-  const pasted = fromB64urlQuery(text);
-  return Object.keys(pasted).map(n => prefix + n);
+  const text = await toPastedText(src);
+  const { command } = toNameTree(text);
+  return [ command ];
 }
 
-const toList: ToList = (prefix, ins) => {
+const toList: ToList = (ins) => {
   return async () => {
-    return await readNames(prefix, ins);
+    return await readNames(ins);
   }
 }
 
@@ -180,25 +180,14 @@ const to_bytes = (s: string) => {
   return new Uint8Array(bytes);
 }
 
-const removePrefix: RemovePrefix = (prefix, tree) => {
-  const output: TreeAny =  {};
-  for (const key in tree) {
-    const t = tree[key];
-    const pre_key = key.replace(prefix, "");
-    if (isTree(t) && pre_key in t) {
-      output[pre_key] = t[pre_key];
-    }
-  }
-  return toB64urlQuery(output);
-}
-
 const vStart: Start = async (inputs) => {
   const { git, env, pep, reset } = inputs.log_in;
-  const { sid, pw, user_in, secrets, prefix } = inputs;
+  const { command, finish, tree } = inputs;
+  const { sid, pw, user_in } = inputs;
   const { prod } = user_in;
-  const first = ["client_auth_data"].map(n => prefix + n);
-  const needs = { first, last: [] };
-  const lister = prod ? null : toList(prefix, user_in);
+  const secrets = { [command]: tree };
+  const needs = { first: [command], last: [] };
+  const lister = prod ? null : toList(user_in);
   const sock_in = { git, env, needs, lister, secrets };
   const { Opaque, Sock } = await toUserSock(sock_in);
   const times = 1000;
@@ -207,26 +196,31 @@ const vStart: Start = async (inputs) => {
   };
   const reg = await toPepper(pepper_in);
   const out = await Opaque.serverStep(reg, "op");
-  const sent = await Sock.quit();
-  const server_out = fromB64urlQuery(sent);
-  const for_pages = removePrefix(prefix, server_out);
-  if (!isServerOut(fromB64urlQuery(for_pages))) {
+  const tree_out = await Sock.quit();
+  console.log('KEYS');
+  console.log(Object.keys(tree_out));
+  if (!(finish in tree_out)) {
+    throw new Error('Cannot send missing data.');
+  }
+  if (!isServerOut(tree_out[finish])) {
     throw new Error('Cannot send invalid data.');
   }
+  const out_args = { command: finish, tree: tree_out };
   return {
     for_next: toB64urlQuery(out),
-    for_pages: for_pages 
+    for_pages: fromNameTree(out_args) 
   }
 }
 
 const vLogin: Login = async (inputs) => {
-  const { secrets, prefix, Au, ses } = inputs;
+  const { Au, ses } = inputs;
   const { token: secret } = inputs;
   const master_key = to_bytes(secret);
   const { git, env } = inputs.log_in;
+  const { command, tree } = inputs;
+  const secrets = { [command]: tree };
   const step = { token: secret, Au };
-  const first = ["client_auth_result"].map(n => prefix + n);
-  const needs = { first, last: [] };
+  const needs = { first: [command], last: [] };
   const sock_in = { git, env, needs, secrets };
   const { Sock, Opaque } = await toUserSock(sock_in);
   // Authorized the client

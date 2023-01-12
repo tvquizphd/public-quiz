@@ -1,6 +1,6 @@
 {
   "name": "public-quiz-device",
-  "version": "5.0.0",
+  "version": "5.0.1",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
@@ -33,7 +33,7 @@
     "octokit": "^2.0.7",
     "opaque-low-io": "^3.2.1",
     "project-sock": "1.1.1",
-    "sock-secret": "1.4.1",
+    "sock-secret": "2.0.0",
     "simple-git": "^3.14.1",
     "ts-node": "^10.9.1"
   },

@@ -1,7 +1,8 @@
-import { fromB64urlQuery } from "project-sock";
+import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { request } from "@octokit/request";
 import { simpleGit } from 'simple-git';
 import { toSign } from "../create.js";
+import { isTrio } from "./types.js";
 import path from 'node:path';
 import fs from 'fs'
 
@@ -66,7 +67,7 @@ type Tries = {
 interface ToTries {
   (u: number): Tries; 
 }
-interface ToPasted {
+interface ToPastedText {
   (s: string) : Promise<string>;
 }
 type GitOutput = {
@@ -81,6 +82,17 @@ interface UseGit {
   (i: UserIn): GitOutput
 }
 type Obj = Record<string, unknown>;
+
+type NameTree = {
+  command: string,
+  tree: TreeAny
+} 
+interface ToNameTree {
+  (t: string): NameTree;
+}
+interface FromNameTree {
+  (t: NameTree): string;
+}
 
 function isObj(u: unknown): u is Obj {
   return u != null && typeof u === "object";
@@ -171,7 +183,7 @@ const cloneGit: DoGit = async (input) => {
   await github.clone(repo_url);
 }
 
-const toPasted: ToPasted = async (src) => {
+const toPastedText: ToPastedText = async (src) => {
   const encoding = 'utf-8';
   const txt = fs.readFileSync(src, { encoding });
   return txt.replaceAll('\n', '');
@@ -212,9 +224,9 @@ const readLoginStart: ReadLoginStart = async (ins) => {
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPasted(src);
-    const pasted = fromB64urlQuery(text);
-    const obj = pasted.client_auth_data || "";
+    const text = await toPastedText(src);
+    const { command, tree } = toNameTree(text);
+    const obj = tree.client_auth_data || "";
     if (isLoginStart(obj)) {
       return true;
     }
@@ -232,9 +244,9 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPasted(src);
-    const pasted = fromB64urlQuery(text);
-    const obj = pasted.client_auth_result || "";
+    const text = await toPastedText(src);
+    const { command, tree } = toNameTree(text);
+    const obj = tree.client_auth_result || "";
     if (isLoginEnd(obj)) {
       return true;
     }
@@ -252,7 +264,7 @@ const readUserApp: ReadUserApp = async (ins) => {
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPasted(src);
+    const text = await toPastedText(src);
     const pasted = fromB64urlQuery(text);
     if (hasCode(pasted) && isForApp(pasted)) {
       return pasted;
@@ -302,8 +314,25 @@ const readUserInstall: ReadUserInstall = async (ins) => {
   throw new Error("Timeout waiting for installation");
 }
 
+const toNameTree: ToNameTree = (s) => {
+  const trio = s.split(/(#.*)/s);
+  if (!s.length) {
+    return { command: "", tree: {} }
+  }
+  if (!isTrio(trio)) {
+    throw new Error('Poorly formatted workflow inputs');
+  }
+  const [command, rest] = trio;
+  const tree = fromB64urlQuery(rest);
+  return { command, tree };
+}
+
+const fromNameTree: FromNameTree = ({ command, tree }) => {
+  return command + toB64urlQuery(tree);
+}
+
 export { 
-  readUserApp, readUserInstall, toTries, toPasted, useGit,
-  isTree, isLoginStart, isLoginEnd,
+  readUserApp, readUserInstall, toTries, toPastedText, useGit,
+  isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
   readLoginStart, readLoginEnd
 }
