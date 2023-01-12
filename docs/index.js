@@ -19,23 +19,22 @@ import { OPS, OP } from "opaque-low-io";
  */
 
 const toSender = ({ local, send }) => {
+  console.log(local); // TODO prod version
   return (kv) => {
     const { name: command, secret } = kv;
     const tree = fromB64urlQuery(secret);
-    console.log(command)
-    console.log(tree)
     send(fromNameTree({ command, tree }));
   }
 }
 
 const toSeeker = ({ local, delay, host }) => {
+  console.log(local); // TODO prod version
   const dt = delay * 1000;
   return async () => {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText(host);
     const nt = toNameTree(text);
-    const { command, tree } = nt;
-    return tree;
+    return nt.tree;
   }
 }
 
@@ -117,7 +116,7 @@ const runReef = (dev, remote, env) => {
 
   const passFormId = "pass-form";
   const href = window.location.href;
-const host = window.location.origin;
+  const host = window.location.origin;
   const {store, component} = window.reef;
 
   if (!remote || !env) {
@@ -309,8 +308,7 @@ const host = window.location.origin;
         const query = toB64urlQuery(encrypted);
         DATA.login = `${DATA.host}/login${query}`;
         DATA.step = final_step;
-      }).catch((e) => {
-        console.error(e);
+      }).catch(() => {
         DATA.modal = {
           error: true,
           message: "Unable to register"

@@ -225,7 +225,7 @@ const readLoginStart: ReadLoginStart = async (ins) => {
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText(src);
-    const { command, tree } = toNameTree(text);
+    const { tree } = toNameTree(text);
     const obj = tree.client_auth_data || "";
     if (isLoginStart(obj)) {
       return true;

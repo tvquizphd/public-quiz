@@ -197,8 +197,6 @@ const vStart: Start = async (inputs) => {
   const reg = await toPepper(pepper_in);
   const out = await Opaque.serverStep(reg, "op");
   const tree_out = await Sock.quit();
-  console.log('KEYS');
-  console.log(Object.keys(tree_out));
   if (!(finish in tree_out)) {
     throw new Error('Cannot send missing data.');
   }
