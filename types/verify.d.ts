@@ -50,6 +50,7 @@ declare type InputsFirst = Inputs & Register & {
 };
 declare type InputsFinal = Inputs & ServerFinal & {
     sec: Trio;
+    inst: string;
     ses: string;
 };
 declare type Lister = {

@@ -1,3 +1,5 @@
+import { writeFile } from "io";
+
 class Workflow  {
 
   constructor ({ DATA, API, templates }) {
@@ -28,6 +30,20 @@ class Workflow  {
         return "Processing";
     }
   }
+
+  get firstAction () {
+    const { dev_handle } =  this.DATA;
+    if (this.DATA.local && !dev_handle) {
+      const text = "Allow";
+      const { dev_root } = this.DATA;
+      const uuid = crypto.randomUUID();
+      const target = "filesystem access";
+      const act = { act: "open", text, target };
+      return { act, uuid, text: dev_root || "/" };
+    }
+    return null;
+  }
+
   get nodes () {
     const { tables, newRows } = this.DATA;
     const { step, reset, modal } = this.DATA;
@@ -55,6 +71,7 @@ class Workflow  {
         reset,
         view: "form",
         title: this.loader,
+        action: this.firstAction,
         loading: this.loading.length > 0,
       }],
       [{
@@ -194,12 +211,13 @@ class Workflow  {
   get render() {
     const { nodes, api, templates } = this;
     const filter = ({ view }) => view in templates;
+    const setDevHandle = this.setDevHandle.bind(this);
     const stepBack = this.stepBack.bind(this);
     const stepNext = this.stepNext.bind(this);
     const stepHome = this.stepHome.bind(this);
     const hideModal = this.hideModal.bind(this);
     const shared = { 
-      api, stepBack, stepNext, stepHome, hideModal
+      api, stepBack, stepNext, stepHome, hideModal, setDevHandle
     };
     return nodes.filter(filter).reduce((out, node) => {
       const template = templates[node.view];
@@ -228,6 +246,14 @@ class Workflow  {
   stepNext(bool) {
     const { step } = this.DATA;
     this.DATA.step = 2 * step + bool;
+  }
+  async setDevHandle(root) {
+    const { pub_str, dev_file } = this.DATA;
+    const text = this.DATA.pub_str;
+    const fname = this.DATA.dev_file;
+    const write_in = { root, fname, text };
+    const f = await writeFile(write_in); 
+    this.DATA.dev_handle = f;
   }
 }
 

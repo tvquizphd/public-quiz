@@ -130,7 +130,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   const { token: shared, client_auth_result } = out;
   const pub_obj = { client_auth_result };
   const next_obj = { 
-    shared: shared,
+    shared,
     app: {
       id: app.id,
       jwk: app.jwk,
@@ -256,7 +256,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
           throw new Error('Invalid workflow command.');
         }
         const end_in = { 
-          ...given, log_in, user_in, command, tree, sec, ses
+          ...given, log_in, user_in, command, tree, sec, ses, inst
         };
         const payload = await vLogin(end_in);
         const { for_next, for_pages } = payload;

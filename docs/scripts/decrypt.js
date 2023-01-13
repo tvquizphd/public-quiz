@@ -46,4 +46,10 @@ const decryptQuery = async (search, pass) => {
   return decryptQueryMaster({ search, master_key });
 }
 
-export { decryptQuery, decryptQueryMaster };
+const toBytes = (s) => {
+  const a = s.match(/../g) || [];
+  const bytes = a.map(h =>parseInt(h,16)); 
+  return new Uint8Array(bytes);
+}
+
+export { toBytes, decryptQuery, decryptQueryMaster };

@@ -2,15 +2,14 @@ import { Mailer } from "mailer";
 import { DBTrio } from "dbtrio";
 import { WikiMailer } from "wiki";
 import { templates } from "templates";
-import { Workflow } from "workflow";
 import { toEnv } from "environment";
-import { OP } from "opaque-low-io";
-import { request } from "@octokit/request";
-import { toB64urlQuery } from "project-sock";
-import { toHash, encryptSecrets } from "encrypt";
-import { configureNamespace } from "sock";
-import { findOp, toSock } from "finders";
-import { decryptQuery } from "decrypt";
+//import { OP } from "opaque-low-io";
+import { toMailSock,  writeText } from "io";
+//import { request } from "@octokit/request";
+import { Workflow } from "workflow";
+//import { toHash } from "encrypt";
+import { decryptQueryMaster } from "decrypt";
+import { decryptQuery, toBytes } from "decrypt";
 /*
  * Globals needed on window object:
  *
@@ -19,20 +18,14 @@ import { decryptQuery } from "decrypt";
 const EMPTY_NEW = [ [""], [""], ["","",""] ];
 const EMPTY_TABLES = [ [], [], [] ];
 
-const clearOpaqueClient = (Sock, { commands }) => {
-  const client_subs = ['register'];
-  const toClear = commands.filter((cmd) => {
-    return client_subs.includes(cmd.subcommand);
-  });
-  return Sock.sock.project.clear({ commands: toClear });
-}
-
+/*
 async function toOpaqueSock(inputs) {
   const { opaque } = inputs;
   const Sock = await toSock(inputs, "opaque");
   await clearOpaqueClient(Sock, opaque);
   return Sock;
 }
+*/
 
 const outage = async () => {
   const fault = "GitHub internal outage";
@@ -54,18 +47,7 @@ const outage = async () => {
   });
 }
 
-const dispatch = async ({ git, env, payload }) => {
-  const { owner, repo, token } = git;
-  const api_url = `/repos/${owner}/${repo}/dispatches`;
-  await request(`POST ${api_url}`, {
-    event_type: `${env}-START`,
-    client_payload: payload,
-    headers: {
-      authorization: `token ${token}`,
-    }
-  })
-}
-
+/*
 async function triggerGithubAction(data) {
   const { local, env, git } = data;
   const { session_hash, reset } = data;
@@ -91,6 +73,7 @@ async function triggerGithubAction(data) {
     console.log(e?.message);
   }
 }
+*/
 
 const noTemplate = () => {
   return `
@@ -102,13 +85,15 @@ const noTemplate = () => {
   `;
 }
 
+/*
 function giver (logger, op_id, tag, msg) {
   const k = this.sock.toKey(op_id, tag);
   this.sock.sendMail(k, msg);
   logger(k);
 }
+*/
 
-const runReef = (hasLocal, remote, env) => {
+const runReef = (dev, remote, env) => {
 
   const passFormId = "pass-form";
   const path = window.location.pathname;
@@ -129,7 +114,11 @@ const runReef = (hasLocal, remote, env) => {
   }
   const DATA = store({
     session_hash: null,
-    local: hasLocal,
+    local: dev !== null,
+    dev_root: dev.dev_root,
+    dev_file: "Home.md",
+    dev_handle: null,
+    pub_str: "",
     reset: false,
     modal: null,
     step: 0,
@@ -154,6 +143,8 @@ const runReef = (hasLocal, remote, env) => {
   }
   const API = {
     mailer: null,
+    dbt: new DBTrio({ DATA })
+    /*
     get dbt() {
       const { mailer } = API;
       if (mailer instanceof Mailer) {
@@ -161,6 +152,7 @@ const runReef = (hasLocal, remote, env) => {
       }
       return new DBTrio({ DATA });
     }
+    */
   }
   function uploadDatabase(mk) {
     const { mailer } = API;
@@ -193,20 +185,56 @@ const runReef = (hasLocal, remote, env) => {
     return { pass, newPass };
   }
 
-  async function decryptWithPassword({pass, newPass}) {
-    const rootPass = newPass ? newPass : pass;
+  const readKey = (master_key) => {
+    return async (search) => {
+      if (search === "") return "";
+      const args = { search, master_key };
+      const out = await decryptQueryMaster(args);
+      return out.plain_text;
+    }
+  }
+
+  async function decryptWithPassword({pass, /*newPass*/}) {
+    //const rootPass = newPass ? newPass : pass;
     DATA.loading.socket = true;
     const { hash: search } = window.location;
     const result = await decryptQuery(search, pass);
     const master_key = result.master_key;
-    const gh_key = result.plain_text;
+    const shared = result.plain_text;
+    const session_key = toBytes(shared);
+    //const times = 1000;
+    const delay = 0.3333;
+    const { dbt } = API;
+    const { env, git, host, local } = DATA;
+    const send = (text) => {
+      const f = DATA.dev_handle;
+      if (f) writeText(f, text);
+    }
+    const user_in = { git, env, local, delay, host, send };
+    const { Sock } = await toMailSock(user_in);
+    const { mail } = await Sock.get("mail", "in");
+    const d_args = { 
+      from_master: readKey(master_key),
+      from_session: readKey(session_key)
+    };
+    const { installed } = await dbt.decrypt(d_args, mail);
+    git.token = installed.token;
+    console.log(git);
+    /*
+    const user_in = { git, env, local, delay, host, send };
+    await clientLogin({ user_id, user_in, pass, times });
+    */
+    if ((() => true)()) { // TODO
+      throw new Error("Checkpoint");
+    }
     if (!wikiMailer.done) {
       throw new Error("Multiple login attempts");
     }
+    /*
     wikiMailer.start();
     const prom = new Promise((resolve, reject) => {
       wikiMailer.addHandler('sym', (pasted) => {
-        decryptQuery(pasted, gh_key).then((token) => {
+        decryptQuery(pasted, shared).then((token) => {
           wikiMailer.finish();
           resolve(token)
         }).catch((e) => {
@@ -215,9 +243,7 @@ const runReef = (hasLocal, remote, env) => {
       });
     });
     DATA.git.token = await prom;
-    const delay = 0.3333;
-    const times = 1000;
-    const { env, git } = DATA;
+    
     const namespace = configureNamespace(env);
     await triggerGithubAction(DATA);
     const sock_inputs = { git, delay, ...namespace };
@@ -288,6 +314,7 @@ const runReef = (hasLocal, remote, env) => {
       output.push("Saved database");
     }
     return output;
+    */
   }
 
   function submitHandler (event) {
@@ -306,7 +333,8 @@ const runReef = (hasLocal, remote, env) => {
       decryptWithPassword(passwords).then((done) => {
         console.log(done.join("\n"));
         workflow.stepNext(true);
-      }).catch(() => {
+      }).catch((e) => {
+        console.error(e);
         DATA.modal = {
           error: true,
           message: "Unable to authenticate"
@@ -345,7 +373,9 @@ const runReef = (hasLocal, remote, env) => {
 export default () => {
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
-  toEnv().then(({ remote, env }) => {
-    runReef(hasLocal, remote, env);
+  toEnv().then((config) => {
+    const { remote, env, dev_root } = config;
+    const dev = [null, { dev_root }][+hasLocal];
+    runReef(dev, remote, env);
   });
 };

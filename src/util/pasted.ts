@@ -245,7 +245,7 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText(src);
-    const { command, tree } = toNameTree(text);
+    const { tree } = toNameTree(text);
     const obj = tree.client_auth_result || "";
     if (isLoginEnd(obj)) {
       return true;
@@ -334,5 +334,5 @@ const fromNameTree: FromNameTree = ({ command, tree }) => {
 export { 
   readUserApp, readUserInstall, toTries, toPastedText, useGit,
   isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
-  readLoginStart, readLoginEnd
+  readLoginStart, readLoginEnd, isObj
 }

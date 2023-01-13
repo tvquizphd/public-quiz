@@ -1,16 +1,14 @@
 import { 
   toPub, toShared, toServerAuth, toAppPublic
 } from "pub";
-import { toB64urlQuery, fromB64urlQuery } from "project-sock";
-import { toNameTree, fromNameTree } from "wiki";
-import { WikiMailer, toPastedText } from "wiki";
-import { toSockClient } from "sock-secret";
+import { toB64urlQuery } from "project-sock";
+import { toSyncOp, clientLogin,  writeText } from "io";
+import { WikiMailer } from "wiki";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
 import { templates } from "templates";
 import { toEnv } from "environment";
-import { Workflow, writeText } from "workflow";
-import { OPS, OP } from "opaque-low-io";
+import { Workflow } from "workflow";
 
 /*
  * Globals needed on window object:
@@ -18,42 +16,6 @@ import { OPS, OP } from "opaque-low-io";
  * reef 
  */
 
-const toSender = ({ local, send }) => {
-  console.log(local); // TODO prod version
-  return (kv) => {
-    const { name: command, secret } = kv;
-    const tree = fromB64urlQuery(secret);
-    send(fromNameTree({ command, tree }));
-  }
-}
-
-const toSeeker = ({ local, delay, host }) => {
-  console.log(local); // TODO prod version
-  const dt = delay * 1000;
-  return async () => {
-    await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(host);
-    const nt = toNameTree(text);
-    return nt.tree;
-  }
-}
-
-async function toUserSock(inputs) {
-  const { git, local, env, delay, host, send } = inputs;
-  const sender = toSender({ local, send });
-  const seeker = toSeeker({ local, delay, host });
-  const sock_in = { git, env, seeker, sender };
-  const Sock = await toSockClient(sock_in);
-  if (Sock === null) {
-    throw new Error('Unable to make socket.');
-  }
-  const Opaque = await OP(Sock);
-  return { Opaque, Sock };
-}
-
-const toSyncOp = async () => {
-  return await OPS();
-}
 const outage = async () => {
   const fault = "GitHub internal outage";
   const matches = (update) => {
@@ -229,23 +191,6 @@ const runReef = (dev, remote, env) => {
     return { pass };
   }
 
-  async function clientRegister(inputs) {
-    const { user_in, user_id, pass, times } = inputs;
-    const c_first = { password: pass, user_id };
-    const { Sock, Opaque } = await toUserSock(user_in);
-    const c_final = await Opaque.clientStep(c_first, times, "op");
-    Sock.quit();
-    return c_final;
-  }
-
-  async function clientVerify(inputs) {
-    const { user_in, c_final, times } = inputs;
-    const { Sock, Opaque } = await toUserSock(user_in);
-    const c_out = await Opaque.clientStep(c_final, times, "op");
-    Sock.quit();
-    return c_out.token;
-  }
-
   async function encryptWithPassword ({ pass }) {
     const { git, env, user_id, local, host } = DATA;
     DATA.loading.socket = true;
@@ -259,11 +204,7 @@ const runReef = (dev, remote, env) => {
       if (f) writeText(f, text);
     }
     const user_in = { git, env, local, delay, host, send };
-    const reg_in = { user_id, user_in, pass, times };
-    const c_final = await clientRegister(reg_in);
-    const ver_in = { user_in, c_final, times };
-    //const token = await clientVerify(ver_in);
-    await clientVerify(ver_in);
+    await clientLogin({ user_id, user_in, pass, times });
     DATA.loading.finish = false;
     const to_encrypt = {
       password: pass,
@@ -336,11 +277,8 @@ export default () => {
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
   toEnv().then((config) => {
-    const dev_obj = { 
-      dev_root: config.dev_root
-    };
-    const dev = [null, dev_obj][+hasLocal];
-    const { remote, env } = config;
+    const { remote, env, dev_root } = config;
+    const dev = [null, { dev_root }][+hasLocal];
     runReef(dev, remote, env);
   });
 };

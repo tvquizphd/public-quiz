@@ -41,9 +41,44 @@ const navTemplate = (inputs) => {
   const html = `<div ${props}>${items}</div>`;
   return { html, handlers };
 }
+
+const isValid = async (dir) => {
+  for await (const [k0, v0] of dir.entries()) {
+    if (k0 !== "tmp-wiki") continue;
+    for await (const [k1, v1] of v0.entries()) {
+      if (k1 !== "public-quiz-device.wiki") continue;
+      return v1;
+    }
+  }
+  return null
+}
+
+const actionTemplate = (step, action) => {
+  const { act, text, uuid } = action || {};
+  if (action && act?.act === "open") {
+    const id = `${uuid}-open`;
+    const html = `
+      <button id=${id} class="button true-tan">${act.text}</button>
+      <span>${act.target}</span> <span>${text}</span>
+    `;
+    const fn = async () => {
+      const dir_opts = { mode: "readwrite" };
+      const dir = await window.showDirectoryPicker(dir_opts);
+      let dev_root = null;
+      while (!dev_root) {
+        dev_root = await isValid(dir);
+      }
+      step(dev_root);
+    };
+    const handlers = [{ id, fn }];
+    return { html, handlers };
+  }
+  return { html: "", handlers: [] };
+}
+
 const formTemplate = (inputs) => {
   const passFormId = "pass-form";
-  const { uuid, title } = inputs.node;
+  const { uuid, title, action } = inputs.node;
   const { reset, loading } = inputs.node;
   const id = `${uuid}-form-login`;
   const u_id = "u-root";
@@ -73,9 +108,20 @@ const formTemplate = (inputs) => {
       <input type="password" ${new_pwd_props}>
     `;
   }
+  const { setDevHandle } = inputs;
+  const fn = async (dev_root) => {
+    if (dev_root) {
+      await setDevHandle(dev_root);
+    }
+  }
+  const top_action = actionTemplate(fn, action);
+  const handlers = [
+    ...top_action.handlers
+  ]
   const html = `
   <div class="wrap-shadow">
     <h2 class="center-text">${title}</h2>
+    ${top_action.html}
     <form id="${passFormId}">
       <label for="${u_id}">Username:</label>
       <input class="${i_cls}" type="text" ${user_props}>
@@ -85,8 +131,9 @@ const formTemplate = (inputs) => {
       ${bottom} 
     </form>
   </div>`
-  return { html, handlers: [] };
+  return { html, handlers };
 }
+
 const buttonsTemplate = (inputs) => {
   const { stepNext, stepHome } = inputs;
   const { data } = inputs.node;

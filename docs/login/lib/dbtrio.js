@@ -1,4 +1,5 @@
 import { SEP, AsciiTables } from "ascii";
+import { fromB64urlQuery } from "project-sock";
 
 class DBTrio {
 
@@ -30,21 +31,27 @@ class DBTrio {
     });
   }
 
-  decrypt(params, etrio) {
+  decrypt(params, mail) {
+    const etree = fromB64urlQuery(mail).data;
     const { from_master, from_session } = params;
     return new Promise((resolve, reject) => {
-      if (!("ev" in (etrio || {}))) {
+      if (!("ev" in (etree || {}))) {
         console.log('No message to decrypt.');
         return resolve(this.at.DATA.tables);
       }
-      from_session(etrio).then(s_str => {
-        const m_trio = s_str.split(SEP.TS);
+      from_session(mail).then(s_str => {
+        const m_quad = s_str.split(SEP.TS);
+        if (m_quad.length !== 4) {
+          throw new Error('Invalid mail');
+        }
+        const [i_str, ...m_trio] = m_quad;
         const masters = m_trio.map((text) => {
           return from_master(text)
         })
         Promise.all(masters).then(trio => {
           this.at.ascii = trio.join(SEP.TS);
-          resolve(this.at.DATA.tables);
+          const installed = fromB64urlQuery(i_str);
+          resolve({ installed });
         }).catch(() => {
           const msg = 'Master decryption error';
           reject(new Error(msg));

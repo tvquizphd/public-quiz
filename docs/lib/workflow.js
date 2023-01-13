@@ -1,16 +1,4 @@
-const writeText = async (f, text) => {
-  const w = await f.createWritable();
-  await w.write(text);
-  await w.close();
-}
-
-const writeFile = async (inputs) => {
-  const opts = { create: true };
-  const { root, fname, text } = inputs;
-  const f = await root.getFileHandle(fname, opts);
-  await writeText(f, text);
-  return f;
-}
+import { writeFile } from "io";
 
 class Workflow  {
 
@@ -158,4 +146,4 @@ class Workflow  {
   }
 }
 
-export { Workflow, writeText }
+export { Workflow }

@@ -1,4 +1,5 @@
 import type { Git } from "./util/types.js";
+import type { NodeAny } from "project-sock";
 interface ToAppInput {
     code: string;
 }
@@ -30,6 +31,11 @@ declare type HasToken = {
 export declare type Installed = HasToken & {
     expiration: string;
 };
+export declare type Installation = {
+    installed: Installed;
+    app: AppOutput;
+    shared: string;
+};
 export declare type UserInstallRaw = {
     id: number;
     permissions: Record<string, string>;
@@ -41,9 +47,11 @@ export declare type UserInstall = UserInstallRaw & {
 interface ToInstall {
     (i: UserInstall): Promise<Installed>;
 }
-declare function isJWK(o: JsonWebKey): o is JWK;
+declare type Obj = Record<string, unknown>;
+declare function isInstallation(o: NodeAny): o is Installation;
+declare function isJWK(o: Obj): o is JWK;
 declare const toPEM: (key: JWK) => string;
 declare const toApp: ToApp;
 declare const toInstall: ToInstall;
 declare const toSign: (app: AppOutput) => string;
-export { toPEM, isJWK, toSign, toApp, toInstall };
+export { toPEM, isJWK, toSign, toApp, toInstall, isInstallation };

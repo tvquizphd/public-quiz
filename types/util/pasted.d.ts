@@ -67,6 +67,7 @@ declare type GitOutput = {
 interface UseGit {
     (i: UserIn): GitOutput;
 }
+declare type Obj = Record<string, unknown>;
 declare type NameTree = {
     command: string;
     tree: TreeAny;
@@ -77,6 +78,7 @@ interface ToNameTree {
 interface FromNameTree {
     (t: NameTree): string;
 }
+declare function isObj(u: unknown): u is Obj;
 declare function isTree(u: NodeAny): u is TreeAny;
 declare type ClientAuthData = NewClientOut["client_auth_data"];
 declare function isLoginStart(o: NodeAny): o is ClientAuthData;
@@ -91,4 +93,4 @@ declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
 declare const fromNameTree: FromNameTree;
-export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd };
+export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj };

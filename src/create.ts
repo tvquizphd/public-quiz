@@ -1,9 +1,11 @@
 import { request } from "@octokit/request";
 import { createPrivateKey } from "crypto";
+import { isTree, isObj } from "./util/pasted.js";
 import type { Git } from "./util/types.js";
 import { sign } from 'jws';
 
 import type { Header } from 'jws';
+import type { NodeAny } from "project-sock"
 
 interface ToAppInput {
   code: string;
@@ -43,6 +45,11 @@ type InstalledRaw = HasToken & {
 export type Installed = HasToken & {
   expiration: string
 }
+export type Installation = {
+  installed: Installed,
+  app: AppOutput,
+  shared: string
+}
 export type UserInstallRaw = {
   id: number,
   permissions: Record<string, string>
@@ -61,7 +68,7 @@ type Payload = {
   exp: number
 }
 
-function hasToken (o: Obj): o is InstalledRaw {
+function hasTokenDate (o: Obj): o is InstalledRaw {
   const needs = [
     typeof o.token === "string",
     typeof o.expires_at === "string",
@@ -69,7 +76,29 @@ function hasToken (o: Obj): o is InstalledRaw {
   return needs.every(v => v);
 }
 
-function isJWK (o: JsonWebKey): o is JWK {
+function hasTokenTime(o: Obj): o is Installed {
+  const needs = [
+    typeof o.token === "string",
+    typeof o.expiration === "string",
+  ]
+  return needs.every(v => v);
+}
+
+function isInstallation (o: NodeAny): o is Installation {
+  if (!isTree(o)) return false;
+  const { installed, app, shared } = o;
+  if (!isTree(installed) || !isTree(app)) {
+    return false;
+  }
+  const needs = [
+    hasTokenTime(installed),
+    typeof shared === "string",
+    isAppOutput(app)
+  ]
+  return needs.every(v => v);
+}
+
+function isJWK (o: Obj): o is JWK {
   if (o.kty !== 'RSA') {
     return false;
   }
@@ -84,6 +113,20 @@ function isApp (o: Record<string, any>): o is AppRaw {
   const needs = [
     typeof o.id === "number",
     typeof o.pem === "string",
+    typeof o.client_id === "string",
+    typeof o.client_secret === "string"
+  ];
+  return needs.every(v => v);
+}
+
+function isAppOutput (o: Obj): o is AppOutput {
+  const { jwk } = o;
+  if (!isObj(jwk)) {
+    return false;
+  }
+  const needs = [
+    isJWK(jwk),
+    typeof o.id === "string",
     typeof o.client_id === "string",
     typeof o.client_secret === "string"
   ];
@@ -143,7 +186,7 @@ const toInstall: ToInstall = async (ins) => {
     repository: git.repo,
     permissions
   });
-  if(!hasToken(out.data)) {
+  if(!hasTokenDate(out.data)) {
     throw new Error('Unable to create Token');
   }
   const ms = Date.parse(out.data.expires_at);
@@ -182,4 +225,4 @@ const toSign = (app: AppOutput) => {
   return authorization;
 }
 
-export { toPEM, isJWK, toSign, toApp, toInstall };
+export { toPEM, isJWK, toSign, toApp, toInstall, isInstallation };
