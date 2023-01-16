@@ -1,9 +1,9 @@
 #!/bin/bash
-SET_TOKEN=$(cat .env | egrep "^ROOT_TOKEN")
-TOKEN=$(sed -r "s/.*=.(.+)./\1/" <<< $SET_TOKEN)
+SET_SESSION=$(cat .env | egrep "^SESSION")
+SESSION=$(sed -r "s/.*=.(.+)./\1/" <<< $SET_SESSION)
 GIT_URL=$(git config --get remote.origin.url)
 REMOTE=$(sed -r "s_.*[:/](.+/.+)_\1_" <<< $GIT_URL)
-DEPLOYMENT="DEVELOPMENT-TEST"
+DEPLOYMENT="DEVELOPMENT-TEST-TEST"
 export DEPLOYMENT
 export REMOTE
 SERVER_URL="\"localhost:8000\""
@@ -19,7 +19,6 @@ echo "REMOTE,$REMOTE" > $CSV
 echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
 echo "DEV_PATH_ROOT,$(pwd)" >> $CSV
 echo "" > $SECRET_TXT
-echo "" > $WIKI_OUT
 
 waiter () {
   echo "Awaiting filesystem access..."
@@ -42,11 +41,11 @@ enter () {
   # Must have Au + token + client_auth_result
   pnpm develop LOGIN CLOSE $(tail -n 1 $SECRET_TXT) $WORK
   # Must send clients, servers, secrets
-  echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
+  sed -n '1,2p' $SECRET_TXT > $WIKI_OUT
 }
 
 echo $'\n\nRun' $INTRO $'\n'
-if [ ! -z $TOKEN ]; then
+if [ ! -z $SESSION ]; then
   read -p "Use existing login link (y/n)?: " yn
   if [ $yn == "y" ]; then
     read -p "Use existing password (y/n)?: " yn
@@ -62,6 +61,7 @@ if [ ! -z $TOKEN ]; then
     exit 0
   fi
 fi
+echo "" > $WIKI_OUT
 echo "" > .env
 echo "" > $MD
 

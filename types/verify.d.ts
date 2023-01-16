@@ -40,14 +40,13 @@ declare type Register = {
     pw: Uint8Array;
 };
 declare type Inputs = {
+    finish: string;
     command: string;
     tree: TreeAny;
     user_in: UserIn;
     log_in: ConfigIn;
 };
-declare type InputsFirst = Inputs & Register & {
-    finish: string;
-};
+declare type InputsFirst = Inputs & Register;
 declare type InputsFinal = Inputs & ServerFinal & {
     sec: Trio;
     inst: string;

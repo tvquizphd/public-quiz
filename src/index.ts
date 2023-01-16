@@ -210,9 +210,10 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   }
   else if (login) {
     const commands = {
+      FINISH_CLOSE: "mail__session",
       OPEN: "op:pake__client_auth_data",
-      FINISH: "op:pake__server_auth_data",
-      CLOSE: "op:pake__client_auth_result"
+      CLOSE: "op:pake__client_auth_result",
+      FINISH_OPEN: "op:pake__server_auth_data",
     }
     try {
       if (mayReset(process.env)) {
@@ -233,7 +234,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
           throw new Error('Invalid workflow command.');
         }
         const { sid, pw } = tree.client_auth_data;
-        const finish = commands.FINISH;
+        const finish = commands.FINISH_OPEN;
         const start_in = {
           sid, pw, log_in, user_in, finish, command, tree 
         };
@@ -255,8 +256,10 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
         if (command !== commands.CLOSE) {
           throw new Error('Invalid workflow command.');
         }
+        const finish = commands.FINISH_CLOSE;
         const end_in = { 
-          ...given, log_in, user_in, command, tree, sec, ses, inst
+          ...given, log_in, user_in, finish,
+          command, tree, sec, ses, inst
         };
         const payload = await vLogin(end_in);
         const { for_next, for_pages } = payload;

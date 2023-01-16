@@ -1,5 +1,6 @@
 import { SEP, AsciiTables } from "ascii";
 import { fromB64urlQuery } from "project-sock";
+import { toB64urlQuery } from "project-sock";
 
 class DBTrio {
 
@@ -31,27 +32,46 @@ class DBTrio {
     });
   }
 
-  decrypt(params, mail) {
-    const etree = fromB64urlQuery(mail).data;
+  decryptUser(params, mail) {
+    const etree = mail.data;
+    const mail_text = toB64urlQuery(mail);
     const { from_master, from_session } = params;
     return new Promise((resolve, reject) => {
       if (!("ev" in (etree || {}))) {
         console.log('No message to decrypt.');
         return resolve(this.at.DATA.tables);
       }
-      from_session(mail).then(s_str => {
-        const m_quad = s_str.split(SEP.TS);
-        if (m_quad.length !== 4) {
+      from_session(mail_text).then(s_str => {
+        const installed = fromB64urlQuery(s_str);
+        resolve({ installed });
+      }).catch(e => {
+        console.error('Session decryption error');
+        reject(e);
+      })
+    });
+  }
+
+  decryptSession(params, mail) {
+    const etree = mail.data;
+    const mail_text = toB64urlQuery(mail);
+    const { from_master, from_session } = params;
+    return new Promise((resolve, reject) => {
+      if (!("ev" in (etree || {}))) {
+        console.log('No message to decrypt.');
+        return resolve(this.at.DATA.tables);
+      }
+      from_session(mail_text).then(s_str => {
+        const m_trio = s_str.split(SEP.TS);
+        if (m_trio.length !== 3) {
           throw new Error('Invalid mail');
         }
-        const [i_str, ...m_trio] = m_quad;
         const masters = m_trio.map((text) => {
           return from_master(text)
         })
         Promise.all(masters).then(trio => {
           this.at.ascii = trio.join(SEP.TS);
-          const installed = fromB64urlQuery(i_str);
-          resolve({ installed });
+          const { ascii } = this.at;
+          resolve({ ascii });
         }).catch(() => {
           const msg = 'Master decryption error';
           reject(new Error(msg));

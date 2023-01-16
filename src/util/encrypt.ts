@@ -5,7 +5,7 @@ import { createCipheriv } from 'crypto';
 
 import type { Digest } from "./password.js";
 
-type QMI = {
+export type QMI = {
   plain_text: string,
   master_key: Uint8Array
 }

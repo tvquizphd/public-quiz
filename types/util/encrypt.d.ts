@@ -1,4 +1,4 @@
-declare type QMI = {
+export declare type QMI = {
     plain_text: string;
     master_key: Uint8Array;
 };

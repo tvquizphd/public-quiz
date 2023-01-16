@@ -9,6 +9,7 @@ import { encryptQueryMaster } from "./util/encrypt.js";
 import { isInstallation } from "./create.js";
 
 import type { SockServer } from "sock-secret";
+import type { QMI } from "./util/encrypt.js";
 import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
 import type { NodeAny, TreeAny } from "project-sock";
@@ -63,14 +64,13 @@ interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
 type Inputs = {
+  finish: string,
   command: string,
   tree: TreeAny,
   user_in: UserIn,
   log_in: ConfigIn
 }
-type InputsFirst = Inputs & Register & {
-  finish: string
-}; 
+type InputsFirst = Inputs & Register; 
 type InputsFinal = Inputs & ServerFinal & {
   sec: Trio, inst: string, ses: string
 }; 
@@ -82,6 +82,9 @@ interface ReadNames {
 }
 interface ToList {
   (i: UserIn): Lister;
+}
+interface EncryptLine {
+  (e: QMI, c: string): Promise<string>;
 }
 interface Start {
   (i: InputsFirst): Promise<SecretOut>
@@ -211,9 +214,14 @@ const vStart: Start = async (inputs) => {
   }
 }
 
+const encryptLine: EncryptLine = async (en, command) => {
+  const tree = fromB64urlQuery(await encryptQueryMaster(en));
+  return fromNameTree({ command, tree });
+}
+
 const vLogin: Login = async (inputs) => {
-  const { Au, ses, inst } = inputs;
   const { token: secret } = inputs;
+  const { Au, ses, inst, finish } = inputs;
   //const master_key = to_bytes(secret);
   const { git, env } = inputs.log_in;
   const { command, tree } = inputs;
@@ -223,7 +231,7 @@ const vLogin: Login = async (inputs) => {
   const sock_in = { git, env, needs, secrets };
   const { Sock, Opaque } = await toUserSock(sock_in);
   // Authorized the client
-  await Opaque.serverStep(step, "op");
+  const { token } = await Opaque.serverStep(step, "op");
   await Sock.quit();
   const add_inputs = { git, secret, env, name: ses };
   try {
@@ -244,10 +252,20 @@ const vLogin: Login = async (inputs) => {
   const text_rows = inputs.sec.map((n: string) => {
     return process.env[n] || "";
   }).join('\n');
-  const master_key = to_bytes(shared);
-  const plain_text = `${ins_text}\n${text_rows}`;
-  const to_encrypt = { plain_text, master_key };
-  const for_pages = await encryptQueryMaster(to_encrypt);
+  const user_command = "mail__user";
+  const session_key = to_bytes(token);
+  const user_key = to_bytes(shared);
+  const encrypt_user = {
+    plain_text: ins_text, 
+    master_key: user_key
+  }
+  const encrypt_session = {
+    plain_text: text_rows, 
+    master_key: session_key
+  };
+  const user_line = await encryptLine(encrypt_user, user_command);
+  const session_line = await encryptLine(encrypt_session, finish);
+  const for_pages = [user_line, session_line].join('\n');
   return { for_next: "", for_pages };
 }
 

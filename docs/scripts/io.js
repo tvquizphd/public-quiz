@@ -3,6 +3,7 @@ import { toPastedText } from "wiki";
 import { toSockClient } from "sock-secret";
 import { toNameTree, fromNameTree } from "wiki";
 import { fromB64urlQuery } from "project-sock";
+import { toB64urlQuery } from "project-sock";
 
 const toOpaqueSender = ({ local, send }) => {
   console.log(local); // TODO prod version
@@ -37,19 +38,43 @@ async function ToOpaqueSock(inputs) {
   return { Opaque, Sock };
 }
 
-const toMailSeeker = ({ local, delay, host }) => {
+const toMailLine = async (line, key_in) => {
+  const { command, tree } = toNameTree(line);
+  const { from_session } = key_in;
+  if (!command) {
+    return ['error', {}];
+  }
+  try {
+    const mail_text = toB64urlQuery(tree);
+    const s_str = await from_session(mail_text);
+    return [ command, tree ];
+  }
+  catch {
+    const e_name = `error_${command}`;
+    return [ e_name, tree ];
+  }
+}
+
+const toMailSeeker = ({ local, delay, host, key_in }) => {
   console.log(local); // TODO prod version
   const dt = delay * 1000;
   return async () => {
     await new Promise(r => setTimeout(r, dt));
-    const mail = await toPastedText(host);
-    return { "mail__in": { mail } };
+    const text = await toPastedText(host);
+    const lines = text.split('\n');
+    return await lines.reduce(async (memo, line) => {
+      const [ k, v ] = await toMailLine(line, key_in);
+      const o = await memo;
+      o[k] = v;
+      return o;
+    }, {});
   }
 }
 
 async function toMailSock(inputs) {
-  const { git, local, env, delay, host } = inputs;
-  const seeker = toMailSeeker({ local, delay, host });
+  const { key_in, user_in } = inputs;
+  const { git, local, env, delay, host } = user_in;
+  const seeker = toMailSeeker({ local, delay, host, key_in });
   const sock_in = { git, env, seeker, sender: null };
   const Sock = await toSockClient(sock_in);
   if (Sock === null) {

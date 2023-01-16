@@ -4,7 +4,7 @@ import { WikiMailer } from "wiki";
 import { templates } from "templates";
 import { toEnv } from "environment";
 //import { OP } from "opaque-low-io";
-import { toMailSock,  writeText } from "io";
+import { toMailSock,  writeText, clientLogin } from "io";
 //import { request } from "@octokit/request";
 import { Workflow } from "workflow";
 //import { toHash } from "encrypt";
@@ -117,6 +117,7 @@ const runReef = (dev, remote, env) => {
     local: dev !== null,
     dev_root: dev.dev_root,
     dev_file: "Home.md",
+    user_id: "root",
     dev_handle: null,
     pub_str: "",
     reset: false,
@@ -194,35 +195,51 @@ const runReef = (dev, remote, env) => {
     }
   }
 
-  async function decryptWithPassword({pass, /*newPass*/}) {
-    //const rootPass = newPass ? newPass : pass;
+  async function decryptWithPassword(inputs) {
+    const { newPass } = inputs;
+    const pass = newPass || inputs.pass;
     DATA.loading.socket = true;
     const { hash: search } = window.location;
     const result = await decryptQuery(search, pass);
     const master_key = result.master_key;
     const shared = result.plain_text;
-    const session_key = toBytes(shared);
-    //const times = 1000;
+    const user_key = toBytes(shared);
+    const times = 1000;
     const delay = 0.3333;
     const { dbt } = API;
+    const { user_id } = DATA;
     const { env, git, host, local } = DATA;
     const send = (text) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);
     }
+    const user_args = { 
+      from_master: readKey(master_key),
+      from_session: readKey(user_key)
+    };
+    // Use user key to recieve GitHub token
     const user_in = { git, env, local, delay, host, send };
-    const { Sock } = await toMailSock(user_in);
-    const { mail } = await Sock.get("mail", "in");
-    const d_args = { 
+    const opaque_in = { user_id, user_in, pass, times };
+    const user_sock_in = { user_in, key_in: user_args };
+    const { Sock: UserSock } = await toMailSock(user_sock_in);
+    const user = await UserSock.get("mail", "user");
+    const { installed } = await dbt.decryptUser(user_args, user);
+    git.token = installed.token;
+    UserSock.quit();
+    // Login to recieve session key
+    const token = await clientLogin(opaque_in);
+    const session_key = toBytes(token);
+    const session_args = { 
       from_master: readKey(master_key),
       from_session: readKey(session_key)
     };
-    const { installed } = await dbt.decrypt(d_args, mail);
-    git.token = installed.token;
-    console.log(git);
+    const session_sock_in = { user_in, key_in: session_args };
+    const { Sock } = await toMailSock(session_sock_in);
+    const mail = await Sock.get("mail", "session");
+    const { ascii } = await dbt.decryptSession(session_args, mail);
+    console.log({ token, ascii });
+    Sock.quit();
     /*
-    const user_in = { git, env, local, delay, host, send };
-    await clientLogin({ user_id, user_in, pass, times });
     */
     if ((() => true)()) { // TODO
       throw new Error("Checkpoint");
@@ -257,9 +274,9 @@ const runReef = (dev, remote, env) => {
     // Start verification
     const Opaque = await OP(Sock);
     const op = findOp(namespace.opaque, "registered");
-    await Opaque.clientRegister(rootPass, "root", op);
+    await Opaque.clientRegister(pass, "root", op);
     const { clientAuthenticate: authenticate } = Opaque;
-    const session = await authenticate(rootPass, "root", times, op);
+    const session = await authenticate(pass, "root", times, op);
     const bytes = session.match(/../g).map(h=>parseInt(h,16));
     DATA.session_hash = await toHash(session);
     const session_key = new Uint8Array(bytes);

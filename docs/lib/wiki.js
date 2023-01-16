@@ -22,7 +22,7 @@ const toPastedText = async (url) => {
   const opts = { headers };
   const result = await fetch(wiki, opts);
   const txt = await (result).text();
-  return txt.replaceAll('\n', '');
+  return txt;
 }
 
 const toPasted = async (url) => {
