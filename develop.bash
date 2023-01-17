@@ -3,7 +3,7 @@ SET_SESSION=$(cat .env | egrep "^SESSION")
 SESSION=$(sed -r "s/.*=.(.+)./\1/" <<< $SET_SESSION)
 GIT_URL=$(git config --get remote.origin.url)
 REMOTE=$(sed -r "s_.*[:/](.+/.+)_\1_" <<< $GIT_URL)
-DEPLOYMENT="DEVELOPMENT-TEST-TEST"
+DEPLOYMENT="DEVELOPMENT-TEST"
 export DEPLOYMENT
 export REMOTE
 SERVER_URL="\"localhost:8000\""
@@ -54,9 +54,10 @@ if [ ! -z $SESSION ]; then
       read -r OLD_HASH
       export OLD_HASH
     fi
+    # Simulate wait for workflow dispatch
+    pnpm develop DEV INBOX
     echo "Running login development action." $'\n'
     echo "Please open your personal login link." $'\n'
-    # Simulate wait for workflow dispatch
     enter $MD
     exit 0
   fi

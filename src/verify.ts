@@ -4,7 +4,7 @@ import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
 import { toSockServer } from "sock-secret";
 import { toPastedText, useGit, isTree } from "./util/pasted.js";
-import { toNameTree, fromNameTree } from "./util/pasted.js";
+import { toNameTree, fromNameTree, toBytes } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
 import { isInstallation } from "./create.js";
 
@@ -178,12 +178,6 @@ const toList: ToList = (ins) => {
   }
 }
 
-const to_bytes = (s: string) => {
-  const a: string[] = s.match(/../g) || [];
-  const bytes = a.map(h =>parseInt(h,16)); 
-  return new Uint8Array(bytes);
-}
-
 const vStart: Start = async (inputs) => {
   const { git, env, pep, reset } = inputs.log_in;
   const { command, finish, tree } = inputs;
@@ -222,8 +216,9 @@ const encryptLine: EncryptLine = async (en, command) => {
 const vLogin: Login = async (inputs) => {
   const { token: secret } = inputs;
   const { Au, ses, inst, finish } = inputs;
-  //const master_key = to_bytes(secret);
+  //const master_key = toBytes(secret);
   const { git, env } = inputs.log_in;
+  const { prod } = inputs.user_in;
   const { command, tree } = inputs;
   const secrets = { [command]: tree };
   const step = { token: secret, Au };
@@ -250,11 +245,13 @@ const vLogin: Login = async (inputs) => {
   const { installed, shared } = ins_obj;
   const ins_text = toB64urlQuery(installed);
   const text_rows = inputs.sec.map((n: string) => {
-    return process.env[n] || "";
+    if (!prod) {
+      return process.env[n] || "";
+    }
   }).join('\n');
   const user_command = "mail__user";
-  const session_key = to_bytes(token);
-  const user_key = to_bytes(shared);
+  const session_key = toBytes(token);
+  const user_key = toBytes(shared);
   const encrypt_user = {
     plain_text: ins_text, 
     master_key: user_key

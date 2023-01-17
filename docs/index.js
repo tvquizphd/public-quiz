@@ -203,8 +203,8 @@ const runReef = (dev, remote, env) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);
     }
-    const user_in = { git, env, local, delay, host, send };
-    await clientLogin({ user_id, user_in, pass, times });
+    const user_in = { git, env, local, delay, host };
+    await clientLogin({ user_id, user_in, pass, times, send });
     DATA.loading.finish = false;
     const to_encrypt = {
       password: pass,
@@ -249,7 +249,8 @@ const runReef = (dev, remote, env) => {
         const query = toB64urlQuery(encrypted);
         DATA.login = `${DATA.host}/login${query}`;
         DATA.step = final_step;
-      }).catch(() => {
+      }).catch((e) => {
+        console.error(e);
         DATA.modal = {
           error: true,
           message: "Unable to register"

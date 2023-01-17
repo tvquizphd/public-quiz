@@ -1,18 +1,19 @@
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
+import { hasEncryptionKeys, decryptSecret } from "./decrypt.js";
+import { toSign, isInstallation } from "../create.js";
 import { request } from "@octokit/request";
 import { simpleGit } from 'simple-git';
-import { toSign } from "../create.js";
 import { isTrio } from "./types.js";
 import path from 'node:path';
 import fs from 'fs'
 
 import type { ClientOut, NewClientOut } from "opaque-low-io";
+import type { Secrets } from "./encrypt.js";
 import type { TreeAny, NodeAny } from "project-sock"
 import type { UserInstallRaw } from "../create.js";
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
-import type { Secrets } from "./encrypt.js";
-import type { Git } from "./types.js";
+import type { Git, Trio } from "./types.js";
 
 export type HasGit = { git: Git }
 export type WikiConfig = {
@@ -45,6 +46,11 @@ export type Pasted = {
 export type UserApp = Pasted & {
   S: ServerAuthData
 }
+type DevInboxIn = {
+  user_in: UserIn,
+  inst: string,
+  sec: Trio 
+}
 interface ToUserInstall {
   (u: InstallIn): Promise<Obj>;
 }
@@ -53,6 +59,9 @@ interface ReadUserInstall {
 }
 interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
+}
+interface ReadDevInbox {
+  (u: DevInboxIn): Promise<null>;
 }
 interface ReadLoginStart {
   (u: UserIn): Promise<boolean>;
@@ -215,6 +224,50 @@ const toTries: ToTries = (delay) => {
   return { dt, max_tries };
 }
 
+const toBytes = (s: string) => {
+  const a: string[] = s.match(/../g) || [];
+  const bytes = a.map(h =>parseInt(h,16)); 
+  return new Uint8Array(bytes);
+}
+
+const readDevInbox: ReadDevInbox = async (inputs) => {
+  const { user_in, inst, sec } = inputs;
+  const { tmp_file: src } = useGit(user_in);
+  if (user_in.prod) {
+    throw new Error('Data only in Home.md during development');
+  }
+  const ins_value = process.env[inst] || "";
+  const ins_obj = fromB64urlQuery(ins_value);
+  if (!isInstallation(ins_obj)) {
+    throw new Error(`Secret ${inst} invalid.`);
+  }
+  const { shared } = ins_obj;
+  const key = toBytes(shared);
+  try {
+    const text = await toPastedText(src);
+    const { command, tree } = toNameTree(text);
+    const ok_command = command === "mail__table";
+    const data = tree.data || "";
+    if (ok_command && hasEncryptionKeys(data)) {
+      const out = decryptSecret({ data, key });
+      const plain_text = new TextDecoder().decode(out);
+      const trio = plain_text.split("\n");
+      if (isTrio(trio)) {
+        sec.map((k: string, i: number) => {
+          process.env[k] = trio[i];
+        });
+      }
+    }
+    else {
+      console.log('Missing dev inbox');
+    }
+  }
+  catch {
+    console.log('No passwords in dev inbox');
+  }
+  return null;
+}
+
 const readLoginStart: ReadLoginStart = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
   const { tmp_file: src } = useGit(ins);
@@ -334,5 +387,5 @@ const fromNameTree: FromNameTree = ({ command, tree }) => {
 export { 
   readUserApp, readUserInstall, toTries, toPastedText, useGit,
   isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
-  readLoginStart, readLoginEnd, isObj
+  readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes
 }

@@ -13,23 +13,15 @@ class DBTrio {
     return this.at.ascii.split(SEP.TS);
   }
 
-  encrypt(params) {
+  async encrypt(params) {
     const { to_master, to_session } = params;
     const masters = this.trio.map((text) => {
       return to_master(text);
     });
-    return new Promise((resolve, reject) => {
-      Promise.all(masters).then(m_trio => {
-        const m_str = m_trio.join(SEP.TS);
-        to_session(m_str).then(resolve).catch((e) => {
-          console.error('Session encryption error');
-          reject(e);
-        });
-      }).catch((e) => {
-        console.error('Master encryption error');
-        reject(e);
-      });
-    });
+    const m_trio = await Promise.all(masters);
+    const m_str = m_trio.join(SEP.TS);
+    const out = await to_session(m_str);
+    return fromB64urlQuery(out);
   }
 
   decryptUser(params, mail) {

@@ -5,7 +5,7 @@ import { toNameTree, fromNameTree } from "wiki";
 import { fromB64urlQuery } from "project-sock";
 import { toB64urlQuery } from "project-sock";
 
-const toOpaqueSender = ({ local, send }) => {
+const toSender = ({ local, send }) => {
   console.log(local); // TODO prod version
   return (kv) => {
     const { name: command, secret } = kv;
@@ -25,9 +25,9 @@ const toOpaqueSeeker = ({ local, delay, host }) => {
   }
 }
 
-async function ToOpaqueSock(inputs) {
-  const { git, local, env, delay, host, send } = inputs;
-  const sender = toOpaqueSender({ local, send });
+async function toOpaqueSock(inputs, send) {
+  const { git, local, env, delay, host } = inputs;
+  const sender = toSender({ local, send });
   const seeker = toOpaqueSeeker({ local, delay, host });
   const sock_in = { git, env, seeker, sender };
   const Sock = await toSockClient(sock_in);
@@ -72,10 +72,11 @@ const toMailSeeker = ({ local, delay, host, key_in }) => {
 }
 
 async function toMailSock(inputs) {
-  const { key_in, user_in } = inputs;
+  const { key_in, send, user_in } = inputs;
   const { git, local, env, delay, host } = user_in;
   const seeker = toMailSeeker({ local, delay, host, key_in });
-  const sock_in = { git, env, seeker, sender: null };
+  const sender = toSender({ local, send });
+  const sock_in = { git, env, seeker, sender };
   const Sock = await toSockClient(sock_in);
   if (Sock === null) {
     throw new Error('Unable to make socket.');
@@ -90,7 +91,7 @@ const toSyncOp = async () => {
 async function clientRegister(inputs) {
   const { user_in, user_id, pass, times } = inputs;
   const c_first = { password: pass, user_id };
-  const { Sock, Opaque } = await ToOpaqueSock(user_in);
+  const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send);
   const reg_out = await Opaque.clientStep(c_first, times, "op");
   Sock.quit();
   return reg_out;
@@ -98,16 +99,16 @@ async function clientRegister(inputs) {
 
 async function clientVerify(inputs) {
   const { user_in, reg_out, times } = inputs;
-  const { Sock, Opaque } = await ToOpaqueSock(user_in);
+  const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send);
   const c_out = await Opaque.clientStep(reg_out, times, "op");
   Sock.quit();
   return c_out.token;
 }
 
-async function clientLogin(log_in) {
-  const { user_in, times } = log_in;
-  const reg_out = await clientRegister(log_in);
-  const ver_in = { user_in, reg_out, times };
+async function clientLogin(inputs) {
+  const { user_in, send, times } = inputs;
+  const reg_out = await clientRegister(inputs);
+  const ver_in = { user_in, send, reg_out, times };
   const token = await clientVerify(ver_in);
   return token;
 }

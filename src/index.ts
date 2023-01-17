@@ -1,6 +1,6 @@
 import { isLoginStart, isLoginEnd, isTree } from "./util/pasted.js";
 import { readLoginStart, readLoginEnd, toNameTree } from "./util/pasted.js";
-import { readUserApp, readUserInstall } from "./util/pasted.js";
+import { readUserApp, readDevInbox, readUserInstall } from "./util/pasted.js";
 import { fromB64urlQuery, toB64urlQuery } from "project-sock";
 import { addSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin } from "./verify.js";
@@ -195,6 +195,9 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   const user_in = { git, prod, delay, wiki_config };
   if (dev) {
     try {
+      if (args[1] === "INBOX") {
+        await readDevInbox({ user_in, inst, sec });
+      }
       if (args[1] === "OPEN") {
         await readLoginStart(user_in);
       }

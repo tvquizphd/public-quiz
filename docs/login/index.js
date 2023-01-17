@@ -1,13 +1,15 @@
-import { Mailer } from "mailer";
+//import { Mailer } from "mailer";
 import { DBTrio } from "dbtrio";
 import { WikiMailer } from "wiki";
 import { templates } from "templates";
 import { toEnv } from "environment";
 //import { OP } from "opaque-low-io";
-import { toMailSock,  writeText, clientLogin } from "io";
+import { toMailSock,  writeText } from "io";
+import { clientLogin } from "io";
 //import { request } from "@octokit/request";
 import { Workflow } from "workflow";
-//import { toHash } from "encrypt";
+import { toHash } from "encrypt";
+import { encryptQueryMaster } from "encrypt";
 import { decryptQueryMaster } from "decrypt";
 import { decryptQuery, toBytes } from "decrypt";
 /*
@@ -113,12 +115,14 @@ const runReef = (dev, remote, env) => {
     sending: false
   }
   const DATA = store({
+    user_key: null,
+    master_key: null,
     session_hash: null,
     local: dev !== null,
     dev_root: dev.dev_root,
     dev_file: "Home.md",
-    user_id: "root",
     dev_handle: null,
+    user_id: "root",
     pub_str: "",
     reset: false,
     modal: null,
@@ -155,22 +159,48 @@ const runReef = (dev, remote, env) => {
     }
     */
   }
-  function uploadDatabase(mk) {
-    const { mailer } = API;
-    DATA.loading.sending = true;
-    if (mailer instanceof Mailer) {
-      if (ArrayBuffer.isView(mk)) {
-        mailer.mk = mk;
-      }
-      return mailer.send_database().then(() => {
-        DATA.loading.sending = false;
-        console.log('Sent mail.');
-      }).catch((e) => {
-        console.error(e);
-      });
+
+  const writeKey = (master_key) => {
+    return async (plain_text) => {
+      const args = { plain_text, master_key };
+      return await encryptQueryMaster(args);
     }
-    return Promise.reject("Unable to send mail.");
   }
+
+  const readKey = (master_key) => {
+    return async (search) => {
+      if (search === "") return "";
+      const args = { search, master_key };
+      const out = await decryptQueryMaster(args);
+      return out.plain_text;
+    }
+  }
+
+  const uploadDatabase = async () => {
+    const { env, git, host, local } = DATA;
+    const { master_key, user_key } = DATA;
+    const { dbt } = API;
+    const delay = 0.3333;
+    const send = (text) => {
+      const f = DATA.dev_handle;
+      if (f) writeText(f, text);
+    }
+    const user_args = { 
+      to_master: writeKey(master_key),
+      to_session: writeKey(user_key)
+    };
+    DATA.loading.sending = true;
+    const user_in = { git, env, local, delay, host };
+    const user_sock_in = { send, user_in, key_in: user_args };
+    const { Sock: UserSock } = await toMailSock(user_sock_in);
+    // TODO -- make sure it works
+    const encrypted = await dbt.encrypt(user_args);
+    UserSock.give("mail", "table", encrypted);
+    DATA.loading.sending = false;
+    console.log('Sent mail.');
+    UserSock.quit();
+  }
+
   const props = { DATA, API, templates };
   const workflow = new Workflow(props);
 
@@ -186,15 +216,6 @@ const runReef = (dev, remote, env) => {
     return { pass, newPass };
   }
 
-  const readKey = (master_key) => {
-    return async (search) => {
-      if (search === "") return "";
-      const args = { search, master_key };
-      const out = await decryptQueryMaster(args);
-      return out.plain_text;
-    }
-  }
-
   async function decryptWithPassword(inputs) {
     const { newPass } = inputs;
     const pass = newPass || inputs.pass;
@@ -204,11 +225,14 @@ const runReef = (dev, remote, env) => {
     const master_key = result.master_key;
     const shared = result.plain_text;
     const user_key = toBytes(shared);
+    DATA.master_key = master_key;
+    DATA.user_key = user_key;
     const times = 1000;
     const delay = 0.3333;
     const { dbt } = API;
     const { user_id } = DATA;
     const { env, git, host, local } = DATA;
+    //await devStartWaiter({ local, delay, host });
     const send = (text) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);
@@ -218,13 +242,15 @@ const runReef = (dev, remote, env) => {
       from_session: readKey(user_key)
     };
     // Use user key to recieve GitHub token
-    const user_in = { git, env, local, delay, host, send };
-    const opaque_in = { user_id, user_in, pass, times };
-    const user_sock_in = { user_in, key_in: user_args };
+    const user_in = { git, env, local, delay, host };
+    const opaque_in = { send, user_id, user_in, pass, times };
+    const user_sock_in = { send, user_in, key_in: user_args };
     const { Sock: UserSock } = await toMailSock(user_sock_in);
     const user = await UserSock.get("mail", "user");
     const { installed } = await dbt.decryptUser(user_args, user);
     git.token = installed.token;
+    DATA.loading.socket = false;
+    DATA.loading.mailer = true;
     UserSock.quit();
     // Login to recieve session key
     const token = await clientLogin(opaque_in);
@@ -233,83 +259,20 @@ const runReef = (dev, remote, env) => {
       from_master: readKey(master_key),
       from_session: readKey(session_key)
     };
-    const session_sock_in = { user_in, key_in: session_args };
+    DATA.loading.mailer = false;
+    DATA.loading.database = true;
+    const session_sock_in = { send, user_in, key_in: session_args };
     const { Sock } = await toMailSock(session_sock_in);
     const mail = await Sock.get("mail", "session");
     const { ascii } = await dbt.decryptSession(session_args, mail);
     console.log({ token, ascii });
     Sock.quit();
+    // TODO should use this or user_key hash?
+    DATA.session_hash = await toHash(token);
+    DATA.loading.database = false;
+    return ["Logged in"];
+    // TODO password reset
     /*
-    */
-    if ((() => true)()) { // TODO
-      throw new Error("Checkpoint");
-    }
-    if (!wikiMailer.done) {
-      throw new Error("Multiple login attempts");
-    }
-    /*
-    wikiMailer.start();
-    const prom = new Promise((resolve, reject) => {
-      wikiMailer.addHandler('sym', (pasted) => {
-        decryptQuery(pasted, shared).then((token) => {
-          wikiMailer.finish();
-          resolve(token)
-        }).catch((e) => {
-          reject(e?.message);
-        });
-      });
-    });
-    DATA.git.token = await prom;
-    
-    const namespace = configureNamespace(env);
-    await triggerGithubAction(DATA);
-    const sock_inputs = { git, delay, ...namespace };
-    const Sock = await toOpaqueSock(sock_inputs);
-    Sock.give = giver.bind(Sock, (k) => {
-      if (k.match(/auth_data$/)) {
-        DATA.loading.socket = false;
-        DATA.loading.mailer = true;
-      }
-    });
-    // Start verification
-    const Opaque = await OP(Sock);
-    const op = findOp(namespace.opaque, "registered");
-    await Opaque.clientRegister(pass, "root", op);
-    const { clientAuthenticate: authenticate } = Opaque;
-    const session = await authenticate(pass, "root", times, op);
-    const bytes = session.match(/../g).map(h=>parseInt(h,16));
-    DATA.session_hash = await toHash(session);
-    const session_key = new Uint8Array(bytes);
-    Sock.sock.project.done = true;
-    // Recieve mail from mailbox
-    const mbs = await toSock(sock_inputs, "mailbox");
-    const m_input = { 
-      mailbox: namespace.mailbox,
-      session_key,
-      master_key,
-      delay,
-      DATA,
-      mbs
-    }
-    DATA.loading.mailer = false;
-    DATA.loading.database = true;
-    API.mailer = new Mailer(m_input);
-    const output = [];
-    try {
-      await API.mailer.read_database();
-      DATA.loading.database = false;
-      output.push("Loaded database");
-    }
-    catch (e) {
-      const msg = 'Master decryption error';
-      DATA.loading.database = false;
-      const message = e?.message;
-      if (message !== msg) {
-        throw e;
-      }
-      console.warn(message); //TODO
-      return;
-    }
     if (typeof newPass === "string") { 
       const { token } = DATA.git;
       const to_encrypt = {

@@ -1,9 +1,9 @@
 import type { ClientOut, NewClientOut } from "opaque-low-io";
+import type { Secrets } from "./encrypt.js";
 import type { TreeAny, NodeAny } from "project-sock";
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
-import type { Secrets } from "./encrypt.js";
-import type { Git } from "./types.js";
+import type { Git, Trio } from "./types.js";
 export declare type HasGit = {
     git: Git;
 };
@@ -37,11 +37,19 @@ export declare type Pasted = {
 export declare type UserApp = Pasted & {
     S: ServerAuthData;
 };
+declare type DevInboxIn = {
+    user_in: UserIn;
+    inst: string;
+    sec: Trio;
+};
 interface ReadUserInstall {
     (u: InstallIn): Promise<UserInstall>;
 }
 interface ReadUserApp {
     (u: UserIn): Promise<UserApp>;
+}
+interface ReadDevInbox {
+    (u: DevInboxIn): Promise<null>;
 }
 interface ReadLoginStart {
     (u: UserIn): Promise<boolean>;
@@ -87,10 +95,12 @@ declare function isLoginEnd(o: NodeAny): o is ClientAuthResult;
 declare const useGit: UseGit;
 declare const toPastedText: ToPastedText;
 declare const toTries: ToTries;
+declare const toBytes: (s: string) => Uint8Array;
+declare const readDevInbox: ReadDevInbox;
 declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;
 declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
 declare const fromNameTree: FromNameTree;
-export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj };
+export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes };

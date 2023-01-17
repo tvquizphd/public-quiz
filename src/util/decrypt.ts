@@ -86,5 +86,5 @@ const decryptQuery: DecryptQuery = async (search, pass) => {
 }
 
 export {
-  isBytes, decryptQueryMaster, decryptQuery
+  isBytes, decryptQueryMaster, decryptQuery, decryptSecret, hasEncryptionKeys
 }
