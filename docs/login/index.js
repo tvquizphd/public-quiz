@@ -1,4 +1,3 @@
-//import { Mailer } from "mailer";
 import { DBTrio } from "dbtrio";
 import { WikiMailer } from "wiki";
 import { templates } from "templates";
@@ -149,15 +148,6 @@ const runReef = (dev, remote, env) => {
   const API = {
     mailer: null,
     dbt: new DBTrio({ DATA })
-    /*
-    get dbt() {
-      const { mailer } = API;
-      if (mailer instanceof Mailer) {
-        return mailer.dbt;
-      }
-      return new DBTrio({ DATA });
-    }
-    */
   }
 
   const writeKey = (master_key) => {

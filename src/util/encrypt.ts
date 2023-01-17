@@ -1,4 +1,4 @@
-import { toB64urlQuery } from "project-sock";
+import { toB64urlQuery } from "sock-secret";
 import { digestNewPass } from './password.js';
 import { getRandomValues } from 'crypto';
 import { createCipheriv } from 'crypto';

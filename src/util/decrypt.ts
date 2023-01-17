@@ -1,4 +1,4 @@
-import { fromB64urlQuery } from "project-sock";
+import { fromB64urlQuery } from "sock-secret";
 import { createDecipheriv } from 'crypto';
 import { digestPass } from './password.js';
 import { needKeys } from "./keys.js";

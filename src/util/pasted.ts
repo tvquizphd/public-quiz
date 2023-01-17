@@ -1,4 +1,4 @@
-import { fromB64urlQuery, toB64urlQuery } from "project-sock";
+import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
 import { hasEncryptionKeys, decryptSecret } from "./decrypt.js";
 import { toSign, isInstallation } from "../create.js";
 import { request } from "@octokit/request";
@@ -9,7 +9,7 @@ import fs from 'fs'
 
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { Secrets } from "./encrypt.js";
-import type { TreeAny, NodeAny } from "project-sock"
+import type { TreeAny, NodeAny } from "sock-secret"
 import type { UserInstallRaw } from "../create.js";
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";

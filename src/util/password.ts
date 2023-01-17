@@ -1,4 +1,4 @@
-import { fromB64urlQuery } from 'project-sock';
+import { fromB64urlQuery } from 'sock-secret';
 import argon2 from 'argon2';
 
 import { needKeys } from "./keys.js";

@@ -1,4 +1,4 @@
-import { toB64urlQuery, fromB64urlQuery } from "project-sock";
+import { toB64urlQuery, fromB64urlQuery } from "sock-secret";
 import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
@@ -12,7 +12,7 @@ import type { SockServer } from "sock-secret";
 import type { QMI } from "./util/encrypt.js";
 import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
-import type { NodeAny, TreeAny } from "project-sock";
+import type { NodeAny, TreeAny } from "sock-secret";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
 import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
 
@@ -244,9 +244,9 @@ const vLogin: Login = async (inputs) => {
   }
   const { installed, shared } = ins_obj;
   const ins_text = toB64urlQuery(installed);
-  const text_rows = inputs.sec.map((n: string) => {
+  const text_rows = inputs.sec.map((k: string) => {
     if (!prod) {
-      return process.env[n] || "";
+      return process.env[k] || "";
     }
   }).join('\n');
   const user_command = "mail__user";

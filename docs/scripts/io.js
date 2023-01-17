@@ -2,8 +2,8 @@ import { OPS, OP } from "opaque-low-io";
 import { toPastedText } from "wiki";
 import { toSockClient } from "sock-secret";
 import { toNameTree, fromNameTree } from "wiki";
-import { fromB64urlQuery } from "project-sock";
-import { toB64urlQuery } from "project-sock";
+import { fromB64urlQuery } from "sock-secret";
+import { toB64urlQuery } from "sock-secret";
 
 const toSender = ({ local, send }) => {
   console.log(local); // TODO prod version

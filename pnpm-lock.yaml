@@ -22,9 +22,8 @@ specifiers:
   octokit: ^2.0.7
   opaque-low-io: ^3.2.1
   pkg: ^5.8.0
-  project-sock: 1.1.1
   simple-git: ^3.14.1
-  sock-secret: 2.0.0
+  sock-secret: 2.0.1
   ts-node: ^10.9.1
   typescript: ^4.8.3
 
@@ -37,9 +36,8 @@ dependencies:
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
   opaque-low-io: 3.2.1
-  project-sock: 1.1.1
   simple-git: 3.14.1
-  sock-secret: 2.0.0
+  sock-secret: 2.0.1
   ts-node: 10.9.1_u7tj3mdglidusk2sd73zi6kt7q
 
 devDependencies:
@@ -2137,14 +2135,6 @@ packages:
     engines: {node: '>=0.4.0'}
     dev: true
 
-  /project-sock/1.1.1:
-    resolution: {integrity: sha512-GQurJmu1nXlAuiTK5MOI47JIA3Z1vvojNs9PawbEYcqTkxKtC948ZSquQoG7gmbE+rQRUq7HFCfLljLsXh+0tQ==}
-    dependencies:
-      '@octokit/graphql': 5.0.1
-    transitivePeerDependencies:
-      - encoding
-    dev: false
-
   /pump/3.0.0:
     resolution: {integrity: sha512-LwZy+p3SFs1Pytd/jYct4wpv49HiYCqd9Rlc5ZVdk0V+8Yzv6jR5Blk3TRmPL1ft69TxP0IMZGJ+WPFU2BFhww==}
     dependencies:
@@ -2334,8 +2324,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /sock-secret/2.0.0:
-    resolution: {integrity: sha512-WyGgcO9/EJJqwzono6/r8Jq5/N99QcKHKr3ao7Q9Jn+mx8X4Ebdue+IAaVOM2ukos7XgDQexoXYvMnqPcbvhAg==}
+  /sock-secret/2.0.1:
+    resolution: {integrity: sha512-Wm8YRiS+CPnNlCKr+h+/lDRQB3ASs/22rtQ/0BNZs3DCOz4S0z8fhcYdS87K9w/MJ4wOYaBFdKFa398UST0YHQ==}
     dependencies:
       '@octokit/request': 6.2.2
       libsodium-wrappers: 0.7.8

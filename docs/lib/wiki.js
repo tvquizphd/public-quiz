@@ -1,5 +1,5 @@
-import { fromB64urlQuery } from "project-sock";
-import { toB64urlQuery } from "project-sock";
+import { fromB64urlQuery } from "sock-secret";
+import { toB64urlQuery } from "sock-secret";
 
 function isForApp(p) {
   return p.client_auth_data;

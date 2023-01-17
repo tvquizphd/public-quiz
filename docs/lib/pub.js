@@ -1,7 +1,7 @@
 import { toRandom } from "to-key";
 import { encryptSecrets } from "encrypt";
-import { toB64urlQuery } from "project-sock";
-import { fromB64urlQuery } from "project-sock";
+import { toB64urlQuery } from "sock-secret";
+import { fromB64urlQuery } from "sock-secret";
 
 const toPub = () => {
   const LOCAL_KEY = "private-state-key";

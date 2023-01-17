@@ -1,7 +1,7 @@
 import { isLoginStart, isLoginEnd, isTree } from "./util/pasted.js";
 import { readLoginStart, readLoginEnd, toNameTree } from "./util/pasted.js";
 import { readUserApp, readDevInbox, readUserInstall } from "./util/pasted.js";
-import { fromB64urlQuery, toB64urlQuery } from "project-sock";
+import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
 import { addSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin } from "./verify.js";
 import { toSyncOp } from "./verify.js";
@@ -15,7 +15,7 @@ import argon2 from 'argon2';
 import fs from "fs";
 
 import type { AppOutput } from "./create.js";
-import type { TreeAny } from "project-sock"
+import type { TreeAny } from "sock-secret"
 import type { WikiConfig } from "./util/pasted.js";
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { ServerFinal } from "opaque-low-io";

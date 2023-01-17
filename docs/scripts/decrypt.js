@@ -1,5 +1,5 @@
 import { toKey } from "to-key";
-import { fromB64urlQuery } from "project-sock";
+import { fromB64urlQuery } from "sock-secret";
 
 const decrypt = (key, ev, iv, tag) => {
   const alg = 'AES-GCM';

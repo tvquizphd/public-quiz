@@ -5,7 +5,7 @@ import type { Git } from "./util/types.js";
 import { sign } from 'jws';
 
 import type { Header } from 'jws';
-import type { NodeAny } from "project-sock"
+import type { NodeAny } from "sock-secret"
 
 interface ToAppInput {
   code: string;

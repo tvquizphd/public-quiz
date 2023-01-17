@@ -1,7 +1,7 @@
 import { 
   toPub, toShared, toServerAuth, toAppPublic
 } from "pub";
-import { toB64urlQuery } from "project-sock";
+import { toB64urlQuery } from "sock-secret";
 import { toSyncOp, clientLogin,  writeText } from "io";
 import { WikiMailer } from "wiki";
 import { encryptSecrets } from "encrypt";

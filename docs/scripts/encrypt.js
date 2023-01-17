@@ -1,7 +1,7 @@
 import { toKey } from "to-key";
 import { 
   fromB64urlQuery, toB64urlQuery
-} from "project-sock";
+} from "sock-secret";
 
 const toNumBytes = (n) => {
   const c = window.crypto;

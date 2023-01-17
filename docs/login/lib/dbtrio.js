@@ -1,6 +1,6 @@
 import { SEP, AsciiTables } from "ascii";
-import { fromB64urlQuery } from "project-sock";
-import { toB64urlQuery } from "project-sock";
+import { fromB64urlQuery } from "sock-secret";
+import { toB64urlQuery } from "sock-secret";
 
 class DBTrio {
 
