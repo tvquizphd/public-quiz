@@ -108,7 +108,7 @@ const runReef = (dev, remote, env) => {
     app_str: "",
     Au: null, //TODO
     local: dev !== null,
-    dev_root: dev.dev_root,
+    dev_root: dev?.dev_root,
     dev_file: "Home.md",
     user_id: "root",
     dev_handle: null,
@@ -177,6 +177,7 @@ const runReef = (dev, remote, env) => {
     wikiMailer.finish();
     DATA.loading = { ...NO_LOADING };
     readSearch().then((first_step) => {
+      console.log({ first_step }); //TODO
       mailerStart(first_step);
     });
   }

@@ -1,7 +1,7 @@
 import type { SockServer } from "sock-secret";
 import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
-import type { TreeAny } from "project-sock";
+import type { TreeAny } from "sock-secret";
 import type { ServerFinal } from "opaque-low-io";
 import type { Op, Ops } from 'opaque-low-io';
 declare type Need = "first" | "last";

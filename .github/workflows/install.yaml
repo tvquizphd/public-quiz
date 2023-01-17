@@ -1,5 +1,7 @@
 name: Register from Wiki
-on: workflow_dispatch
+on:
+  pull_request:
+    types: [opened, reopened]
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
@@ -44,7 +46,7 @@ jobs:
           echo "" > secret.txt
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index PUB ${{ github.token }} OPAQUE
+          ./index SETUP PUB OPAQUE
           echo $(head -n 1 secret.txt) > docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -60,7 +62,7 @@ jobs:
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index APP ${{ github.token }} "${{ env.state }}"
+          ./index SETUP APP "${{ env.state }}"
           echo $(head -n 1 secret.txt) > docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
@@ -76,22 +78,12 @@ jobs:
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index TOKEN ${{ github.token }} "${{ env.state }}"
+          ./index SETUP TOKEN "${{ env.state }}"
           echo $(head -n 1 secret.txt) > docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
-          STATE=$(tail -n 1 secret.txt)
-          echo "::add-mask::$STATE"
-          echo "state=$STATE" >> $GITHUB_ENV
         env:
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }
       - uses: actions/deploy-pages@v1
-      - name: New Root User Registration
-        run: |
-          curl -L -o index $INDEX_URL
-          chmod +x index
-          ./index AUTH ${{ github.token }} "${{ env.state }}"
-        env:
-          INDEX_URL: ${{ steps.index.outputs.index }}

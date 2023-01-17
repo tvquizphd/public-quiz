@@ -118,7 +118,7 @@ const runReef = (dev, remote, env) => {
     master_key: null,
     session_hash: null,
     local: dev !== null,
-    dev_root: dev.dev_root,
+    dev_root: dev?.dev_root,
     dev_file: "Home.md",
     dev_handle: null,
     user_id: "root",

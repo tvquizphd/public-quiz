@@ -1,4 +1,4 @@
-import { isLoginStart, isLoginEnd, isTree } from "./util/pasted.js";
+import { isLoginStart, isLoginEnd, isTree, toInstallation } from "./util/pasted.js";
 import { readLoginStart, readLoginEnd, toNameTree } from "./util/pasted.js";
 import { readUserApp, readDevInbox, readUserInstall } from "./util/pasted.js";
 import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
@@ -144,6 +144,11 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   }
 }
 
+const toGitToken = (prod: boolean, inst: string) => {
+  if (!prod) return "";
+  return toInstallation(inst).installed.token;
+}
+
 (async (): Promise<Result> => {
   const args = process.argv.slice(2);
   if (args.length < 1) {
@@ -173,7 +178,7 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   const git = {
     repo: remote[1],
     owner: remote[0],
-    owner_token: "",
+    owner_token: toGitToken(prod, inst),
   }
   const wiki_config: WikiConfig = {
     home: "Home.md",
@@ -287,7 +292,8 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       try {
         const new_client = toNewClientAuth(client_in);
         console.log("Created secure public channel.\n");
-        writeSecretText(toNew(new_client));
+        const { for_pages, for_next } = toNew(new_client);
+        writeSecretText({ for_pages, for_next });
       }
       catch (e: any) {
         console.error(e?.message);
@@ -338,11 +344,6 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
         const install_in = { git, app, delay };
         const install = await readUserInstall(install_in);
         const installed = await toInstall(install);
-        const new_git = {
-          repo: git.repo,
-          owner: git.owner,
-          owner_token: installed.token
-        }
         const secret = toB64urlQuery({
           installed, shared, app
         });
@@ -351,9 +352,8 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
           secret_text: installed.token,
           password: shared
         }));
-        const for_next = toB64urlQuery({ git: new_git });
         console.log("Created GitHub Token.\n");
-        writeSecretText({ for_pages, for_next });
+        writeSecretText({ for_pages, for_next: "" });
       }
       catch (e: any) {
         console.error(e?.message);

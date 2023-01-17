@@ -230,18 +230,22 @@ const toBytes = (s: string) => {
   return new Uint8Array(bytes);
 }
 
+const toInstallation = (inst: string) => {
+  const ins_value = process.env[inst] || "";
+  const ins_obj = fromB64urlQuery(ins_value);
+  if (!isInstallation(ins_obj)) {
+    throw new Error(`Secret ${inst} invalid.`);
+  }
+  return ins_obj;
+}
+
 const readDevInbox: ReadDevInbox = async (inputs) => {
   const { user_in, inst, sec } = inputs;
   const { tmp_file: src } = useGit(user_in);
   if (user_in.prod) {
     throw new Error('Data only in Home.md during development');
   }
-  const ins_value = process.env[inst] || "";
-  const ins_obj = fromB64urlQuery(ins_value);
-  if (!isInstallation(ins_obj)) {
-    throw new Error(`Secret ${inst} invalid.`);
-  }
-  const { shared } = ins_obj;
+  const { shared } = toInstallation(inst);
   const key = toBytes(shared);
   try {
     const text = await toPastedText(src);
@@ -387,5 +391,6 @@ const fromNameTree: FromNameTree = ({ command, tree }) => {
 export { 
   readUserApp, readUserInstall, toTries, toPastedText, useGit,
   isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
-  readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes
+  readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes,
+  toInstallation
 }

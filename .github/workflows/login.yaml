@@ -1,7 +1,5 @@
-name: Login after Dispatch
-on:
-  repository_dispatch:
-    types: [PRODUCTION-LOGIN-START]
+name: Begin Login
+on: workflow_dispatch
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
@@ -9,31 +7,68 @@ env:
 concurrency:
   group: PRODUCTION-LOGIN
   cancel-in-progress: true
-permissions: {}
+permissions:
+  pages: write
+  contents: read
+  id-token: write
+  deployments: write
 jobs:
-  login:
-    environment:
-      name: PRODUCTION-LOGIN
+  code_and_token:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.pages.outputs.pages }}
+    env:
+      CSV: "environment.csv"
     steps:
-      - name: Find Latest Release
+      - name: Configure Pages Url
+        id: pages
+        run: |
+          JSON=$(curl \
+          -H "Accept: application/vnd.github+json" \
+          -H "Authorization: Bearer ${{github.token}}" \
+          $ROOT/repos/$REMOTE/pages);
+          PAGES_URL=$(jq -r '.html_url' <<< $JSON);
+          echo "pages=$PAGES_URL" >> $GITHUB_OUTPUT
+      - name: Configure Latest Release URL
         id: index
         run: |
-          echo $DEPLOYMENT
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           echo "index=$URL" >> $GITHUB_OUTPUT
-      - name: User Login
+      - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
+      - uses: actions/configure-pages@v2
+      - name: Begin user login
         run: |
+          echo "" > secret.txt
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index LOGIN $ROOT_TOKEN
+          ./index LOGIN OPEN ?noop $WORK_IN
+          echo $(head -n 1 secret.txt) > docs/pub.txt
+          curl -o "docs/$CSV" "$PAGES/$CSV"
+          STATE=$(tail -n 1 secret.txt)
+          echo "::add-mask::$STATE"
+          echo "state=$STATE" >> $GITHUB_ENV
         env:
-          OLD_HASH: ${{ github.event.client_payload.reset-key }}
           INDEX_URL: ${{ steps.index.outputs.index }}
-          ROOT_PEPPER: ${{secrets.ROOT_PEPPER}}
-          ROOT_TOKEN: ${{secrets.ROOT_TOKEN}}
-          SESSION: ${{secrets.SESSION}}
-          SERVERS: ${{secrets.SERVERS}}
-          CLIENTS: ${{secrets.CLIENTS}}
-          SECRETS: ${{secrets.SECRETS}}
+          PAGES: ${{ steps.pages.outputs.pages }}
+          WORK_IN: ${{ secrets.client_auth_data }}
+      - uses: actions/upload-pages-artifact@v1
+        with: { path : 'docs' }
+      - uses: actions/deploy-pages@v1
+      - name: Complete user login
+        run: |
+          echo "" > secret.txt
+          curl -L -o index $INDEX_URL
+          chmod +x index
+          ./index LOGIN CLOSE "${{ env.state }}" $WORK_IN
+          sed -n '1,2p' secret.txt > docs/pub.txt
+          curl -o "docs/$CSV" "$PAGES/$CSV"
+        env:
+          INDEX_URL: ${{ steps.index.outputs.index }}
+          PAGES: ${{ steps.pages.outputs.pages }}
+          WORK_IN: ${{ secrets.client_auth_result }}
+      - uses: actions/upload-pages-artifact@v1
+        with: { path : 'docs' }
+      - uses: actions/deploy-pages@v1

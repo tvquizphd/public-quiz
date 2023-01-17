@@ -202,10 +202,9 @@ const vStart: Start = async (inputs) => {
     throw new Error('Cannot send invalid data.');
   }
   const out_args = { command: finish, tree: tree_out };
-  return {
-    for_next: toB64urlQuery(out),
-    for_pages: fromNameTree(out_args) 
-  }
+  const for_next = toB64urlQuery(out);
+  const for_pages = fromNameTree(out_args);
+  return { for_next, for_pages  }
 }
 
 const encryptLine: EncryptLine = async (en, command) => {
