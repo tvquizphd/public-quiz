@@ -1,6 +1,6 @@
-name: Register from Wiki
+name: Register after new issues 
 on:
-  pull_request:
+  issues:
     types: [opened, reopened]
 env:
   ROOT: "https://api.github.com"
