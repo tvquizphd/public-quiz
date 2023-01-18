@@ -3,7 +3,7 @@ import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
 import { toSockServer } from "sock-secret";
-import { toPastedText, useGit, isTree } from "./util/pasted.js";
+import { toPastedText, isTree } from "./util/pasted.js";
 import { toNameTree, fromNameTree, toBytes } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
 import { isInstallation } from "./create.js";
@@ -166,13 +166,12 @@ const toSyncOp: ToSyncOp = async () => {
 }
 
 const readNames: ReadNames = async (ins) => {
-  const { tmp_file: src } = useGit(ins);
-  const text = await toPastedText(src);
+  const text = await toPastedText(ins);
   const { command } = toNameTree(text);
   return [ command ];
 }
 
-const toList: ToList = (ins) => {
+const toDevList: ToList = (ins) => {
   return async () => {
     return await readNames(ins);
   }
@@ -185,7 +184,7 @@ const vStart: Start = async (inputs) => {
   const { prod } = user_in;
   const secrets = { [command]: tree };
   const needs = { first: [command], last: [] };
-  const lister = prod ? null : toList(user_in);
+  const lister = prod ? null : toDevList(user_in);
   const sock_in = { git, env, needs, lister, secrets };
   const { Opaque, Sock } = await toUserSock(sock_in);
   const times = 1000;

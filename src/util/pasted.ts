@@ -76,8 +76,11 @@ type Tries = {
 interface ToTries {
   (u: number): Tries; 
 }
+interface ToIssueText {
+  (s: UserIn) : Promise<string>;
+}
 interface ToPastedText {
-  (s: string) : Promise<string>;
+  (s: UserIn) : Promise<string>;
 }
 type GitOutput = {
   repo_url: string,
@@ -192,8 +195,25 @@ const cloneGit: DoGit = async (input) => {
   await github.clone(repo_url);
 }
 
-const toPastedText: ToPastedText = async (src) => {
+const toIssueText: ToIssueText = async (user_in) => {
+  const { repo, owner } = user_in.git;
+  const api_root = "https://api.github.com";
+  const query = `?creator=${owner}&state=open`;
+  const api_url = `${api_root}/repos/{owner}/{repo}/issues${query}`;
+  const out = await request(`GET ${api_url}`, { owner, repo });
+  if (out.data.length > 1) {
+    return out.data[0].body || "";
+  }
+  return "";
+}
+
+const toPastedText: ToPastedText = async (user_in) => {
+  if (user_in.prod) {
+    const txt = await toIssueText(user_in);
+    return txt.replaceAll('\n', '');
+  }
   const encoding = 'utf-8';
+  const { tmp_file: src } = useGit(user_in);
   const txt = fs.readFileSync(src, { encoding });
   return txt.replaceAll('\n', '');
 }
@@ -241,14 +261,13 @@ const toInstallation = (inst: string) => {
 
 const readDevInbox: ReadDevInbox = async (inputs) => {
   const { user_in, inst, sec } = inputs;
-  const { tmp_file: src } = useGit(user_in);
   if (user_in.prod) {
     throw new Error('Data only in Home.md during development');
   }
   const { shared } = toInstallation(inst);
   const key = toBytes(shared);
   try {
-    const text = await toPastedText(src);
+    const text = await toPastedText(user_in);
     const { command, tree } = toNameTree(text);
     const ok_command = command === "mail__table";
     const data = tree.data || "";
@@ -274,14 +293,13 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
 
 const readLoginStart: ReadLoginStart = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
-  const { tmp_file: src } = useGit(ins);
   if (ins.prod) {
     throw new Error('Data only in Home.md during development');
   }
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(src);
+    const text = await toPastedText(ins);
     const { tree } = toNameTree(text);
     const obj = tree.client_auth_data || "";
     if (isLoginStart(obj)) {
@@ -294,14 +312,13 @@ const readLoginStart: ReadLoginStart = async (ins) => {
 
 const readLoginEnd: ReadLoginEnd = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
-  const { tmp_file: src } = useGit(ins);
   if (ins.prod) {
     throw new Error('Data only in Home.md during development');
   }
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(src);
+    const text = await toPastedText(ins);
     const { tree } = toNameTree(text);
     const obj = tree.client_auth_result || "";
     if (isLoginEnd(obj)) {
@@ -314,16 +331,18 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
 
 const readUserApp: ReadUserApp = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
-  const { tmp_file: src } = useGit(ins);
   if (ins.prod) {
     await cloneGit(ins);
   }
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(src);
+    const text = await toPastedText(ins);
     const pasted = fromB64urlQuery(text);
     if (hasCode(pasted) && isForApp(pasted)) {
+      // TODO remove
+      console.log('USER APP');
+      console.log(pasted);
       return pasted;
     }
     if (ins.prod) {

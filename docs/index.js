@@ -113,6 +113,7 @@ const runReef = (dev, remote, env) => {
     user_id: "root",
     dev_handle: null,
     unchecked: true,
+    copied: false,
     reset: false,
     lock: false,
     login: null,
@@ -126,8 +127,7 @@ const runReef = (dev, remote, env) => {
       repo: remote[1]
     },
     remote: remote.join('/'),
-    loading: { ...NO_LOADING },
-    wiki_ext: ""
+    loading: { ...NO_LOADING }
   });
   const readSearch = async () => {
     const search = parseSearch(toPub(), window.location);

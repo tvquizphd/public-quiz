@@ -65,7 +65,7 @@ interface ToTries {
     (u: number): Tries;
 }
 interface ToPastedText {
-    (s: string): Promise<string>;
+    (s: UserIn): Promise<string>;
 }
 declare type GitOutput = {
     repo_url: string;

@@ -41,15 +41,14 @@ const isValid = async (dir) => {
   return null
 } 
 
-const actionTemplate = (step, is_idx, act) => {
+const actionTemplate = (open, copy, is_idx, act) => {
   if (is_idx && act?.act === "copy") {
     const cls = "copier";
-    const action_content = `
+    const action = `
       <button class="button true-tan">${act.text}</button>
     `;
     const fn = async () => {
-      navigator.clipboard.writeText(act.target);
-      step();
+      copy(act.target, act?.copied);
     };
     const handlers = [{ query: `.${cls}`, fn }];
     return { cls, action, handlers };
@@ -75,7 +74,7 @@ const actionTemplate = (step, is_idx, act) => {
       while (!dev_root) {
         dev_root = await isValid(dir);
       }
-      step(dev_root);
+      open(dev_root);
     };
     const handlers = [{ query: `.${cls}`, fn }];
     return { cls, action, handlers };
@@ -87,7 +86,7 @@ const actionTemplate = (step, is_idx, act) => {
 }
 
 const listTemplate = (inputs) => {
-  const { stepNext, setDevHandle } = inputs;
+  const { stepNext, setDevHandle, setCopied } = inputs;
   const { index, items } = inputs.node;
   const colors = [ "", "dark-blue" ];
   let handlers = []
@@ -95,13 +94,20 @@ const listTemplate = (inputs) => {
     const { text, link, act } = item;
     const is_idx = (idx === index);
     const cls = [colors[+is_idx]];
-    const fn = async (dev_root) => {
-      if (dev_root) {
-        await setDevHandle(dev_root);
-      }
+    const open = async (dev_root) => {
+      await setDevHandle(dev_root);
       stepNext(idx + 1);
     }
-    const out = actionTemplate(fn, is_idx, act);
+    const copy = async (text, copied) => {
+      navigator.clipboard.writeText(text);
+      if (copied) {
+        stepNext(idx + 1);
+      }
+      else {
+        setCopied(true);
+      }
+    }
+    const out = actionTemplate(open, copy, is_idx, act);
     handlers = handlers.concat(out.handlers);
     cls.push(out.cls);
     let core_content = text;

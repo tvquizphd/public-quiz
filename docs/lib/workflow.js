@@ -36,11 +36,10 @@ class Workflow  {
       return { act, text: dev_root || "/" }
     }
     const root = "https://github.com";
-    const { wiki_ext: ext, remote } = this.DATA;
-    const { pub_str: target } = this.DATA;
-    const wiki = `${root}/${remote}/wiki/${ext}`;
-    const act = { act: "copy", text: "Copy", target };
-    const link = { text: "Wiki", href: wiki };
+    const { copied, remote, pub_str: target } = this.DATA;
+    const issues = `${root}/${remote}/issues/`;
+    const act = { copied, act: "copy", text: "Copy", target };
+    const link = { text: "your issue", href: issues };
     return { act, text: `app code to `, link };
   }
 
@@ -71,7 +70,7 @@ class Workflow  {
     const to_install = [{
       items, view: "list"
     }];
-    const to_wiki = [{
+    const to_issue = [{
       items, view: "list"
     }];
     const to_master = [{
@@ -89,7 +88,7 @@ class Workflow  {
         href: this.DATA.login,
       }
     }]
-    return [ to_app, to_install, to_wiki, to_master, done ];
+    return [ to_app, to_install, to_issue, to_master, done ];
   }
   get nodes () {
     const { step, modal } = this.DATA;
@@ -116,9 +115,10 @@ class Workflow  {
     const { nodes, templates } = this;
     const filter = ({ view }) => view in templates;
     const setDevHandle = this.setDevHandle.bind(this);
+    const setCopied = this.setCopied.bind(this);
     const hideModal = this.hideModal.bind(this);
     const stepNext = this.stepNext.bind(this);
-    const shared = { stepNext, hideModal, setDevHandle };
+    const shared = { stepNext, hideModal, setDevHandle, setCopied };
     return nodes.filter(filter).reduce((out, node) => {
       const template = templates[node.view];
       const o = template({ ...shared, node });
@@ -136,6 +136,11 @@ class Workflow  {
     const { step } = this.DATA;
     this.DATA.step = Math.max(step + 1, n);
   }
+
+  setCopied(bool) {
+    this.DATA.copied = bool;
+  }
+
   async setDevHandle(root) {
     const { pub_str, dev_file } = this.DATA;
     const text = this.DATA.pub_str;

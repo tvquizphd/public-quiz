@@ -48,7 +48,6 @@ jobs:
           chmod +x index
           ./index SETUP PUB OPAQUE
           echo $(head -n 1 secret.txt) > docs/pub.txt
-          wc -c docs/pub.txt
           curl -o "docs/$CSV" "$PAGES/$CSV"
           STATE=$(tail -n 1 secret.txt)
           echo "::add-mask::$STATE"
