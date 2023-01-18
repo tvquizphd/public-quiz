@@ -342,6 +342,8 @@ const readUserApp: ReadUserApp = async (ins) => {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText(ins);
     const pasted = fromB64urlQuery(text);
+    console.log('pasted text'); //TODO
+    console.log(text);
     if (hasCode(pasted) && isForApp(pasted)) {
       // TODO remove
       console.log('USER APP');
