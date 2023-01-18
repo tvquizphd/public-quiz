@@ -199,7 +199,7 @@ const runReef = (dev, remote, env) => {
       throw new Error("Missing GitHub Token.");
     }
     const times = 1000;
-    const delay = 0.3333;
+    const delay = 2.0;
     const send = (text) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);
