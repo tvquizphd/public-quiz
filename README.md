@@ -6,27 +6,30 @@
 ## Setup and usage
 
 - [Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
-- Keep the description. It defines an [OAuth App](https://github.com/settings/applications/new) w/ Device Flow.
-- ⭐ Star your fork to create your GitHub Pages environment.
+- Just before setup + installation, [open an issue](../issues) on your fork.
 
-### Register via your GitHub Pages URL
+### Register your App
 
-1. Copying one-time public key to a link on your fork.
-3. Pasting one-time GitHub code to a link on GitHub.
-4. 🔑 Choosing a secure master password.
+Follow these instructions at your new GitHub Pages site.
 
-### The page gives you a login link.
+1. Click the link to create a GitHub App.
+2. Copy an "app code" to the body of your new issue.
+3. Click to add the GitHub app to your fork.
+4. 🔑 Choose a secure master password.
+
+You will be shown a new login link.
+
 - 💾 Bookmark or save the login link.
-- ✏️ Memorize your master password.
+- ✏️  Memorize your master password.
 
 ## Security claims
 
-Before activation, [GitHub Pages][HELP_PAGES] publicly host one-time-use public keys and asymmetrically encrypted messages. After activation, symmetrically encrypted messages move to/from GitHub Actions via private [GitHub Projects][HELP_PROJECTS]. *Your master password never leaves your browser*. Each login takes ≈30 seconds to complete the password-authenticated [key exchange][PAKE] by:
+Before activation, [GitHub Pages][HELP_PAGES] publicly host an [OPRF-derived][OPRF] key. Starting with your pasted app code, all public messages between you and your GitHub fork use encryption with [a shared secret][PAKE]. After creating and installing your app, each login takes ≈30 seconds to complete the password-authenticated [key exchange][PAKE] by:
 
 - Authenticating your password against the [output of a pseudorandom function][OPRF].
-- Returning a single-session [AES-GCM][GCM] key for authenticated encryption.
+- Returning a temporary session [AES-GCM][GCM] key for authenticated encryption.
 
-### After login, all queries or mutations related to your passwords:
+After login, all queries or mutations related to your passwords:
 
 - Are encrypted/decrypted locally with the [Argon2][Argon2] hash of your password.
 - Move to/from GitHub Actions encrypted with your single-session AES-GCM key.
@@ -36,7 +39,6 @@ Before activation, [GitHub Pages][HELP_PAGES] publicly host one-time-use public 
 Unauthorized 3rd parties _can reset/clear your passwords_ if:
 
 - ⚠️ your fork has allowed outside [collaborators][HELP_COLLAB]
-- ⚠️ or your fork's wiki has become [publicly editable][HELP_WIKI]
 - ☠️ or your GitHub account has [been compromised][HELP_SECURE]
 
 ### Your passwords only be viewed/edited with:
@@ -74,8 +76,8 @@ npx http-server docs -p 8000
 Run `bash develop.bash` twice or more, following instructions.
 
 ### On 1st run, it registers your master password
-  - It uses the OAuth App in this repostory's description.
-  - It writes an OAuth Token to `.env` and a new login link.
+  - You create and authorize a GitHub App to use GitHub's API.
+  - It writes authentication codes to `.env` and a new login link.
 
 ### Afterwards, it allows revisiting your login link
   - If you want to make a new login link, press `n` after running.
@@ -86,16 +88,16 @@ Run `bash develop.bash` twice or more, following instructions.
 Update the version in `package.json` and with a tag:
 
 ```properties
-git tag v3.x.y
+git tag v5.x.y
 git push origin main --tags
 ```
+
 On each pushed tag, the `build` workflow will:
 
 - Create a pull request for compiled (`tsc`) packaged (`pkg`) linux executable
 - Upload the `docs` directory to GitHub Pages.
 
 [HELP_COLLAB]: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-access-to-your-personal-repositories/inviting-collaborators-to-a-personal-repository
-[HELP_WIKI]: https://docs.github.com/en/communities/documenting-your-project-with-wikis/changing-access-permissions-for-wikis
 [HELP_SECURE]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure
 [HELP_PROJECTS]: https://docs.github.com/en/issues/planning-and-tracking-with-projects
 [HELP_PAGES]: https://pages.github.com/
