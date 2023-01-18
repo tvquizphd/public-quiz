@@ -204,7 +204,7 @@ const toIssueText: ToIssueText = async (user_in) => {
   const out = await request(`GET ${api_url}`, { 
     owner, repo, headers: { authorization }
   });
-  if (out.data.length > 1) {
+  if (out.data.length >= 1) {
     return out.data[0].body || "";
   }
   return "";
@@ -342,12 +342,7 @@ const readUserApp: ReadUserApp = async (ins) => {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText(ins);
     const pasted = fromB64urlQuery(text);
-    console.log('pasted text'); //TODO
-    console.log(text);
     if (hasCode(pasted) && isForApp(pasted)) {
-      // TODO remove
-      console.log('USER APP');
-      console.log(pasted);
       return pasted;
     }
     if (ins.prod) {
