@@ -146,7 +146,13 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
 
 const toGitToken = (prod: boolean, inst: string) => {
   if (!prod) return "";
-  return toInstallation(inst).installed.token;
+  try {
+    const { installed } = toInstallation(inst);
+    return installed.token;
+  }
+  catch {
+    return "";
+  }
 }
 
 (async (): Promise<Result> => {
