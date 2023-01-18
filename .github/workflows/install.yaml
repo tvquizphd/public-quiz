@@ -10,6 +10,7 @@ concurrency:
   group: PRODUCTION-LOGIN
   cancel-in-progress: true
 permissions:
+  issues: read
   pages: write
   contents: read
   id-token: write
@@ -53,6 +54,7 @@ jobs:
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1
@@ -69,6 +71,7 @@ jobs:
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1

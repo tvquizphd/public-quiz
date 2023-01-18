@@ -148,7 +148,8 @@ const toGitToken = (prod: boolean, inst: string) => {
   if (!prod) return "";
   try {
     const { installed } = toInstallation(inst);
-    return installed.token;
+    if (installed.token) return installed.token;
+    return process.env.GITHUB_TOKEN || '';
   }
   catch {
     return "";
@@ -186,6 +187,8 @@ const toGitToken = (prod: boolean, inst: string) => {
     owner: remote[0],
     owner_token: toGitToken(prod, inst),
   }
+  console.log('Git Token Length'); //TODO
+  console.log(git.owner_token.length);
   const wiki_config: WikiConfig = {
     home: "Home.md",
     tmp: "tmp-wiki"

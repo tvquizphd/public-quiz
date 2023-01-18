@@ -196,11 +196,14 @@ const cloneGit: DoGit = async (input) => {
 }
 
 const toIssueText: ToIssueText = async (user_in) => {
-  const { repo, owner } = user_in.git;
+  const { repo, owner, owner_token } = user_in.git;
   const api_root = "https://api.github.com";
   const query = `?creator=${owner}&state=open`;
+  const authorization = 'bearer ' + owner_token;
   const api_url = `${api_root}/repos/{owner}/{repo}/issues${query}`;
-  const out = await request(`GET ${api_url}`, { owner, repo });
+  const out = await request(`GET ${api_url}`, { 
+    owner, repo, headers: { authorization }
+  });
   if (out.data.length > 1) {
     return out.data[0].body || "";
   }
