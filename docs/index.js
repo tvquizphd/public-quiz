@@ -277,7 +277,8 @@ const runReef = (dev, remote, env) => {
 
 export default () => {
   const { hostname } = window.location;
-  const hasLocal = hostname === "localhost";
+  //const hasLocal = hostname === "localhost";
+  const hasLocal = false; //TODO
   toEnv().then((config) => {
     const { remote, env, dev_root } = config;
     const dev = [null, { dev_root }][+hasLocal];
