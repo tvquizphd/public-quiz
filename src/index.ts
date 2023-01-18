@@ -148,11 +148,10 @@ const toGitToken = (prod: boolean, inst: string) => {
   if (!prod) return "";
   try {
     const { installed } = toInstallation(inst);
-    if (installed.token) return installed.token;
-    return process.env.GITHUB_TOKEN || '';
+    return installed.token;
   }
   catch {
-    return "";
+    return process.env.GITHUB_TOKEN || '';
   }
 }
 
