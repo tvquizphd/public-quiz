@@ -1,3 +1,4 @@
+import { request } from "@octokit/request";
 import { fromB64urlQuery } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 
@@ -15,20 +16,18 @@ function isForAuth(p) {
 
 const toPastedText = async (props) => {
   const { local, host, git } = props;
+  if (!local) {
+    const { owner, repo } = git;
+    const api = `/repos/${owner}/${repo}/releases/latest`;
+    const result = await request(`GET ${api}`);
+    return result.data?.body || "";
+  }
+  const wiki = `${host}/pub.txt`;
   const headers = {
     "Cache-Control": "no-store",
     "Pragma": "no-cache"
   };
   const opts = { headers };
-  if (!local) {
-    const { owner, repo } = git;
-    const root = "https://api.github.com";
-    const api = `${root}/repos/${owner}/${repo}/releases/latest`;
-    const result = await fetch(api, opts);
-    const json = await (result).json();
-    return json.body || "";
-  }
-  const wiki = `${host}/pub.txt`;
   const result = await fetch(wiki, opts);
   const txt = await (result).text();
   return txt;
