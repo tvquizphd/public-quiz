@@ -12,25 +12,13 @@ concurrency:
 permissions:
   issues: read
   pages: write
-  contents: read
+  contents: write
   id-token: write
   deployments: write
 jobs:
   code_and_token:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.pages.outputs.pages }}
     steps:
-      - name: Configure Pages Url
-        id: pages
-        run: |
-          JSON=$(curl \
-          -H "Accept: application/vnd.github+json" \
-          -H "Authorization: Bearer ${{github.token}}" \
-          $ROOT/repos/$REMOTE/pages);
-          PAGES_URL=$(jq -r '.html_url' <<< $JSON);
-          echo "pages=$PAGES_URL" >> $GITHUB_OUTPUT
       - name: Configure Latest Release URL
         id: index
         run: |
@@ -41,8 +29,7 @@ jobs:
           echo "release=$ID" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
-      - uses: actions/configure-pages@v2
-      - name: Publish Opaque codes on Pages
+      - name: Publish Opaque codes
         run: |
           echo "" > secret.txt
           curl -L -o index $INDEX_URL
@@ -58,7 +45,7 @@ jobs:
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
-      - name: Create GitHub App and share Auth to Pages
+      - name: Create GitHub App and share Auth
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
@@ -73,7 +60,7 @@ jobs:
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
-      - name: Install App and share token to Pages
+      - name: Install App and share token 
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
