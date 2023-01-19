@@ -181,20 +181,28 @@ const toInstall: ToInstall = async (ins) => {
   const { permissions, id, git } = ins;
   const authorization = 'bearer ' + toSign(ins.app);
   const api_url = `/app/installations/${id}/access_tokens`;
-  const out = await request(`POST ${api_url}`, {
-    headers: { authorization },
-    repository: git.repo,
-    permissions
-  });
-  if(!hasTokenDate(out.data)) {
+  let data = {};
+  try {
+    const out = await request(`POST ${api_url}`, {
+      headers: { authorization },
+      repository: git.repo,
+      permissions
+    });
+    data = out.data;
+  }
+  catch(e: any) {
+    console.error(e?.message);
+    throw new Error("Error creating access token");
+  }
+  if(!hasTokenDate(data)) {
     throw new Error('Unable to create Token');
   }
-  const ms = Date.parse(out.data.expires_at);
+  const ms = Date.parse(data.expires_at);
   if (isNaN(ms)) {
     throw new Error('Unable to create Token');
   }
   return {
-    token: out.data.token,
+    token: data.token,
     expiration: `${Math.floor(ms / 1000)}`
   };
 };

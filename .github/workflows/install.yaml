@@ -72,6 +72,3 @@ jobs:
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
-      - uses: actions/upload-pages-artifact@v1
-        with: { path : 'docs' }
-      - uses: actions/deploy-pages@v1

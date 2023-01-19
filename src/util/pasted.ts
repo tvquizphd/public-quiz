@@ -375,7 +375,10 @@ const readUserInstall: ReadUserInstall = async (ins) => {
       install = await toUserInstall(ins);
     }
     catch (e: any) {
-      if (e?.status !== 404) throw e;
+      if (e?.status !== 404) {
+        console.error(e?.message);
+        throw new Error("Error getting user installation");
+      }
     }
     if (isForInstall(install)) {
       return {
