@@ -14,12 +14,12 @@ const toSender = ({ local, send }) => {
   }
 }
 
-const toOpaqueSeeker = ({ local, delay, host }) => {
+const toOpaqueSeeker = ({ local, host, git, delay }) => {
   console.log(local); // TODO prod version
   const dt = delay * 1000;
   return async () => {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(host);
+    const text = await toPastedText({ local, host, git });
     const nt = toNameTree(text);
     return nt.tree;
   }
@@ -28,7 +28,7 @@ const toOpaqueSeeker = ({ local, delay, host }) => {
 async function toOpaqueSock(inputs, send) {
   const { git, local, env, delay, host } = inputs;
   const sender = toSender({ local, send });
-  const seeker = toOpaqueSeeker({ local, delay, host });
+  const seeker = toOpaqueSeeker({ local, host, git, delay });
   const sock_in = { git, env, seeker, sender };
   const Sock = await toSockClient(sock_in);
   if (Sock === null) {
@@ -55,12 +55,12 @@ const toMailLine = async (line, key_in) => {
   }
 }
 
-const toMailSeeker = ({ local, delay, host, key_in }) => {
+const toMailSeeker = ({ local, host, git, delay, key_in }) => {
   console.log(local); // TODO prod version
   const dt = delay * 1000;
   return async () => {
     await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(host);
+    const text = await toPastedText({ local, host, git });
     const lines = text.split('\n');
     return await lines.reduce(async (memo, line) => {
       const [ k, v ] = await toMailLine(line, key_in);
@@ -74,7 +74,7 @@ const toMailSeeker = ({ local, delay, host, key_in }) => {
 async function toMailSock(inputs) {
   const { key_in, send, user_in } = inputs;
   const { git, local, env, delay, host } = user_in;
-  const seeker = toMailSeeker({ local, delay, host, key_in });
+  const seeker = toMailSeeker({ local, host, git, delay, key_in });
   const sender = toSender({ local, send });
   const sock_in = { git, env, seeker, sender };
   const Sock = await toSockClient(sock_in);

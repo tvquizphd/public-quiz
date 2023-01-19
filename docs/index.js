@@ -141,7 +141,10 @@ const runReef = (dev, remote, env) => {
   const props = { DATA, templates };
   const workflow = new Workflow(props);
   const final_step = workflow.paths.length - 1;
-  const wikiMailer = new WikiMailer(host);
+  const wiki_props = { 
+    host, git: DATA.git, local: DATA.local
+  };
+  const wikiMailer = new WikiMailer(wiki_props);
   const mailerStart = (first_step) => {
     wikiMailer.start();
     const { user_id } = DATA;

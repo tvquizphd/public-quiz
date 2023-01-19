@@ -3,12 +3,12 @@ import { readLoginStart, readLoginEnd, toNameTree } from "./util/pasted.js";
 import { readUserApp, readDevInbox, readUserInstall } from "./util/pasted.js";
 import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
 import { addSecret, isProduction } from "./util/secrets.js";
-import { vStart, vLogin } from "./verify.js";
-import { toSyncOp } from "./verify.js";
+import { vStart, vLogin, toSyncOp } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isQuad, isTrio, isDuo } from "./util/types.js";
 import { isJWK, toApp, toInstall } from "./create.js";
+import { vShare } from "./util/share.js";
 import { getRandomValues } from "crypto";
 import dotenv from "dotenv";
 import argon2 from 'argon2';
@@ -201,6 +201,7 @@ const toGitToken = (prod: boolean, inst: string) => {
     console.log('PRODUCTION\n');
   }
   const v_in = { git, env, delay };
+  const share = isQuad(args) && args[0] === "SHARE";
   const login = isQuad(args) && args[0] === "LOGIN";
   const setup = isTrio(args) && args[0] === "SETUP";
   const dev = isDuo(args) && args[0] === "DEV";
@@ -221,6 +222,27 @@ const toGitToken = (prod: boolean, inst: string) => {
     catch (e: any) {
       console.error(e?.message);
       const message = "Unable to verify";
+      return { success: false, message };
+    }
+  }
+  else if (share) {
+    const git_token = args[1];
+    const release_id = parseInt(args[2]);
+    const body = args[3];
+    const basic_git = { 
+      repo: git.repo,
+      owner: git.owner,
+      owner_token: git_token
+    }
+    try {
+      if (isNaN(release_id)) {
+        throw new Error('Invalid Release ID');
+      }
+      await vShare({ git: basic_git, body, release_id });
+    }
+    catch (e: any) {
+      console.error(e);
+      const message = "Unable to share";
       return { success: false, message };
     }
   }

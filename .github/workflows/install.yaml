@@ -21,8 +21,6 @@ jobs:
     environment:
       name: github-pages
       url: ${{ steps.pages.outputs.pages }}
-    env:
-      CSV: "environment.csv"
     steps:
       - name: Configure Pages Url
         id: pages
@@ -38,7 +36,9 @@ jobs:
         run: |
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
+          ID=$(jq -r '.id' <<< $JSON)
           echo "index=$URL" >> $GITHUB_OUTPUT
+          echo "release=$ID" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
       - uses: actions/configure-pages@v2
@@ -48,43 +48,41 @@ jobs:
           curl -L -o index $INDEX_URL
           chmod +x index
           ./index SETUP PUB OPAQUE
-          echo $(head -n 1 secret.txt) > docs/pub.txt
-          curl -o "docs/$CSV" "$PAGES/$CSV"
+          STEP=$(head -n 1 secret.txt)
           STATE=$(tail -n 1 secret.txt)
+          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
-      - uses: actions/upload-pages-artifact@v1
-        with: { path : 'docs' }
-      - uses: actions/deploy-pages@v1
       - name: Create GitHub App and share Auth to Pages
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
           ./index SETUP APP "${{ env.state }}"
-          echo $(head -n 1 secret.txt) > docs/pub.txt
-          curl -o "docs/$CSV" "$PAGES/$CSV"
+          STEP=$(head -n 1 secret.txt)
           STATE=$(tail -n 1 secret.txt)
+          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
-      - uses: actions/upload-pages-artifact@v1
-        with: { path : 'docs' }
-      - uses: actions/deploy-pages@v1
       - name: Install App and share token to Pages
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
           ./index SETUP TOKEN "${{ env.state }}"
-          echo $(head -n 1 secret.txt) > docs/pub.txt
-          curl -o "docs/$CSV" "$PAGES/$CSV"
+          STEP=$(head -n 1 secret.txt)
+          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           PAGES: ${{ steps.pages.outputs.pages }}
       - uses: actions/upload-pages-artifact@v1

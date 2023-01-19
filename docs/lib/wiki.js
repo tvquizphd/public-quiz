@@ -13,20 +13,26 @@ function isForAuth(p) {
   return p.salt && p.key && p.data; 
 }
 
-const toPastedText = async (url) => {
-  const wiki = `${url}/pub.txt`;
+const toPastedText = async (props) => {
+  const { local, host, git } = props;
+  const wiki = `${host}/pub.txt`;
   const headers = {
     "Cache-Control": "no-store",
     "Pragma": "no-cache"
   };
   const opts = { headers };
+  if (!local) {
+    const result = await fetch(wiki, opts);
+    const json = await (result).json();
+    return json.body || "";
+  }
   const result = await fetch(wiki, opts);
   const txt = await (result).text();
   return txt;
 }
 
-const toPasted = async (url) => {
-  const text = await toPastedText(url);
+const toPasted = async (props) => {
+  const text = await toPastedText(props);
   return fromB64urlQuery(text.replaceAll('\n',''));
 }
 
@@ -37,8 +43,8 @@ const NO_HANDLERS = {
 
 class WikiMailer {
 
-  constructor(host) {
-    this.host = host;
+  constructor(props) {
+    this.props = props;
     this.done = true;
     this.handlers = {...NO_HANDLERS};
   }
@@ -47,7 +53,7 @@ class WikiMailer {
     const dt = 1000; // 1 second
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
-      const pasted = await toPasted(this.host);
+      const pasted = await toPasted(this.props);
       if (isForApp(pasted)) {
         await this.handle('app', pasted);
         this.handlers.app = [];

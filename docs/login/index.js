@@ -1,5 +1,4 @@
 import { DBTrio } from "dbtrio";
-import { WikiMailer } from "wiki";
 import { templates } from "templates";
 import { toEnv } from "environment";
 //import { OP } from "opaque-low-io";
@@ -138,11 +137,9 @@ const runReef = (dev, remote, env) => {
     newRows: [...EMPTY_NEW],
     tables: [...EMPTY_TABLES]
   });
-  const wikiMailer = new WikiMailer(host);
   const cleanRefresh = () => {
     DATA.loading = {...NO_LOADING};
     DATA.mailer = undefined;
-    wikiMailer.finish();
     DATA.step = 0;
   }
   const API = {

@@ -201,7 +201,7 @@ const toIssueText: ToIssueText = async (user_in) => {
   const query = `?creator=${owner}&state=open`;
   const authorization = 'bearer ' + owner_token;
   const api_url = `${api_root}/repos/{owner}/{repo}/issues${query}`;
-  const out = await request(`GET ${api_url}`, { 
+  const out = await request(`GET ${api_url}`, {
     owner, repo, headers: { authorization }
   });
   if (out.data.length >= 1) {
