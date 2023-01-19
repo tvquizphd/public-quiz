@@ -377,9 +377,12 @@ const toGitToken = (prod: boolean, inst: string) => {
         const secret = toB64urlQuery({
           installed, shared, app
         });
-        await addSecret({ git, env, secret, name: inst });
+        const { owner, repo } = git;
+        const owner_token = installed.token;
+        const igit = { owner, repo, owner_token };
+        await addSecret({ git: igit, env, secret, name: inst });
         const for_pages = toB64urlQuery(await encryptSecrets({
-          secret_text: installed.token,
+          secret_text: owner_token,
           password: shared
         }));
         console.log("Created GitHub Token.\n");
