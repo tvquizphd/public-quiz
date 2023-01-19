@@ -15,17 +15,20 @@ function isForAuth(p) {
 
 const toPastedText = async (props) => {
   const { local, host, git } = props;
-  const wiki = `${host}/pub.txt`;
   const headers = {
     "Cache-Control": "no-store",
     "Pragma": "no-cache"
   };
   const opts = { headers };
   if (!local) {
-    const result = await fetch(wiki, opts);
+    const { owner, repo } = git;
+    const root = "https://api.github.com";
+    const api = `${root}/repos/${owner}/${repo}/releases/latest`;
+    const result = await fetch(api, opts);
     const json = await (result).json();
     return json.body || "";
   }
+  const wiki = `${host}/pub.txt`;
   const result = await fetch(wiki, opts);
   const txt = await (result).text();
   return txt;
