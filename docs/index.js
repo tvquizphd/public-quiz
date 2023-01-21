@@ -99,7 +99,8 @@ const runReef = (dev, remote, env) => {
    "callback_urls": [href],
    "public": true,
    "default_permissions": {
-     "administration": "write"
+     "secrets": "write",
+     "contents": "read"
    }
   };
   const DATA = store({
@@ -280,8 +281,8 @@ const runReef = (dev, remote, env) => {
 
 export default () => {
   const { hostname } = window.location;
-  //const hasLocal = hostname === "localhost";
-  const hasLocal = false; //TODO
+  const hasLocal = hostname === "localhost";
+  //const hasLocal = false; //TODO
   toEnv().then((config) => {
     const { remote, env, dev_root } = config;
     const dev = [null, { dev_root }][+hasLocal];

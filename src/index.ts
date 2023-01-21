@@ -273,8 +273,9 @@ const toGitToken = (prod: boolean, inst: string) => {
         }
         const { sid, pw } = tree.client_auth_data;
         const finish = commands.FINISH_OPEN;
+        const { app } = toInstallation(inst);
         const start_in = {
-          sid, pw, log_in, user_in, finish, command, tree 
+          app, sid, pw, log_in, user_in, finish, command, tree 
         };
         const started = await vStart(start_in);
         const { for_next, for_pages } = started;
@@ -295,9 +296,10 @@ const toGitToken = (prod: boolean, inst: string) => {
           throw new Error('Invalid workflow command.');
         }
         const finish = commands.FINISH_CLOSE;
+        const { app } = toInstallation(inst);
         const end_in = { 
           ...given, log_in, user_in, finish,
-          command, tree, sec, ses, inst
+          command, tree, sec, ses, inst, app
         };
         const payload = await vLogin(end_in);
         const { for_next, for_pages } = payload;
@@ -380,7 +382,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         const { owner, repo } = git;
         const owner_token = installed.token;
         const igit = { owner, repo, owner_token };
-        await addSecret({ git: igit, env, secret, name: inst });
+        await addSecret({ app, git: igit, env, secret, name: inst });
         const for_pages = toB64urlQuery(await encryptSecrets({
           secret_text: owner_token,
           password: shared
@@ -389,7 +391,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         writeSecretText({ for_pages, for_next: "" });
       }
       catch (e: any) {
-        console.error(e?.message);
+        console.error(e);
         const message = "Unable to make GitHub Token.";
         return { success: false, message };
       }

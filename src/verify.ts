@@ -8,6 +8,7 @@ import { toNameTree, fromNameTree, toBytes } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
 import { isInstallation } from "./create.js";
 
+import type { AppOutput } from "./create.js";
 import type { SockServer } from "sock-secret";
 import type { QMI } from "./util/encrypt.js";
 import type { UserIn } from "./util/pasted.js";
@@ -53,6 +54,7 @@ type Register = {
 }
 type PepperInputs = Register & {
   Opaque: Op,
+  app: AppOutput,
   times: number,
   reset: boolean,
   env: string,
@@ -64,6 +66,7 @@ interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
 type Inputs = {
+  app: AppOutput,
   finish: string,
   command: string,
   tree: TreeAny,
@@ -123,7 +126,7 @@ const isPepper = (t: TreeAny): t is Pepper => {
 }
 
 const toPepper: ToPepper = async (inputs) => {
-  const { git, env, times, pep } = inputs;
+  const { git, env, times, pep, app } = inputs;
   const { Opaque, reset, sid, pw } = inputs;
   const secret_str = process.env[pep] || '';
   const pepper = fromB64urlQuery(secret_str);
@@ -140,7 +143,7 @@ const toPepper: ToPepper = async (inputs) => {
     throw new Error('Unable to register Opaque client');
   }
   const secret = toB64urlQuery(reg.pepper);
-  const add_inputs = { git, secret, env, name: pep };
+  const add_inputs = { app, git, secret, env, name: pep };
   try {
     await addSecret(add_inputs);
     console.log('Saved pepper to secrets.');
@@ -180,7 +183,7 @@ const toDevList: ToList = (ins) => {
 const vStart: Start = async (inputs) => {
   const { git, env, pep, reset } = inputs.log_in;
   const { command, finish, tree } = inputs;
-  const { sid, pw, user_in } = inputs;
+  const { app, sid, pw, user_in } = inputs;
   const { prod } = user_in;
   const secrets = { [command]: tree };
   const needs = { first: [command], last: [] };
@@ -189,7 +192,7 @@ const vStart: Start = async (inputs) => {
   const { Opaque, Sock } = await toUserSock(sock_in);
   const times = 1000;
   const pepper_in = {
-    Opaque, times, reset, env, pep, git, sid, pw
+    Opaque, times, reset, env, pep, git, sid, pw, app
   };
   const reg = await toPepper(pepper_in);
   const out = await Opaque.serverStep(reg, "op");
@@ -212,7 +215,7 @@ const encryptLine: EncryptLine = async (en, command) => {
 }
 
 const vLogin: Login = async (inputs) => {
-  const { token: secret } = inputs;
+  const { app, token: secret } = inputs;
   const { Au, ses, inst, finish } = inputs;
   //const master_key = toBytes(secret);
   const { git, env } = inputs.log_in;
@@ -226,7 +229,7 @@ const vLogin: Login = async (inputs) => {
   // Authorized the client
   const { token } = await Opaque.serverStep(step, "op");
   await Sock.quit();
-  const add_inputs = { git, secret, env, name: ses };
+  const add_inputs = { app, git, secret, env, name: ses };
   try {
     await addSecret(add_inputs);
     console.log('Saved session to secrets.');

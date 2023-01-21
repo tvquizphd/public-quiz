@@ -1,5 +1,7 @@
+import type { AppOutput } from "../create.js";
 import type { Git } from "./types.js";
 declare type AddInputs = {
+    app: AppOutput;
     secret: string;
     name: string;
     env: string;
