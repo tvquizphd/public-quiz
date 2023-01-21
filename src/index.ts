@@ -382,7 +382,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         const { owner, repo } = git;
         const owner_token = installed.token;
         const igit = { owner, repo, owner_token };
-        await addSecret({ app, git: igit, env, secret, name: inst });
+        await addSecret({ git: igit, env, secret, name: inst });
         const for_pages = toB64urlQuery(await encryptSecrets({
           secret_text: owner_token,
           password: shared

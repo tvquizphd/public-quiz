@@ -1,4 +1,3 @@
-import type { AppOutput } from "./create.js";
 import type { SockServer } from "sock-secret";
 import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
@@ -41,7 +40,6 @@ declare type Register = {
     pw: Uint8Array;
 };
 declare type Inputs = {
-    app: AppOutput;
     finish: string;
     command: string;
     tree: TreeAny;

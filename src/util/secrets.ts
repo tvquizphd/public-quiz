@@ -1,12 +1,9 @@
 import _sodium from 'libsodium-wrappers';
 import { request } from "@octokit/request";
-import { toSign } from "../create.js";
 
-import type { AppOutput } from "../create.js";
 import type { Git } from "./types.js";
 
 type AddInputs = {
-  app: AppOutput,
   secret: string,
   name: string,
   env: string,
@@ -40,7 +37,7 @@ const sodiumize: Sodiumize = async (auth, id, env, value) => {
 }
 
 const addSecret = async (inputs: AddInputs) => {
-  const { app, git, env, secret, name } = inputs;
+  const { git, env, secret, name } = inputs;
   if (!isProduction(env)) {
     process.env[name] = secret;
     //return; //TODO
