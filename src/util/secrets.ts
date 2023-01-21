@@ -19,7 +19,10 @@ const isProduction = (env: string) => {
 }
 
 const sodiumize: Sodiumize = async (auth, id, env, value) => {
-  const headers = { authorization: auth };
+  const headers = { 
+    authorization: auth,
+    accept: "application/vnd.github+json",
+  };
   const api_root = `/repositories/${id}/environments/${env}`;
   const api_url = `${api_root}/secrets/public-key`;
   const get_r = await request(`GET ${api_url}`, {
