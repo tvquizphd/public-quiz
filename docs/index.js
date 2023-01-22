@@ -123,7 +123,7 @@ const runReef = (dev, remote, env) => {
     host,
     env,
     git: {
-      token: null,
+      owner_token: null,
       owner: remote[0],
       repo: remote[1]
     },
@@ -172,7 +172,7 @@ const runReef = (dev, remote, env) => {
       const { encrypted } = pasted;
       if (!shared) return cleanRefresh();
       const token = await decryptQuery(encrypted, shared);
-      DATA.git.token = token.plain_text;
+      DATA.git.owner_token = token.plain_text;
       DATA.step = final_step - 1;
       wikiMailer.finish();
     });
@@ -199,7 +199,7 @@ const runReef = (dev, remote, env) => {
   async function encryptWithPassword ({ pass }) {
     const { git, env, user_id, local, host } = DATA;
     DATA.loading.socket = true;
-    if (!git?.token) {
+    if (!git?.owner_token) {
       throw new Error("Missing GitHub Token.");
     }
     const times = 1000;
@@ -281,8 +281,8 @@ const runReef = (dev, remote, env) => {
 
 export default () => {
   const { hostname } = window.location;
-  const hasLocal = hostname === "localhost";
-  //const hasLocal = false; //TODO
+  //const hasLocal = hostname === "localhost";
+  const hasLocal = false; //TODO
   toEnv().then((config) => {
     const { remote, env, dev_root } = config;
     const dev = [null, { dev_root }][+hasLocal];

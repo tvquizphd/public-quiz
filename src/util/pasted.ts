@@ -335,7 +335,7 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
 const readUserApp: ReadUserApp = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
   if (ins.prod) {
-    await cloneGit(ins);
+    await cloneGit(ins); //TODO remove
   }
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {

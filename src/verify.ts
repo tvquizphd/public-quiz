@@ -193,7 +193,7 @@ const vStart: Start = async (inputs) => {
   };
   const reg = await toPepper(pepper_in);
   const out = await Opaque.serverStep(reg, "op");
-  const tree_out = await Sock.quit();
+  const tree_out = await Sock.quit([command]);
   if (!(finish in tree_out)) {
     throw new Error('Cannot send missing data.');
   }
@@ -225,7 +225,7 @@ const vLogin: Login = async (inputs) => {
   const { Sock, Opaque } = await toUserSock(sock_in);
   // Authorized the client
   const { token } = await Opaque.serverStep(step, "op");
-  await Sock.quit();
+  await Sock.quit([command]);
   const add_inputs = { git, secret, env, name: ses };
   try {
     await addSecret(add_inputs);

@@ -6,7 +6,7 @@ import { fromB64urlQuery } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 
 const toSender = ({ local, send }) => {
-  console.log(local); // TODO prod version
+  if (!local) return null;
   return (kv) => {
     const { name: command, secret } = kv;
     const tree = fromB64urlQuery(secret);
@@ -15,7 +15,6 @@ const toSender = ({ local, send }) => {
 }
 
 const toOpaqueSeeker = ({ local, host, git, delay }) => {
-  console.log(local); // TODO prod version
   const dt = delay * 1000;
   return async () => {
     await new Promise(r => setTimeout(r, dt));

@@ -8,6 +8,7 @@ import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isQuad, isTrio, isDuo } from "./util/types.js";
 import { isJWK, toApp, toInstall } from "./create.js";
+import { toSockServer } from "sock-secret";
 import { vShare } from "./util/share.js";
 import { getRandomValues } from "crypto";
 import dotenv from "dotenv";
@@ -204,9 +205,25 @@ const toGitToken = (prod: boolean, inst: string) => {
   const share = isQuad(args) && args[0] === "SHARE";
   const login = isQuad(args) && args[0] === "LOGIN";
   const setup = isTrio(args) && args[0] === "SETUP";
+  const wait = isDuo(args) && args[0] === "WAIT";
   const dev = isDuo(args) && args[0] === "DEV";
   const log_in = { ...v_in, pep, login, reset: false };
   const user_in = { git, prod, delay, wiki_config };
+  if (wait) {
+    const { installed } = toInstallation(inst);
+    const owner_token = installed.token;
+    const { owner, repo } = git;
+    const igit = { owner, repo, owner_token };
+    const needs = { last: [args[1]] };
+    const inputs = { 
+      git: igit, env, secrets: {}, needs
+    };
+    const Sock = await toSockServer(inputs);
+    if (Sock === null) {
+      throw new Error('Unable to make socket.');
+    }
+    await Sock.quit([]);
+  }
   if (dev) {
     try {
       if (args[1] === "INBOX") {

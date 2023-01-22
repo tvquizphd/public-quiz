@@ -45,7 +45,7 @@ const NO_HANDLERS = {
 
 const toGitHubDelay = (local) => {
   if (local) return 1000;
-  const rph = 600 * .95;
+  const rph = 600 * .50; // 50%
   const rpm = rph / 60;
   const rps = rpm / 60;
   const rpms = rps / 1000;
