@@ -76,6 +76,7 @@ jobs:
           chmod +x index
           ./index WAIT OP
         env:
+          INSTALLATION: ${{ env.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
       - name: Login Open
@@ -97,6 +98,7 @@ jobs:
           chmod +x index
           ./index WAIT OP
         env:
+          INSTALLATION: ${{ env.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
       - name: Login Close
