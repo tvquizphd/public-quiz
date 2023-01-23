@@ -8,7 +8,7 @@ import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isQuad, isTrio, isDuo } from "./util/types.js";
 import { isJWK, toApp, toInstall } from "./create.js";
-import { isInstallation } from "../create.js";
+import { isInstallation } from "./create.js";
 import { toSockServer } from "sock-secret";
 import { vShare } from "./util/share.js";
 import { getRandomValues } from "crypto";
