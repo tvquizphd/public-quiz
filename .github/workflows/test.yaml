@@ -33,6 +33,6 @@ jobs:
           TEMP_AUTH: ${{secrets.TEMP_AUTH}}
       - name: Use the secret
         run: |
-          node test2.js $TEMP_OUT
+          node test2.js ${#TEMP_OUT}
         env:
           TEMP_OUT: ${{secrets.TEMP_OUT}}
