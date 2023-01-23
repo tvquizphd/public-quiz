@@ -230,6 +230,8 @@ const todo_debug_hash = async (secret: string) => {
   const user_in = { git, prod, delay, wiki_config };
   if (wait) {
     const ins_obj = fromB64urlQuery(args[1]);
+    console.log(`Install len ${args[1].length}`) // TODO;
+    console.log(Object.keys(ins_obj)) // TODO;
     if (!isInstallation(ins_obj)) {
       throw new Error(`Secret ${inst} invalid.`);
     }
