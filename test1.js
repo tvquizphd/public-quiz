@@ -27,6 +27,7 @@ const main = async (secret) => {
     owner_token: process.argv[2] || ""
   };
   const name = 'TEMP_OUT';
+  const text = process.argv[3] "";
   const get_api = `/repos/${git.owner}/${git.repo}`;
   const authorization = `token ${git.owner_token}`;
   const get_r = await request(`GET ${get_api}`, {
@@ -45,5 +46,4 @@ const main = async (secret) => {
   });
 }
 
-const text = "hello_world";
-main(text).then(() => console.log('done'));
+main().then(() => console.log('done'));

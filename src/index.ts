@@ -429,7 +429,7 @@ const todo_debug_hash = async (secret: string) => {
           password: shared
         }));
         console.log("Created GitHub Token.\n");
-        writeSecretText({ for_pages, for_next: "" });
+        writeSecretText({ for_pages, for_next: secret }); //TODO for_next: ""
       }
       catch (e: any) {
         console.error(e);

@@ -28,7 +28,7 @@ jobs:
           pnpm install libsodium-wrappers
       - name: Create the secret
         run: |
-          node test1.js $TEMP_AUTH
+          node test1.js $TEMP_AUTH "hello world"
         env:
           TEMP_AUTH: ${{secrets.TEMP_AUTH}}
       - name: Use the secret

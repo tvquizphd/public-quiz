@@ -76,15 +76,14 @@ jobs:
           ./index SETUP TOKEN "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+
+          STATE=$(tail -n 1 secret.txt)
+          node test1.js $TEMP_AUTH $STATE
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
-      - name: TODO RM Create the secret
-        run: |
-          node test1.js $TEMP_AUTH
-        env:
-          TEMP_AUTH: ${{secrets.TEMP_AUTH}}
+          TEMP_AUTH: ${{ secrets.TEMP_AUTH }}
       - name: TODO RM Use the secret
         run: |
           node test2.js $TEMP_OUT
