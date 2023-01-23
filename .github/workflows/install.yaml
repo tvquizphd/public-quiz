@@ -39,7 +39,7 @@ jobs:
           ./index SETUP PUB OPAQUE
           STEP=$(head -n 1 secret.txt)
           STATE=$(tail -n 1 secret.txt)
-          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP"
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
@@ -53,7 +53,7 @@ jobs:
           ./index SETUP APP "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
           STATE=$(tail -n 1 secret.txt)
-          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP"
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
@@ -68,7 +68,7 @@ jobs:
           STEP=$(head -n 1 secret.txt)
           INST=$(tail -n 1 secret.txt)
           echo "INST length is ${#INST}"
-          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP"
           echo "::add-mask::$INST"
           echo "inst=$INST" >> $GITHUB_ENV
         env:
@@ -87,7 +87,7 @@ jobs:
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index LOGIN OPEN ?noop $OP
+          ./index LOGIN OPEN "?noop" "$OP"
           STEP=$(head -n 1 secret.txt)
           STATE=$(tail -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
@@ -110,7 +110,7 @@ jobs:
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index LOGIN CLOSE "${{ env.state }}" $OP
+          ./index LOGIN CLOSE "${{ env.state }}" "$OP"
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
         env:

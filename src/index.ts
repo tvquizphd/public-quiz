@@ -440,6 +440,10 @@ const todo_debug_hash = async (secret: string) => {
       }
     }
   }
+  else {
+    const message = "Unable to match action\n";
+    return { success: false, message };
+  }
   if (!prod) {
     const env_vars = env_all.filter((v) => {
       return process.env[v];
