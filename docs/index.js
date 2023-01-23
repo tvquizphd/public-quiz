@@ -3,7 +3,7 @@ import {
 } from "pub";
 import { toB64urlQuery } from "sock-secret";
 import { toSyncOp, clientLogin,  writeText } from "io";
-import { dispatch, WikiMailer } from "wiki";
+import { dispatch, WikiMailer, toGitHubDelay } from "wiki";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
 import { templates } from "templates";
@@ -207,7 +207,7 @@ const runReef = (dev, remote, env) => {
       throw new Error("Missing GitHub Token.");
     }
     const times = 1000;
-    const delay = 2.0;
+    const delay = toGitHubDelay(local);
     const send_local = (text) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);

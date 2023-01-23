@@ -144,4 +144,4 @@ const fromNameTree = ({ command, tree }) => {
   return command + toB64urlQuery(tree);
 }
 
-export { WikiMailer, toPastedText, toNameTree, fromNameTree, dispatch }
+export { WikiMailer, toPastedText, toNameTree, fromNameTree, dispatch, toGitHubDelay }
