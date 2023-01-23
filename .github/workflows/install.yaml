@@ -95,7 +95,7 @@ jobs:
           chmod +x index
           ./index WAIT $INSTALLATION
         env:
-          INSTALLATION: ${{ secrets.INSTALLATION }}
+          INSTALLATION: ${{ secrets.TEMP_OUT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
       - name: Login Open
@@ -109,7 +109,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
-          INSTALLATION: ${{ secrets.INSTALLATION }}
+          INSTALLATION: ${{ secrets.TEMP_OUT }}
           OP: ${{ secrets.OP }}
       - name: Wait for client op
         run: |
