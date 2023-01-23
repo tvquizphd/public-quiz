@@ -71,23 +71,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
-      - name: sleep
-        run: |
-          echo ${#INSTALLATION}
-          sleep 5
-        env:
-          INSTALLATION: ${{ secrets.INSTALLATION }}
-      - name: sleep
-        run: |
-          echo ${#INSTALLATION}
-          sleep 5
-        env:
-          INSTALLATION: ${{ secrets.INSTALLATION }}
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index WAIT OP
+          ./index WAIT $INSTALLATION
         env:
           INSTALLATION: ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -105,23 +93,11 @@ jobs:
           INDEX_URL: ${{ steps.index.outputs.index }}
           INSTALLATION: ${{ secrets.INSTALLATION }}
           OP: ${{ secrets.OP }}
-      - name: sleep
-        run: |
-          echo ${#INSTALLATION}
-          sleep 5
-        env:
-          INSTALLATION: ${{ secrets.INSTALLATION }}
-      - name: sleep
-        run: |
-          echo ${#INSTALLATION}
-          sleep 5
-        env:
-          INSTALLATION: ${{ secrets.INSTALLATION }}
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index WAIT OP
+          ./index WAIT $INSTALLATION
         env:
           INSTALLATION: ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

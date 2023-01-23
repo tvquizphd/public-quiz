@@ -8,6 +8,7 @@ import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isQuad, isTrio, isDuo } from "./util/types.js";
 import { isJWK, toApp, toInstall } from "./create.js";
+import { isInstallation } from "../create.js";
 import { toSockServer } from "sock-secret";
 import { vShare } from "./util/share.js";
 import { getRandomValues } from "crypto";
@@ -228,12 +229,15 @@ const todo_debug_hash = async (secret: string) => {
   const log_in = { ...v_in, pep, login, reset: false };
   const user_in = { git, prod, delay, wiki_config };
   if (wait) {
-    const { installed } = toInstallation(inst);
-    const owner_token = installed.token;
+    const ins_obj = fromB64urlQuery(args[1]);
+    if (!isInstallation(ins_obj)) {
+      throw new Error(`Secret ${inst} invalid.`);
+    }
+    const owner_token = ins_obj.installed.token;
     await todo_debug_hash(owner_token); //TODO
     const { owner, repo } = git;
     const igit = { owner, repo, owner_token };
-    const needs = { last: [args[1]] };
+    const needs = { last: ["OP"] };
     const inputs = { 
       git: igit, env, secrets: {}, needs
     };
