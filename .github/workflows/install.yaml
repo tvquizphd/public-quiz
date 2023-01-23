@@ -17,7 +17,8 @@ permissions:
   deployments: write
 jobs:
   code_and_token:
-    environment: PRODUCTION-LOGIN
+    environment:
+      name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
     steps:
       - name: Configure Latest Release URL
@@ -66,7 +67,7 @@ jobs:
           ./index SETUP TOKEN "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
-          sleep 2
+          sleep 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
@@ -87,7 +88,7 @@ jobs:
           ./index LOGIN OPEN ?noop $OP
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
-          sleep 2
+          sleep 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
