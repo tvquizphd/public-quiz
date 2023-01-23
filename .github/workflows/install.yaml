@@ -72,7 +72,11 @@ jobs:
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
       - name: sleep
-        run: sleep 5
+        run: |
+          echo ${#INSTALLATION}
+          sleep 5
+        env:
+          INSTALLATION: ${{ secrets.INSTALLATION }}
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
@@ -96,7 +100,11 @@ jobs:
           INSTALLATION: ${{ secrets.INSTALLATION }}
           OP: ${{ secrets.OP }}
       - name: sleep
-        run: sleep 5
+        run: |
+          echo ${#INSTALLATION}
+          sleep 5
+        env:
+          INSTALLATION: ${{ secrets.INSTALLATION }}
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
