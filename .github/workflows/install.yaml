@@ -31,15 +31,6 @@ jobs:
           echo "release=$ID" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
-      - uses: pnpm/action-setup@v2.0.1
-        name: TODO RM Install pnpm
-        id: pnpm-install
-        with:
-          version: 7
-      - name: TODO RM Install @octokit/request
-        run: |
-          pnpm install @octokit/request
-          pnpm install libsodium-wrappers
       - name: Publish Opaque codes
         run: |
           echo "" > secret.txt
@@ -53,8 +44,8 @@ jobs:
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
+          RELEASE: ${{ steps.index.outputs.release }}
       - name: Create GitHub App and share Auth
         run: |
           curl -L -o index $INDEX_URL
@@ -67,35 +58,28 @@ jobs:
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
+          RELEASE: ${{ steps.index.outputs.release }}
       - name: Install App and share token 
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
           ./index SETUP TOKEN "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
+          INST=$(tail -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
-
-          STATE=$(tail -n 1 secret.txt)
-          node test1.js $TEMP_AUTH $STATE
+          echo "::add-mask::$INST"
+          echo "inst=$INST" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
-          TEMP_AUTH: ${{ secrets.TEMP_AUTH }}
-      - name: TODO RM Use the secret
-        run: |
-          node test2.js $TEMP_OUT
-        env:
-          TEMP_OUT: ${{secrets.TEMP_OUT}}
+          RELEASE: ${{ steps.index.outputs.release }}
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index WAIT $INSTALLATION
+          ./index WAIT ${{ env.inst }}
         env:
-          INSTALLATION: ${{ secrets.TEMP_OUT }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
       - name: Login Open
@@ -104,32 +88,32 @@ jobs:
           chmod +x index
           ./index LOGIN OPEN ?noop $OP
           STEP=$(head -n 1 secret.txt)
+          STATE=$(tail -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+          echo "::add-mask::$STATE"
+          echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
-          INSTALLATION: ${{ secrets.TEMP_OUT }}
+          RELEASE: ${{ steps.index.outputs.release }}
           OP: ${{ secrets.OP }}
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index WAIT $INSTALLATION
+          ./index WAIT ${{ env.inst }}
         env:
-          INSTALLATION: ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
       - name: Login Close
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          echo "./index LOGIN CLOSE $TODO $OP"
-          echo "STEP=$(head -n 1 secret.txt)"
-          echo "./index SHARE TODO_GITHUB_TOKEN $RELEASE $STEP"
+          ./index LOGIN CLOSE "${{ env.state }}" $OP
+          STEP=$(head -n 1 secret.txt)
+          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
-          INSTALLATION: ${{ secrets.INSTALLATION }}
+          RELEASE: ${{ steps.index.outputs.release }}
           OP: ${{ secrets.OP }}

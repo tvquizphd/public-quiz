@@ -260,7 +260,7 @@ const vLogin: Login = async (inputs) => {
   };
   const user_line = await encryptLine(encrypt_user, user_command);
   const session_line = await encryptLine(encrypt_session, finish);
-  const for_pages = [user_line, session_line].join('\n');
+  const for_pages = [user_line, session_line].join('+++TODO+++');
   return { for_next: "", for_pages };
 }
 

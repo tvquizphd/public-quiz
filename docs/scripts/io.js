@@ -60,7 +60,7 @@ const toMailSeeker = ({ local, host, git, delay, key_in }) => {
   return async () => {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText({ local, host, git });
-    const lines = text.split('\n');
+    const lines = text.split('+++TODO+++');
     return await lines.reduce(async (memo, line) => {
       const [ k, v ] = await toMailLine(line, key_in);
       const o = await memo;

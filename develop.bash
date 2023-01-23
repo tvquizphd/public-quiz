@@ -41,7 +41,7 @@ enter () {
   # Must have Au + token + client_auth_result
   pnpm develop LOGIN CLOSE $(tail -n 1 $SECRET_TXT) $WORK
   # Must send clients, servers, secrets
-  sed -n '1,2p' $SECRET_TXT > $WIKI_OUT
+  echo $(head -n 1 $SECRET_TXT) > $WIKI_OUT
 }
 
 echo $'\n\nRun' $INTRO $'\n'
