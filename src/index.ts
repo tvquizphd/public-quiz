@@ -229,7 +229,7 @@ const todo_debug_hash = async (secret: string) => {
   if (wait) {
     const { installed } = toInstallation(inst);
     const owner_token = installed.token;
-    todo_debug_hash(owner_token); //TODO
+    await todo_debug_hash(owner_token); //TODO
     const { owner, repo } = git;
     const igit = { owner, repo, owner_token };
     const needs = { last: [args[1]] };
@@ -416,7 +416,7 @@ const todo_debug_hash = async (secret: string) => {
         });
         const { owner, repo } = git;
         const owner_token = installed.token;
-        todo_debug_hash(owner_token); //TODO
+        await todo_debug_hash(owner_token); //TODO
         const igit = { owner, repo, owner_token };
         await addSecret({ git: igit, env, secret, name: inst });
         const for_pages = toB64urlQuery(await encryptSecrets({
