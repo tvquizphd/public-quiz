@@ -67,11 +67,12 @@ jobs:
           ./index SETUP TOKEN "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
-          sleep 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
+      - name: sleep
+        run: sleep 5
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
@@ -88,13 +89,14 @@ jobs:
           ./index LOGIN OPEN ?noop $OP
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
-          sleep 5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           INSTALLATION: ${{ secrets.INSTALLATION }}
           OP: ${{ secrets.OP }}
+      - name: sleep
+        run: sleep 5
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
