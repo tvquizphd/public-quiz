@@ -67,6 +67,7 @@ jobs:
           ./index SETUP TOKEN "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
           INST=$(tail -n 1 secret.txt)
+          echo "INST length is ${#INST}"
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
           echo "::add-mask::$INST"
           echo "inst=$INST" >> $GITHUB_ENV
@@ -78,7 +79,7 @@ jobs:
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index WAIT ${{ env.inst }}
+          ./index WAIT "${{ env.inst }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
@@ -101,7 +102,7 @@ jobs:
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
-          ./index WAIT ${{ env.inst }}
+          ./index WAIT "${{ env.inst }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
