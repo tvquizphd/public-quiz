@@ -15,17 +15,14 @@ function isForAuth(p) {
 }
 
 const dispatch = async (props) => {
-  const { text, workflow, git } = props;
+  const { text, git } = props;
   const { owner, repo } = git;
-  const inputs = { op: text };
+  const event_type = props.workflow;
+  const client_payload = { op: text };
   const opts = { 
-    inputs, owner, repo,
-    ref: "main", workflow_id: workflow
+    event_type, client_payload, owner, repo,
   };
-  const api = [
-    "/repos/{owner}/{repo}/actions",
-    "workflows/{workflow_id}/dispatches",
-  ].join("/");
+  const api = "/repos/{owner}/{repo}/dispatches";
   await request(`POST ${api}`, opts);
 }
 

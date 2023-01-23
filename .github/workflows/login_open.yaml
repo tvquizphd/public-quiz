@@ -1,11 +1,7 @@
 name: Open Login
 on:
-  workflow_dispatch:
-    inputs:
-      op:
-        description: 'opaque client input'
-        required: true
-        type: string
+  repository_dispatch:
+    types: [call-login-open]
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
@@ -48,4 +44,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
-          OP: ${{ inputs.op }}
+          OP: ${{ github.event.client_payload.op }}
