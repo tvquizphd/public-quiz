@@ -17,6 +17,7 @@ import fs from "fs";
 
 import type { AppOutput } from "./create.js";
 import type { TreeAny } from "sock-secret"
+import type { ArgonOpts } from "./util/password.js";
 import type { WikiConfig } from "./util/pasted.js";
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { ServerFinal } from "opaque-low-io";
@@ -163,10 +164,10 @@ const todo_debug_hash = async (secret: string) => {
     167, 112,  69,  20,  87,
     120
   ]);
-  const options = { 
+  const options: ArgonOpts = { 
+    salt: Buffer.from(salt),
     type: argon2.argon2d,
     raw: false,
-    salt
   };
   const url = await argon2.hash(secret, options);
   const [s64, h64] = url.split('$').slice(-2);

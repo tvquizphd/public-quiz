@@ -13,7 +13,7 @@ type HasHash = {
 export type Digest = HasSalt & HasHash;
 export type Pass = Record<"pass", string>;
 export type SaltedPass = HasSalt & Pass;
-type ArgonOpts = Partial<Options> & {
+export type ArgonOpts = Partial<Options> & {
   raw: false
 };
 type Opts = Partial<HasSalt>;
