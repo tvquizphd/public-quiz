@@ -3,7 +3,7 @@ import {
 } from "pub";
 import { toB64urlQuery } from "sock-secret";
 import { toSyncOp, clientLogin,  writeText } from "io";
-import { WikiMailer } from "wiki";
+import { dispatch, WikiMailer } from "wiki";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
 import { templates } from "templates";
@@ -204,10 +204,14 @@ const runReef = (dev, remote, env) => {
     }
     const times = 1000;
     const delay = 2.0;
-    const send = (text) => {
+    const send_local = (text) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);
     }
+    const send_remote = (text, workflow) => {
+      dispatch({ text, workflow, git });
+    }
+    const send = local ? send_local : send_remote;
     const user_in = { git, env, local, delay, host };
     await clientLogin({ user_id, user_in, pass, times, send });
     DATA.loading.finish = false;

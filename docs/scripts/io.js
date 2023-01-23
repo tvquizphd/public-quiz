@@ -5,12 +5,12 @@ import { toNameTree, fromNameTree } from "wiki";
 import { fromB64urlQuery } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 
-const toSender = ({ local, send }) => {
-  if (!local) return null;
+const toSender = ({ local, send, workflow }) => {
+  console.log({ local, workflow });
   return (kv) => {
     const { name: command, secret } = kv;
     const tree = fromB64urlQuery(secret);
-    send(fromNameTree({ command, tree }));
+    send(fromNameTree({ command, tree }), workflow);
   }
 }
 
@@ -24,9 +24,9 @@ const toOpaqueSeeker = ({ local, host, git, delay }) => {
   }
 }
 
-async function toOpaqueSock(inputs, send) {
+async function toOpaqueSock(inputs, send, workflow) {
   const { git, local, env, delay, host } = inputs;
-  const sender = toSender({ local, send });
+  const sender = toSender({ local, send, workflow });
   const seeker = toOpaqueSeeker({ local, host, git, delay });
   const sock_in = { git, env, seeker, sender };
   const Sock = await toSockClient(sock_in);
@@ -90,7 +90,7 @@ const toSyncOp = async () => {
 async function clientRegister(inputs) {
   const { user_in, user_id, pass, times } = inputs;
   const c_first = { password: pass, user_id };
-  const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send);
+  const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send, "login_open.yaml");
   const reg_out = await Opaque.clientStep(c_first, times, "op");
   Sock.quit();
   return reg_out;
@@ -98,7 +98,7 @@ async function clientRegister(inputs) {
 
 async function clientVerify(inputs) {
   const { user_in, reg_out, times } = inputs;
-  const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send);
+  const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send, "login_close.yaml");
   const c_out = await Opaque.clientStep(reg_out, times, "op");
   Sock.quit();
   return c_out.token;

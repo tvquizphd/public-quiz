@@ -14,6 +14,21 @@ function isForAuth(p) {
   return p.salt && p.key && p.data; 
 }
 
+const dispatch = async (props) => {
+  const { text, workflow, git } = props;
+  const { owner, repo } = git;
+  const inputs = { op: text };
+  const opts = { 
+    inputs, owner, repo,
+    ref: "main", workflow_id: workflow
+  };
+  const api = [
+    "/repos/{owner}/{repo}/actions",
+    "workflows/{workflow_id}/dispatches",
+  ].join("/");
+  await request(`POST ${api}`, opts);
+}
+
 const toPastedText = async (props) => {
   const { local, host, git } = props;
   if (!local) {
@@ -130,4 +145,4 @@ const fromNameTree = ({ command, tree }) => {
   return command + toB64urlQuery(tree);
 }
 
-export { WikiMailer, toPastedText, toNameTree, fromNameTree }
+export { WikiMailer, toPastedText, toNameTree, fromNameTree, dispatch }

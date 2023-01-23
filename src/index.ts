@@ -181,11 +181,12 @@ const todo_debug_hash = async (secret: string) => {
     const message = "Missing 1st arg: MY_TOKEN";
     return { success: false, message };
   }
-  const ses = "SESSION"
+  const state = "STATE";
+  const ses = "SESSION";
   const pep = "ROOT_PEPPER";
   const inst = "INSTALLATION";
   const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
-  const env_all = [ses, pep, inst, "STATE", ...sec];
+  const env_all = [ses, pep, inst, state, ...sec];
   const remote = process.env.REMOTE?.split("/") || [];
   const env = process.env.DEPLOYMENT || "";
   const prod = isProduction(env);
@@ -249,7 +250,7 @@ const todo_debug_hash = async (secret: string) => {
     }
     await Sock.quit([]);
   }
-  if (dev) {
+  else if (dev) {
     try {
       if (args[1] === "INBOX") {
         await readDevInbox({ user_in, inst, sec });
@@ -315,12 +316,19 @@ const todo_debug_hash = async (secret: string) => {
         }
         const { sid, pw } = tree.client_auth_data;
         const finish = commands.FINISH_OPEN;
-        const { app } = toInstallation(inst);
+        const { installed, app } = toInstallation(inst);
         const start_in = {
           app, sid, pw, log_in, user_in, finish, command, tree 
         };
         const started = await vStart(start_in);
         const { for_next, for_pages } = started;
+        const { owner, repo } = git;
+        const owner_token = installed.token;
+        await todo_debug_hash(owner_token); //TODO
+        const igit = { owner, repo, owner_token };
+        await addSecret({ 
+          git: igit, env, secret: for_next, name: state
+        });
         writeSecretText({ for_pages, for_next });
         console.log('Began to verify user.\n');
       }

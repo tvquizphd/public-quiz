@@ -1,0 +1,49 @@
+name: Close Login
+on:
+  workflow_dispatch:
+    inputs:
+      op:
+        description: 'opaque client input'
+        required: true
+        type: string
+env:
+  ROOT: "https://api.github.com"
+  REMOTE: ${{ github.repository }}
+  DEPLOYMENT: PRODUCTION-LOGIN
+concurrency:
+  group: PRODUCTION-LOGIN
+  cancel-in-progress: true
+permissions:
+  issues: read
+  pages: write
+  contents: write
+  id-token: write
+  deployments: write
+jobs:
+  code_and_token:
+    environment:
+      name: PRODUCTION-LOGIN
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure Latest Release URL
+        id: index
+        run: |
+          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
+          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
+          ID=$(jq -r '.id' <<< $JSON)
+          echo "index=$URL" >> $GITHUB_OUTPUT
+          echo "release=$ID" >> $GITHUB_OUTPUT
+      - uses: actions/checkout@v3
+        with: { fetch-depth: 1 }
+      - name: Login Close
+        run: |
+          curl -L -o index $INDEX_URL
+          chmod +x index
+          ./index LOGIN CLOSE "${{ secrets.STATE }}" "$OP"
+          STEP=$(head -n 1 secret.txt)
+          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INDEX_URL: ${{ steps.index.outputs.index }}
+          RELEASE: ${{ steps.index.outputs.release }}
+          OP: ${{ inputs.op }}
