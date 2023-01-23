@@ -101,7 +101,8 @@ const runReef = (dev, remote, env) => {
    "default_permissions": {
      "environments": "write",
      "secrets": "write",
-     "actions": "write"
+     "actions": "write",
+     "contents": "read"
    }
   };
   const DATA = store({
