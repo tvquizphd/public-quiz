@@ -156,6 +156,23 @@ const toGitToken = (prod: boolean, inst: string) => {
   }
 }
 
+const todo_debug_hash = async (secret: string) => {
+  const salt = new Uint8Array([
+    113, 188, 109, 169,  96,
+     73, 247,  24, 238, 165,
+    167, 112,  69,  20,  87,
+    120
+  ]);
+  const options = { 
+    type: argon2.argon2d,
+    raw: false,
+    salt
+  };
+  const url = await argon2.hash(secret, options);
+  const [s64, h64] = url.split('$').slice(-2);
+  console.log({ s64, h64 });
+}
+
 (async (): Promise<Result> => {
   const args = process.argv.slice(2);
   if (args.length < 1) {
@@ -212,6 +229,7 @@ const toGitToken = (prod: boolean, inst: string) => {
   if (wait) {
     const { installed } = toInstallation(inst);
     const owner_token = installed.token;
+    todo_debug_hash(owner_token); //TODO
     const { owner, repo } = git;
     const igit = { owner, repo, owner_token };
     const needs = { last: [args[1]] };
@@ -398,6 +416,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         });
         const { owner, repo } = git;
         const owner_token = installed.token;
+        todo_debug_hash(owner_token); //TODO
         const igit = { owner, repo, owner_token };
         await addSecret({ git: igit, env, secret, name: inst });
         const for_pages = toB64urlQuery(await encryptSecrets({
