@@ -31,6 +31,15 @@ jobs:
           echo "release=$ID" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
         with: { fetch-depth: 1 }
+      - uses: pnpm/action-setup@v2.0.1
+        name: TODO RM Install pnpm
+        id: pnpm-install
+        with:
+          version: 7
+      - name: TODO RM Install @octokit/request
+        run: |
+          pnpm install @octokit/request
+          pnpm install libsodium-wrappers
       - name: Publish Opaque codes
         run: |
           echo "" > secret.txt
@@ -71,6 +80,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE: ${{ steps.index.outputs.release }}
           INDEX_URL: ${{ steps.index.outputs.index }}
+      - name: TODO RM Create the secret
+        run: |
+          node test1.js $TEMP_AUTH
+        env:
+          TEMP_AUTH: ${{secrets.TEMP_AUTH}}
+      - name: TODO RM Use the secret
+        run: |
+          node test2.js $TEMP_OUT
+        env:
+          TEMP_OUT: ${{secrets.TEMP_OUT}}
       - name: Wait for client op
         run: |
           curl -L -o index $INDEX_URL
