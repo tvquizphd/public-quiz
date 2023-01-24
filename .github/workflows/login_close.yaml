@@ -40,7 +40,7 @@ jobs:
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
         env:
-          MAIL__TABLE: ${{ secrets.MAIL }}
+          MAIL__TABLE: ${{ secrets.MAIL__TABLE }}
           INSTALLATION : ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
