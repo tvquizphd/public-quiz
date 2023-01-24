@@ -21,7 +21,7 @@ jobs:
       name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
     steps:
-      - name: Configure Latest Release URL
+      - name: Fetching executable
         id: index
         run: |
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
@@ -29,9 +29,7 @@ jobs:
           ID=$(jq -r '.id' <<< $JSON)
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
-      - uses: actions/checkout@v3
-        with: { fetch-depth: 1 }
-      - name: Publish Opaque codes
+      - name: Publishing Opaque codes
         run: |
           echo "" > secret.txt
           curl -L -o index $INDEX_URL
@@ -46,7 +44,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
-      - name: Create GitHub App and share Auth
+      - name: Awaiting User Creating GitHub App
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
@@ -60,7 +58,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
-      - name: Install App and share token 
+      - name: Awaiting User Installing GitHub App
         run: |
           curl -L -o index $INDEX_URL
           chmod +x index
