@@ -10,6 +10,7 @@ import { toHash } from "encrypt";
 import { encryptQueryMaster } from "encrypt";
 import { decryptQueryMaster } from "decrypt";
 import { decryptQuery, toBytes } from "decrypt";
+import { dispatch, toGitHubDelay } from "wiki";
 /*
  * Globals needed on window object:
  *
@@ -167,7 +168,7 @@ const runReef = (dev, remote, env) => {
     const { env, git, host, local } = DATA;
     const { master_key, user_key } = DATA;
     const { dbt } = API;
-    const delay = 0.3333;
+    const delay = toGitHubDelay(local);
     const send_local = (text) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);
@@ -177,9 +178,9 @@ const runReef = (dev, remote, env) => {
       to_session: writeKey(user_key)
     };
     DATA.loading.sending = true;
-    const send = local ? send_local : null;
+    const send_mail = local ? send_local : null;
     const user_in = { git, env, local, delay, host };
-    const user_sock_in = { send, user_in, key_in: user_args };
+    const user_sock_in = { send: send_mail, user_in, key_in: user_args };
     const { Sock: UserSock } = await toMailSock(user_sock_in);
     // TODO -- make sure it works
     const encrypted = await dbt.encrypt(user_args);
@@ -216,23 +217,28 @@ const runReef = (dev, remote, env) => {
     DATA.master_key = master_key;
     DATA.user_key = user_key;
     const times = 1000;
-    const delay = 0.3333;
+    const delay = toGitHubDelay(local);
     const { dbt } = API;
     const { user_id } = DATA;
     const { env, git, host, local } = DATA;
     //await devStartWaiter({ local, delay, host });
-    const send = (text) => {
+    const send_local = (text) => {
       const f = DATA.dev_handle;
       if (f) writeText(f, text);
+    }
+    const send_remote = (text, workflow) => {
+      dispatch({ text, workflow, git });
     }
     const user_args = { 
       from_master: readKey(master_key),
       from_session: readKey(user_key)
     };
     // Use user key to recieve GitHub token
+    const send_mail = local ? send_local : null;
+    const send = local ? send_local : send_remote;
     const user_in = { git, env, local, delay, host };
     const opaque_in = { send, user_id, user_in, pass, times };
-    const user_sock_in = { send, user_in, key_in: user_args };
+    const user_sock_in = { send: send_mail, user_in, key_in: user_args };
     const { Sock: UserSock } = await toMailSock(user_sock_in);
     const user = await UserSock.get("mail", "user");
     const { installed } = await dbt.decryptUser(user_args, user);
@@ -249,7 +255,7 @@ const runReef = (dev, remote, env) => {
     };
     DATA.loading.mailer = false;
     DATA.loading.database = true;
-    const session_sock_in = { send, user_in, key_in: session_args };
+    const session_sock_in = { send: send_mail, user_in, key_in: session_args };
     const { Sock } = await toMailSock(session_sock_in);
     const mail = await Sock.get("mail", "session");
     const { ascii } = await dbt.decryptSession(session_args, mail);
