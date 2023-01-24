@@ -216,11 +216,11 @@ const runReef = (dev, remote, env) => {
     const user_key = toBytes(shared);
     DATA.master_key = master_key;
     DATA.user_key = user_key;
-    const times = 1000;
-    const delay = toGitHubDelay(local);
     const { dbt } = API;
     const { user_id } = DATA;
     const { env, git, host, local } = DATA;
+    const delay = toGitHubDelay(local);
+    const times = 1000;
     //await devStartWaiter({ local, delay, host });
     const send_local = (text) => {
       const f = DATA.dev_handle;
