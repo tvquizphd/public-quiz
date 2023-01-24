@@ -130,7 +130,7 @@ const runReef = (dev, remote, env) => {
     path,
     env,
     git: {
-      token: null,
+      owner_token: null,
       owner: remote[0],
       repo: remote[1]
     },
@@ -242,7 +242,7 @@ const runReef = (dev, remote, env) => {
     const { Sock: UserSock } = await toMailSock(user_sock_in);
     const user = await UserSock.get("mail", "user");
     const { installed } = await dbt.decryptUser(user_args, user);
-    git.token = installed.token;
+    git.owner_token = installed.token;
     DATA.loading.socket = false;
     DATA.loading.mailer = true;
     UserSock.quit([]);
