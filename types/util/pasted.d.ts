@@ -49,7 +49,7 @@ interface ReadUserApp {
     (u: UserIn): Promise<UserApp>;
 }
 interface ReadInbox {
-    (u: DevInboxIn): Promise<null>;
+    (u: DevInboxIn): Promise<Trio>;
 }
 interface ReadLoginStart {
     (u: UserIn): Promise<boolean>;
@@ -97,7 +97,7 @@ declare const toPastedText: ToPastedText;
 declare const toTries: ToTries;
 declare const toBytes: (s: string) => Uint8Array;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;
-declare const readProdInbox: ReadInbox;
+declare const readInbox: ReadInbox;
 declare const readDevInbox: ReadInbox;
 declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;
@@ -105,4 +105,4 @@ declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
 declare const fromNameTree: FromNameTree;
-export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes, toInstallation, readProdInbox };
+export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes, toInstallation, readInbox };

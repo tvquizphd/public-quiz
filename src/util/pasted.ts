@@ -49,7 +49,7 @@ export type UserApp = Pasted & {
 type DevInboxIn = {
   user_in: UserIn,
   inst: string,
-  sec: Trio 
+  sec: Trio
 }
 interface ToUserInstall {
   (u: InstallIn): Promise<Obj>;
@@ -61,7 +61,7 @@ interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
 }
 interface ReadInbox {
-  (u: DevInboxIn): Promise<null>;
+  (u: DevInboxIn): Promise<Trio>;
 }
 interface ReadLoginStart {
   (u: UserIn): Promise<boolean>;
@@ -262,10 +262,12 @@ const toInstallation = (inst: string) => {
   return ins_obj;
 }
 
-const readProdInbox: ReadInbox = async (inputs) => {
+const readInbox: ReadInbox = async (inputs) => {
   const { user_in, inst, sec } = inputs;
   if (!user_in.prod) {
-    throw new Error('Data only in MAIL__TABLE during production');
+    return sec.map((k: string) => {
+      return process.env[k] || "";
+    }) as Trio;
   }
   const { shared } = toInstallation(inst);
   const key = toBytes(shared);
@@ -278,9 +280,7 @@ const readProdInbox: ReadInbox = async (inputs) => {
       const plain_text = new TextDecoder().decode(out);
       const trio = plain_text.split("\n");
       if (isTrio(trio)) {
-        sec.map((k: string, i: number) => {
-          process.env[k] = trio[i];
-        });
+        return trio;
       }
     }
     else {
@@ -290,7 +290,7 @@ const readProdInbox: ReadInbox = async (inputs) => {
   catch {
     console.log('No passwords in dev inbox');
   }
-  return null;
+  return ["", "", ""];
 }
 
 const readDevInbox: ReadInbox = async (inputs) => {
@@ -313,6 +313,7 @@ const readDevInbox: ReadInbox = async (inputs) => {
         sec.map((k: string, i: number) => {
           process.env[k] = trio[i];
         });
+        return trio;
       }
     }
     else {
@@ -322,7 +323,7 @@ const readDevInbox: ReadInbox = async (inputs) => {
   catch {
     console.log('No passwords in dev inbox');
   }
-  return null;
+  return ["", "", ""];
 }
 
 const readLoginStart: ReadLoginStart = async (ins) => {
@@ -445,5 +446,5 @@ export {
   readUserApp, readUserInstall, toTries, toPastedText, useGit,
   isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
   readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes,
-  toInstallation, readProdInbox
+  toInstallation, readInbox
 }

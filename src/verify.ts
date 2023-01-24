@@ -72,7 +72,7 @@ type Inputs = {
 }
 type InputsFirst = Inputs & Register; 
 type InputsFinal = Inputs & ServerFinal & {
-  sec: Trio, inst: string, ses: string
+  trio: Trio, inst: string, ses: string
 }; 
 type Lister = {
   (): Promise<string[]>;
@@ -242,11 +242,7 @@ const vLogin: Login = async (inputs) => {
   }
   const { installed, shared } = ins_obj;
   const ins_text = toB64urlQuery(installed);
-  const text_rows = inputs.sec.map((k: string) => {
-    if (!prod) {
-      return process.env[k] || "";
-    }
-  }).join('\n');
+  const text_rows = inputs.trio.join('\n');
   const user_command = "mail__user";
   const session_key = toBytes(token);
   const user_key = toBytes(shared);

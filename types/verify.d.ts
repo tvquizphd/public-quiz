@@ -48,7 +48,7 @@ declare type Inputs = {
 };
 declare type InputsFirst = Inputs & Register;
 declare type InputsFinal = Inputs & ServerFinal & {
-    sec: Trio;
+    trio: Trio;
     inst: string;
     ses: string;
 };

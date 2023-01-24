@@ -1,7 +1,7 @@
 import { isLoginStart, isLoginEnd, isTree, toInstallation } from "./util/pasted.js";
 import { readLoginStart, readLoginEnd, toNameTree } from "./util/pasted.js";
 import { readUserApp, readUserInstall } from "./util/pasted.js";
-import { readProdInbox, readDevInbox } from "./util/pasted.js";
+import { readInbox, readDevInbox } from "./util/pasted.js";
 import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
 import { addSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin, toSyncOp } from "./verify.js";
@@ -332,7 +332,7 @@ const todo_debug_hash = async (secret: string) => {
         console.log('Began to verify user.\n');
       }
       else if (args[1] === "CLOSE") {
-        await readProdInbox({ user_in, inst, sec });
+        const trio = await readInbox({ user_in, inst, sec });
         if (!tree.client_auth_result) {
           throw new Error('No workflow inputs.');
         }
@@ -349,7 +349,7 @@ const todo_debug_hash = async (secret: string) => {
         const { app } = toInstallation(inst);
         const end_in = { 
           ...given, log_in, user_in, finish,
-          command, tree, sec, ses, inst, app
+          command, tree, trio, ses, inst, app
         };
         const payload = await vLogin(end_in);
         const { for_next, for_pages } = payload;
