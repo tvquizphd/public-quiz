@@ -58,12 +58,12 @@ const NO_HANDLERS = {
 }
 
 const toGitHubDelay = (local) => {
-  if (local) return 1000;
+  // Return delay in seconds
+  if (local) return 1;
   const rph = 600 * .50; // 50%
   const rpm = rph / 60;
   const rps = rpm / 60;
-  const rpms = rps / 1000;
-  return Math.floor(1 / rpms);
+  return Math.floor(1 / rps);
 }
 
 class WikiMailer {
@@ -76,7 +76,7 @@ class WikiMailer {
 
   async mainLoop () {
     const { local } = this.props;
-    const dt = toGitHubDelay(local);
+    const dt = 1000 * toGitHubDelay(local);
     while (!this.done) {
       await new Promise(r => setTimeout(r, dt));
       const pasted = await toPasted(this.props);

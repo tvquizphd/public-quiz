@@ -43,7 +43,7 @@ const addSecret = async (inputs: AddInputs) => {
   const { git, env, secret, name } = inputs;
   if (!isProduction(env)) {
     process.env[name] = secret;
-    //return; //TODO
+    return;
   }
   const authorization = 'bearer ' + git.owner_token;
   const headers = { authorization };

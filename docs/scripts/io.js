@@ -50,6 +50,9 @@ const toMailLine = async (line, key_in) => {
   }
   catch {
     const e_name = `error_${command}`;
+    if (command.slice(0, 2) !== "op") {
+      console.error({[e_name]: tree}); //TODO
+    }
     return [ e_name, tree ];
   }
 }
@@ -74,7 +77,7 @@ async function toMailSock(inputs) {
   const { key_in, send, user_in } = inputs;
   const { git, local, env, delay, host } = user_in;
   const seeker = toMailSeeker({ local, host, git, delay, key_in });
-  const sender = toSender({ local, send });
+  const sender = toSender({ local, send, workflow: "noop" });
   const sock_in = { git, env, seeker, sender };
   const Sock = await toSockClient(sock_in);
   if (Sock === null) {
@@ -92,7 +95,7 @@ async function clientRegister(inputs) {
   const c_first = { password: pass, user_id };
   const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send, "call-login-open");
   const reg_out = await Opaque.clientStep(c_first, times, "op");
-  Sock.quit();
+  Sock.quit([]);
   return reg_out;
 }
 
@@ -100,7 +103,7 @@ async function clientVerify(inputs) {
   const { user_in, reg_out, times } = inputs;
   const { Sock, Opaque } = await toOpaqueSock(user_in, inputs.send, "call-login-close");
   const c_out = await Opaque.clientStep(reg_out, times, "op");
-  Sock.quit();
+  Sock.quit([]);
   return c_out.token;
 }
 

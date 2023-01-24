@@ -54,7 +54,6 @@ if [ ! -z $SESSION ]; then
       read -r OLD_HASH
       export OLD_HASH
     fi
-    # Simulate wait for workflow dispatch
     pnpm develop DEV INBOX
     echo "Running login development action." $'\n'
     echo "Please open your personal login link." $'\n'
