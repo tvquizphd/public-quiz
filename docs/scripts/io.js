@@ -6,7 +6,10 @@ import { fromB64urlQuery } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 
 const toSender = ({ local, send, workflow }) => {
-  console.log({ local, workflow });
+  if (!send) {
+    if (local) console.error('Missing local sender?');
+    return null;
+  }
   return (kv) => {
     const { name: command, secret } = kv;
     const tree = fromB64urlQuery(secret);

@@ -60,7 +60,7 @@ interface ReadUserInstall {
 interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
 }
-interface ReadDevInbox {
+interface ReadInbox {
   (u: DevInboxIn): Promise<null>;
 }
 interface ReadLoginStart {
@@ -262,7 +262,38 @@ const toInstallation = (inst: string) => {
   return ins_obj;
 }
 
-const readDevInbox: ReadDevInbox = async (inputs) => {
+const readProdInbox: ReadInbox = async (inputs) => {
+  const { user_in, inst, sec } = inputs;
+  if (!user_in.prod) {
+    throw new Error('Data only in MAIL__TABLE during production');
+  }
+  const { shared } = toInstallation(inst);
+  const key = toBytes(shared);
+  try {
+    const text = process.env["MAIL__TABLE"];
+    const tree = fromB64urlQuery(text || "");
+    const data = tree.data || "";
+    if (hasEncryptionKeys(data)) {
+      const out = decryptSecret({ data, key });
+      const plain_text = new TextDecoder().decode(out);
+      const trio = plain_text.split("\n");
+      if (isTrio(trio)) {
+        sec.map((k: string, i: number) => {
+          process.env[k] = trio[i];
+        });
+      }
+    }
+    else {
+      console.log('Missing dev inbox');
+    }
+  }
+  catch {
+    console.log('No passwords in dev inbox');
+  }
+  return null;
+}
+
+const readDevInbox: ReadInbox = async (inputs) => {
   const { user_in, inst, sec } = inputs;
   if (user_in.prod) {
     throw new Error('Data only in Home.md during development');
@@ -414,5 +445,5 @@ export {
   readUserApp, readUserInstall, toTries, toPastedText, useGit,
   isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
   readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes,
-  toInstallation
+  toInstallation, readProdInbox
 }
