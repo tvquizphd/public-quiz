@@ -6,7 +6,7 @@
 ## Setup and usage
 
 - [Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
-- Just before setup + installation, [open an issue](../issues) on your fork.
+- Just before setup + installation, [open an issue](../../issues) on your fork.
 
 ### Register your App
 
@@ -54,7 +54,7 @@ When re-running installation workflow, first:
 - Delete [your old app](https://github.com/settings/apps)
 - Delete [the old environment](../../settings/environments)
 - Ensure [latest release](../../releases/latest) body is empty
-- Open or reopen an empty-bodied [issue](../issues)
+- Open or reopen an empty-bodied [issue](../../issues)
 - Then navigate to your Pages site
 
 ### Locally
