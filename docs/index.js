@@ -99,12 +99,8 @@ const runReef = (dev, remote, env) => {
    "callback_urls": [href],
    "public": true,
    "default_permissions": {
-     "environments": "write",
      "secrets": "write",
-     "actions": "write",
-     "contents": "write",
-     "actions_variables": "write",
-     "workflows": "write"
+     "contents": "write"
    }
   };
   const DATA = store({
