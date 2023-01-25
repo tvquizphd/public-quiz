@@ -11,10 +11,7 @@ concurrency:
   cancel-in-progress: true
 permissions:
   issues: read
-  pages: write
   contents: write
-  id-token: write
-  deployments: write
 jobs:
   login_close:
     environment:

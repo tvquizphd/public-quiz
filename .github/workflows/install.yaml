@@ -1,4 +1,4 @@
-name: Register after new issues 
+name: Register after new issues
 on:
   issues:
     types: [opened, reopened]
@@ -11,10 +11,7 @@ concurrency:
   cancel-in-progress: true
 permissions:
   issues: read
-  pages: write
   contents: write
-  id-token: write
-  deployments: write
 jobs:
   code_and_token:
     environment:

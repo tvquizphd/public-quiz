@@ -1,7 +1,7 @@
 # Public Quiz Device
 
 - For users: 🏃 [Setup and usage](#setup-and-usage), 🔑 [Security claims](#security-claims), and ☠️ [Security limitations](#security-limitations)
-- Developers should also read about ✍️ [Local testing](#local-testing) and 📦 [Production](#production-builds)
+- Developers should also read about ✍️ [testing](#testing) and 📦 [Production](#production-builds)
 
 ## Setup and usage
 
@@ -45,7 +45,19 @@ Unauthorized 3rd parties _can reset/clear your passwords_ if:
 
 Your master password AND your bookmarked login link.
 
-## Local Testing
+## Testing
+
+### Remotely
+
+When re-running installation workflow, first:
+
+- Delete [your old app](https://github.com/settings/apps)
+- Delete [the old environment](../settings/environments)
+- Ensure [latest release](../releases/latest) body is empty
+- Open or reopen an empty-bodied [issue](../issues)
+- Then navigate to your Pages site
+
+### Locally
 
 - In [environment.csv](./docs/environment.csv), set `REMOTE` to `your_username/public-quiz-device`.
 - Open a terminal, and clone your forked repository:
