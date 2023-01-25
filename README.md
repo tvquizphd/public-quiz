@@ -52,8 +52,8 @@ Your master password AND your bookmarked login link.
 When re-running installation workflow, first:
 
 - Delete [your old app](https://github.com/settings/apps)
-- Delete [the old environment](../settings/environments)
-- Ensure [latest release](../releases/latest) body is empty
+- Delete [the old environment](../../settings/environments)
+- Ensure [latest release](../../releases/latest) body is empty
 - Open or reopen an empty-bodied [issue](../issues)
 - Then navigate to your Pages site
 
