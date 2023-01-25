@@ -102,7 +102,7 @@ const runReef = (dev, remote, env) => {
      "actions": "read",
      "secrets": "write",
      "contents": "write",
-     "environments": "read",
+     "environments": "write",
      "actions_variables": "write"
    }
   };
