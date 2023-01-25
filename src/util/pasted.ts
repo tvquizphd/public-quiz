@@ -2,7 +2,6 @@ import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
 import { hasEncryptionKeys, decryptSecret } from "./decrypt.js";
 import { toSign, isInstallation } from "../create.js";
 import { request } from "@octokit/request";
-import { simpleGit } from 'simple-git';
 import { isTrio } from "./types.js";
 import path from 'node:path';
 import fs from 'fs'
@@ -16,14 +15,14 @@ import type { AppOutput } from "../create.js";
 import type { Git, Trio } from "./types.js";
 
 export type HasGit = { git: Git }
-export type WikiConfig = {
+export type DevConfig = {
   home: string,
   tmp: string
 }
 export type UserIn = HasGit & {
   delay: number,
   prod: boolean,
-  wiki_config: WikiConfig
+  dev_config: DevConfig
 }
 type InstallIn = HasGit & {
   delay: number,
@@ -83,15 +82,10 @@ interface ToPastedText {
   (s: UserIn) : Promise<string>;
 }
 type GitOutput = {
-  repo_url: string,
-  tmp_dir: string,
   tmp_file: string
 }
-interface DoGit {
-  (i: UserIn): Promise<void> 
-}
 interface UseGit {
-  (i: UserIn): GitOutput
+  (i: DevConfig ): GitOutput
 }
 type Obj = Record<string, unknown>;
 
@@ -157,42 +151,11 @@ function isLoginEnd(o: NodeAny): o is ClientAuthResult {
   return o.Au instanceof Uint8Array;
 }
 
-const useGit: UseGit = ({ git, wiki_config }) => {
-  const { owner, repo } = git;
-  const { tmp, home } = wiki_config;
-  const login = `git@github.com`;
-  const wiki = `${repo}.wiki`;
-  const repo_url = `https://${login}/${owner}/${wiki}.git`;
+const useGit: UseGit = (dev_config) => {
+  const { tmp, home } = dev_config;
   const tmp_dir = path.relative(process.cwd(), tmp);
-  const tmp_file = path.join(tmp_dir, wiki, home);
-  return { repo_url, tmp_dir, tmp_file };
-}
-
-const pullGit: DoGit = async (input) => {
-  const { tmp_file, tmp_dir } = useGit(input);
-  const wiki_dir = path.dirname(tmp_file);
-  const git_opts = {
-    binary: 'git',
-    baseDir: tmp_dir
-  }
-  const github = simpleGit(git_opts);
-  await github.cwd(wiki_dir);
-  await github.pull();
-}
-
-const cloneGit: DoGit = async (input) => {
-  const { repo_url, tmp_dir } = useGit(input);
-  const git_opts = {
-    binary: 'git',
-    baseDir: tmp_dir
-  }
-  if (fs.existsSync(tmp_dir)){
-    const rf = { recursive: true, force: true };
-    fs.rmSync(tmp_dir, rf);
-  }
-  fs.mkdirSync(tmp_dir);
-  const github = simpleGit(git_opts);
-  await github.clone(repo_url);
+  const tmp_file = path.join(tmp_dir, home);
+  return { tmp_file };
 }
 
 const toIssueText: ToIssueText = async (user_in) => {
@@ -216,7 +179,8 @@ const toPastedText: ToPastedText = async (user_in) => {
     return txt.replaceAll('\n', '');
   }
   const encoding = 'utf-8';
-  const { tmp_file: src } = useGit(user_in);
+  const { dev_config } = user_in;
+  const { tmp_file: src } = useGit(dev_config);
   const txt = fs.readFileSync(src, { encoding });
   return txt.replaceAll('\n', '');
 }
@@ -296,7 +260,8 @@ const readInbox: ReadInbox = async (inputs) => {
 const readDevInbox: ReadInbox = async (inputs) => {
   const { user_in, inst, sec } = inputs;
   if (user_in.prod) {
-    throw new Error('Data only in Home.md during development');
+    const { home } = user_in.dev_config;
+    throw new Error(`Data only in ${home} during development`);
   }
   const { shared } = toInstallation(inst);
   const key = toBytes(shared);
@@ -329,7 +294,8 @@ const readDevInbox: ReadInbox = async (inputs) => {
 const readLoginStart: ReadLoginStart = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
   if (ins.prod) {
-    throw new Error('Data only in Home.md during development');
+    const { home } = ins.dev_config;
+    throw new Error(`Data only in ${home} during development`);
   }
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
@@ -348,7 +314,8 @@ const readLoginStart: ReadLoginStart = async (ins) => {
 const readLoginEnd: ReadLoginEnd = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
   if (ins.prod) {
-    throw new Error('Data only in Home.md during development');
+    const { home } = ins.dev_config;
+    throw new Error(`Data only in ${home} during development`);
   }
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
@@ -366,9 +333,6 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
 
 const readUserApp: ReadUserApp = async (ins) => {
   const { dt, max_tries } = toTries(ins.delay);
-  if (ins.prod) {
-    await cloneGit(ins); //TODO remove
-  }
   let tries = 0;
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
@@ -376,9 +340,6 @@ const readUserApp: ReadUserApp = async (ins) => {
     const pasted = fromB64urlQuery(text);
     if (hasCode(pasted) && isForApp(pasted)) {
       return pasted;
-    }
-    if (ins.prod) {
-      await pullGit(ins);
     }
     tries += 1;
   }
@@ -443,7 +404,7 @@ const fromNameTree: FromNameTree = ({ command, tree }) => {
 }
 
 export { 
-  readUserApp, readUserInstall, toTries, toPastedText, useGit,
+  readUserApp, readUserInstall, toTries, toPastedText,
   isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
   readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes,
   toInstallation, readInbox

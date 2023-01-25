@@ -109,6 +109,6 @@ dist
 
 *.pem
 index
-tmp-wiki
+tmp-dev
 secret.txt
 .DS_Store

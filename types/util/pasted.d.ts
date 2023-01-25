@@ -7,14 +7,14 @@ import type { Git, Trio } from "./types.js";
 export declare type HasGit = {
     git: Git;
 };
-export declare type WikiConfig = {
+export declare type DevConfig = {
     home: string;
     tmp: string;
 };
 export declare type UserIn = HasGit & {
     delay: number;
     prod: boolean;
-    wiki_config: WikiConfig;
+    dev_config: DevConfig;
 };
 declare type InstallIn = HasGit & {
     delay: number;
@@ -67,14 +67,6 @@ interface ToTries {
 interface ToPastedText {
     (s: UserIn): Promise<string>;
 }
-declare type GitOutput = {
-    repo_url: string;
-    tmp_dir: string;
-    tmp_file: string;
-};
-interface UseGit {
-    (i: UserIn): GitOutput;
-}
 declare type Obj = Record<string, unknown>;
 declare type NameTree = {
     command: string;
@@ -92,7 +84,6 @@ declare type ClientAuthData = NewClientOut["client_auth_data"];
 declare function isLoginStart(o: NodeAny): o is ClientAuthData;
 declare type ClientAuthResult = ClientOut["client_auth_result"];
 declare function isLoginEnd(o: NodeAny): o is ClientAuthResult;
-declare const useGit: UseGit;
 declare const toPastedText: ToPastedText;
 declare const toTries: ToTries;
 declare const toBytes: (s: string) => Uint8Array;
@@ -105,4 +96,4 @@ declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
 declare const fromNameTree: FromNameTree;
-export { readUserApp, readUserInstall, toTries, toPastedText, useGit, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes, toInstallation, readInbox };
+export { readUserApp, readUserInstall, toTries, toPastedText, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes, toInstallation, readInbox };

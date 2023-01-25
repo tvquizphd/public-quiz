@@ -9,11 +9,11 @@ export REMOTE
 SERVER_URL="\"localhost:8000\""
 SERVER_CMD="\"npx http-server docs\""
 INTRO="$SERVER_CMD to access $SERVER_URL"
-WIKI_IN="./tmp-wiki/$(basename $REMOTE).wiki"
+WIKI_IN="./tmp-dev"
 CSV="./docs/environment.csv"
 SECRET_TXT="./secret.txt"
 WIKI_OUT="./docs/pub.txt"
-MD=$WIKI_IN/Home.md
+MD=$WIKI_IN/dev.txt
 mkdir -p $WIKI_IN
 echo "REMOTE,$REMOTE" > $CSV
 echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV

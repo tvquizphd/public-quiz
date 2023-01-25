@@ -20,7 +20,7 @@ import fs from "fs";
 import type { AppOutput } from "./create.js";
 import type { TreeAny } from "sock-secret"
 import type { ArgonOpts } from "./util/password.js";
-import type { WikiConfig } from "./util/pasted.js";
+import type { DevConfig } from "./util/pasted.js";
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { ServerFinal } from "opaque-low-io";
 import type { Trio } from "./util/types.js";
@@ -159,23 +159,6 @@ const toGitToken = (prod: boolean, inst: string) => {
   }
 }
 
-const todo_debug_hash = async (secret: string) => {
-  const salt = new Uint8Array([
-    113, 188, 109, 169,  96,
-     73, 247,  24, 238, 165,
-    167, 112,  69,  20,  87,
-    120
-  ]);
-  const options: ArgonOpts = { 
-    salt: Buffer.from(salt),
-    type: argon2.argon2d,
-    raw: false,
-  };
-  const url = await argon2.hash(secret, options);
-  const [s64, h64] = url.split('$').slice(-2);
-  console.log({ s64, h64 });
-}
-
 (async (): Promise<Result> => {
   const args = process.argv.slice(2);
   if (args.length < 1) {
@@ -208,11 +191,9 @@ const todo_debug_hash = async (secret: string) => {
     owner: remote[0],
     owner_token: toGitToken(prod, inst),
   }
-  console.log('Git Token Length'); //TODO
-  console.log(git.owner_token.length);
-  const wiki_config: WikiConfig = {
-    home: "Home.md",
-    tmp: "tmp-wiki"
+  const dev_config: DevConfig = {
+    home: "dev.txt",
+    tmp: "tmp-dev"
   }
   const delay = 2; // 2 sec
   if (!prod) {
@@ -229,14 +210,13 @@ const todo_debug_hash = async (secret: string) => {
   const wait = isDuo(args) && args[0] === "WAIT";
   const dev = isDuo(args) && args[0] === "DEV";
   const log_in = { ...v_in, pep, login, reset: false };
-  const user_in = { git, prod, delay, wiki_config };
+  const user_in = { git, prod, delay, dev_config };
   if (wait) {
     const ins_obj = fromB64urlQuery(args[1]);
     if (!isInstallation(ins_obj)) {
       throw new Error(`Secret ${inst} invalid.`);
     }
     const owner_token = ins_obj.installed.token;
-    await todo_debug_hash(owner_token); //TODO
     const { owner, repo } = git;
     const igit = { owner, repo, owner_token };
     const needs = { last: ["OP"] };
@@ -323,7 +303,6 @@ const todo_debug_hash = async (secret: string) => {
         const { for_next, for_pages } = started;
         const { owner, repo } = git;
         const owner_token = installed.token;
-        await todo_debug_hash(owner_token); //TODO
         const igit = { owner, repo, owner_token };
         await addSecret({ 
           git: igit, env, secret: for_next, name: state
@@ -431,7 +410,6 @@ const todo_debug_hash = async (secret: string) => {
         });
         const { owner, repo } = git;
         const owner_token = installed.token;
-        await todo_debug_hash(owner_token); //TODO
         const igit = { owner, repo, owner_token };
         await addSecret({ git: igit, env, secret, name: inst });
         const for_pages = toB64urlQuery(await encryptSecrets({

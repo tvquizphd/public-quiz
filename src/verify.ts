@@ -216,7 +216,6 @@ const vLogin: Login = async (inputs) => {
   const { Au, ses, inst, finish } = inputs;
   //const master_key = toBytes(secret);
   const { git, env } = inputs.log_in;
-  const { prod } = inputs.user_in;
   const { command, tree } = inputs;
   const secrets = { [command]: tree };
   const step = { token: secret, Au };
@@ -256,7 +255,7 @@ const vLogin: Login = async (inputs) => {
   };
   const user_line = await encryptLine(encrypt_user, user_command);
   const session_line = await encryptLine(encrypt_session, finish);
-  const for_pages = [user_line, session_line].join('+++TODO+++');
+  const for_pages = [user_line, session_line].join('/');
   return { for_next: "", for_pages };
 }
 

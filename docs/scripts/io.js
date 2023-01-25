@@ -40,8 +40,15 @@ async function toOpaqueSock(inputs, send, workflow) {
   return { Opaque, Sock };
 }
 
-const toMailLine = async (line, key_in) => {
-  const { command, tree } = toNameTree(line);
+const toCommandTreeList = (text) => {
+  const list = text.split('/');
+  return list.map(line => {
+    return toNameTree(line);
+  });
+}
+
+const toMailLine = async (ctree, key_in) => {
+  const { command, tree } = ctree;
   const { from_session } = key_in;
   if (!command) {
     return ['error', {}];
@@ -61,14 +68,13 @@ const toMailLine = async (line, key_in) => {
 }
 
 const toMailSeeker = ({ local, host, git, delay, key_in }) => {
-  console.log(local); // TODO prod version
   const dt = delay * 1000;
   return async () => {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText({ local, host, git });
-    const lines = text.split('+++TODO+++');
-    return await lines.reduce(async (memo, line) => {
-      const [ k, v ] = await toMailLine(line, key_in);
+    const ctrees = toCommandTreeList(text);
+    return await ctrees.reduce(async (memo, ctree) => {
+      const [ k, v ] = await toMailLine(ctree, key_in);
       const o = await memo;
       o[k] = v;
       return o;

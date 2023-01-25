@@ -44,11 +44,8 @@ const navTemplate = (inputs) => {
 
 const isValid = async (dir) => {
   for await (const [k0, v0] of dir.entries()) {
-    if (k0 !== "tmp-wiki") continue;
-    for await (const [k1, v1] of v0.entries()) {
-      if (k1 !== "public-quiz-device.wiki") continue;
-      return v1;
-    }
+    if (k0 !== "tmp-dev") continue;
+    return v0;
   }
   return null
 }
