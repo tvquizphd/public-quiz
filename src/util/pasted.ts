@@ -81,11 +81,8 @@ interface ToIssueText {
 interface ToPastedText {
   (s: UserIn) : Promise<string>;
 }
-type GitOutput = {
-  tmp_file: string
-}
-interface UseGit {
-  (i: DevConfig ): GitOutput
+interface UseTempFile {
+  (i: DevConfig): string; 
 }
 type Obj = Record<string, unknown>;
 
@@ -151,11 +148,10 @@ function isLoginEnd(o: NodeAny): o is ClientAuthResult {
   return o.Au instanceof Uint8Array;
 }
 
-const useGit: UseGit = (dev_config) => {
+const useTempFile: UseTempFile = (dev_config) => {
   const { tmp, home } = dev_config;
   const tmp_dir = path.relative(process.cwd(), tmp);
-  const tmp_file = path.join(tmp_dir, home);
-  return { tmp_file };
+  return path.join(tmp_dir, home);
 }
 
 const toIssueText: ToIssueText = async (user_in) => {
@@ -180,7 +176,7 @@ const toPastedText: ToPastedText = async (user_in) => {
   }
   const encoding = 'utf-8';
   const { dev_config } = user_in;
-  const { tmp_file: src } = useGit(dev_config);
+  const src = useTempFile(dev_config);
   const txt = fs.readFileSync(src, { encoding });
   return txt.replaceAll('\n', '');
 }
@@ -404,7 +400,7 @@ const fromNameTree: FromNameTree = ({ command, tree }) => {
 }
 
 export { 
-  readUserApp, readUserInstall, toTries, toPastedText,
+  readUserApp, readUserInstall, toTries,
   isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
   readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes,
   toInstallation, readInbox

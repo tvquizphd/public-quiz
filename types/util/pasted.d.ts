@@ -64,9 +64,6 @@ declare type Tries = {
 interface ToTries {
     (u: number): Tries;
 }
-interface ToPastedText {
-    (s: UserIn): Promise<string>;
-}
 declare type Obj = Record<string, unknown>;
 declare type NameTree = {
     command: string;
@@ -84,7 +81,6 @@ declare type ClientAuthData = NewClientOut["client_auth_data"];
 declare function isLoginStart(o: NodeAny): o is ClientAuthData;
 declare type ClientAuthResult = ClientOut["client_auth_result"];
 declare function isLoginEnd(o: NodeAny): o is ClientAuthResult;
-declare const toPastedText: ToPastedText;
 declare const toTries: ToTries;
 declare const toBytes: (s: string) => Uint8Array;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;
@@ -96,4 +92,4 @@ declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
 declare const fromNameTree: FromNameTree;
-export { readUserApp, readUserInstall, toTries, toPastedText, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes, toInstallation, readInbox };
+export { readUserApp, readUserInstall, toTries, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes, toInstallation, readInbox };

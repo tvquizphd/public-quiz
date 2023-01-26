@@ -3,14 +3,13 @@ import { addSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
 import { toSockServer } from "sock-secret";
-import { toPastedText, isTree } from "./util/pasted.js";
-import { toNameTree, fromNameTree, toBytes } from "./util/pasted.js";
+import { isTree } from "./util/pasted.js";
+import { fromNameTree, toBytes } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
 import { isInstallation } from "./create.js";
 
 import type { SockServer } from "sock-secret";
 import type { QMI } from "./util/encrypt.js";
-import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
 import type { NodeAny, TreeAny } from "sock-secret";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
@@ -19,8 +18,7 @@ import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
 type SockInputs = {
   git: Git,
   env: string,
-  secrets: TreeAny,
-  lister?: Lister | null
+  secrets: TreeAny
 }
 type UserOutputs = {
   Sock: SockServer,
@@ -64,22 +62,12 @@ type Inputs = {
   finish: string,
   command: string,
   tree: TreeAny,
-  user_in: UserIn,
   log_in: ConfigIn
 }
 type InputsFirst = Inputs & Register; 
 type InputsFinal = Inputs & ServerFinal & {
   trio: Trio, inst: string, ses: string
 }; 
-type Lister = {
-  (): Promise<string[]>;
-}
-interface ReadNames {
-  (i: UserIn): Promise<string[]>;
-}
-interface ToList {
-  (i: UserIn): Lister;
-}
 interface EncryptLine {
   (e: QMI, c: string): Promise<string>;
 }
@@ -162,26 +150,12 @@ const toSyncOp: ToSyncOp = async () => {
   return await OPS();
 }
 
-const readNames: ReadNames = async (ins) => {
-  const text = await toPastedText(ins);
-  const { command } = toNameTree(text);
-  return [ command ];
-}
-
-const toDevList: ToList = (ins) => {
-  return async () => {
-    return await readNames(ins);
-  }
-}
-
 const vStart: Start = async (inputs) => {
   const { git, env, pep, reset } = inputs.log_in;
   const { command, finish, tree } = inputs;
-  const { sid, pw, user_in } = inputs;
-  const { prod } = user_in;
+  const { sid, pw } = inputs;
   const secrets = { [command]: tree };
-  const lister = prod ? null : toDevList(user_in);
-  const sock_in = { git, env, lister, secrets };
+  const sock_in = { git, env, secrets };
   const { Opaque, Sock } = await toUserSock(sock_in);
   const times = 1000;
   const pepper_in = {

@@ -1,5 +1,4 @@
 import type { SockServer } from "sock-secret";
-import type { UserIn } from "./util/pasted.js";
 import type { Git, Trio } from "./util/types.js";
 import type { TreeAny } from "sock-secret";
 import type { ServerFinal } from "opaque-low-io";
@@ -8,7 +7,6 @@ declare type SockInputs = {
     git: Git;
     env: string;
     secrets: TreeAny;
-    lister?: Lister | null;
 };
 declare type UserOutputs = {
     Sock: SockServer;
@@ -40,7 +38,6 @@ declare type Inputs = {
     finish: string;
     command: string;
     tree: TreeAny;
-    user_in: UserIn;
     log_in: ConfigIn;
 };
 declare type InputsFirst = Inputs & Register;
@@ -48,9 +45,6 @@ declare type InputsFinal = Inputs & ServerFinal & {
     trio: Trio;
     inst: string;
     ses: string;
-};
-declare type Lister = {
-    (): Promise<string[]>;
 };
 interface Start {
     (i: InputsFirst): Promise<SecretOut>;

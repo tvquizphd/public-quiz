@@ -111,4 +111,5 @@ dist
 index
 tmp-dev
 secret.txt
+docs/pub.txt
 .DS_Store

@@ -275,7 +275,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         const finish = commands.FINISH_OPEN;
         const { installed, app } = toInstallation(inst);
         const start_in = {
-          app, sid, pw, log_in, user_in, finish, command, tree 
+          app, sid, pw, log_in, finish, command, tree 
         };
         const started = await vStart(start_in);
         const { for_next, for_pages } = started;
@@ -305,7 +305,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         const finish = commands.FINISH_CLOSE;
         const { app } = toInstallation(inst);
         const end_in = { 
-          ...given, log_in, user_in, finish,
+          ...given, log_in, finish,
           command, tree, trio, ses, inst, app
         };
         const payload = await vLogin(end_in);
