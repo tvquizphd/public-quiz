@@ -187,7 +187,7 @@ const runReef = (dev, remote, env) => {
     UserSock.give("mail", "table", encrypted);
     DATA.loading.sending = false;
     console.log('Sent mail.');
-    UserSock.quit([]);
+    UserSock.quit();
   }
 
   const props = { DATA, API, templates };
@@ -245,7 +245,7 @@ const runReef = (dev, remote, env) => {
     git.owner_token = installed.token;
     DATA.loading.socket = false;
     DATA.loading.mailer = true;
-    UserSock.quit([]);
+    UserSock.quit();
     // Login to recieve session key
     const token = await clientLogin(opaque_in);
     const session_key = toBytes(token);
@@ -260,7 +260,7 @@ const runReef = (dev, remote, env) => {
     const mail = await Sock.get("mail", "session");
     const { ascii } = await dbt.decryptSession(session_args, mail);
     console.log({ token, ascii });
-    Sock.quit([]);
+    Sock.quit();
     // TODO should use this or user_key hash?
     DATA.session_hash = await toHash(token);
     DATA.loading.database = false;

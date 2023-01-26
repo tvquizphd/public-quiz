@@ -16,14 +16,11 @@ import type { NodeAny, TreeAny } from "sock-secret";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
 import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
 
-type Need = "first" | "last";
-type Needs = Record<Need, string[]>;
 type SockInputs = {
   git: Git,
   env: string,
   secrets: TreeAny,
-  lister?: Lister | null,
-  needs: Partial<Needs>
+  lister?: Lister | null
 }
 type UserOutputs = {
   Sock: SockServer,
@@ -183,9 +180,8 @@ const vStart: Start = async (inputs) => {
   const { sid, pw, user_in } = inputs;
   const { prod } = user_in;
   const secrets = { [command]: tree };
-  const needs = { first: [command], last: [] };
   const lister = prod ? null : toDevList(user_in);
-  const sock_in = { git, env, needs, lister, secrets };
+  const sock_in = { git, env, lister, secrets };
   const { Opaque, Sock } = await toUserSock(sock_in);
   const times = 1000;
   const pepper_in = {
@@ -193,7 +189,7 @@ const vStart: Start = async (inputs) => {
   };
   const reg = await toPepper(pepper_in);
   const out = await Opaque.serverStep(reg, "op");
-  const tree_out = await Sock.quit([]);
+  const tree_out = Sock.quit();
   if (!(finish in tree_out)) {
     throw new Error('Cannot send missing data.');
   }
@@ -219,12 +215,11 @@ const vLogin: Login = async (inputs) => {
   const { command, tree } = inputs;
   const secrets = { [command]: tree };
   const step = { token: secret, Au };
-  const needs = { first: [command], last: [] };
-  const sock_in = { git, env, needs, secrets };
+  const sock_in = { git, env, secrets };
   const { Sock, Opaque } = await toUserSock(sock_in);
   // Authorized the client
   const { token } = await Opaque.serverStep(step, "op");
-  await Sock.quit([]);
+  Sock.quit();
   const add_inputs = { git, secret, env, name: ses };
   try {
     await addSecret(add_inputs);

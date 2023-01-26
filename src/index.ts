@@ -9,8 +9,6 @@ import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isQuad, isTrio, isDuo } from "./util/types.js";
 import { isJWK, toApp, toInstall } from "./create.js";
-import { isInstallation } from "./create.js";
-import { toSockServer } from "sock-secret";
 import { vShare } from "./util/share.js";
 import { getRandomValues } from "crypto";
 import dotenv from "dotenv";
@@ -19,7 +17,6 @@ import fs from "fs";
 
 import type { AppOutput } from "./create.js";
 import type { TreeAny } from "sock-secret"
-import type { ArgonOpts } from "./util/password.js";
 import type { DevConfig } from "./util/pasted.js";
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { ServerFinal } from "opaque-low-io";
@@ -207,29 +204,10 @@ const toGitToken = (prod: boolean, inst: string) => {
   const share = isQuad(args) && args[0] === "SHARE";
   const login = isQuad(args) && args[0] === "LOGIN";
   const setup = isTrio(args) && args[0] === "SETUP";
-  const wait = isDuo(args) && args[0] === "WAIT";
   const dev = isDuo(args) && args[0] === "DEV";
   const log_in = { ...v_in, pep, login, reset: false };
   const user_in = { git, prod, delay, dev_config };
-  if (wait) {
-    const ins_obj = fromB64urlQuery(args[1]);
-    if (!isInstallation(ins_obj)) {
-      throw new Error(`Secret ${inst} invalid.`);
-    }
-    const owner_token = ins_obj.installed.token;
-    const { owner, repo } = git;
-    const igit = { owner, repo, owner_token };
-    const needs = { last: ["OP"] };
-    const inputs = { 
-      git: igit, env, secrets: {}, needs
-    };
-    const Sock = await toSockServer(inputs);
-    if (Sock === null) {
-      throw new Error('Unable to make socket.');
-    }
-    await Sock.quit([]);
-  }
-  else if (dev) {
+  if (dev) {
     try {
       if (args[1] === "INBOX") {
         await readDevInbox({ user_in, inst, sec });

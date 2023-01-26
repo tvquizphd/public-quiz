@@ -4,14 +4,11 @@ import type { Git, Trio } from "./util/types.js";
 import type { TreeAny } from "sock-secret";
 import type { ServerFinal } from "opaque-low-io";
 import type { Op, Ops } from 'opaque-low-io';
-declare type Need = "first" | "last";
-declare type Needs = Record<Need, string[]>;
 declare type SockInputs = {
     git: Git;
     env: string;
     secrets: TreeAny;
     lister?: Lister | null;
-    needs: Partial<Needs>;
 };
 declare type UserOutputs = {
     Sock: SockServer;
