@@ -126,7 +126,7 @@ const runReef = (dev, remote, env) => {
     host,
     env,
     git: {
-      owner_token: null,
+      owner_token: "",
       owner: remote[0],
       repo: remote[1]
     },
@@ -199,7 +199,6 @@ const runReef = (dev, remote, env) => {
   const cleanRefresh = () => {
     DATA.loading = { ...NO_LOADING };
     readSearch().then((first_step) => {
-      console.log({ first_step }); //TODO
       mailerStart(first_step);
     });
   }
@@ -217,7 +216,7 @@ const runReef = (dev, remote, env) => {
   async function encryptWithPassword ({ pass }) {
     const { git, user_id, local, delay } = DATA;
     DATA.loading.socket = true;
-    if (!git?.owner_token) {
+    if (git.owner_token === "") {
       throw new Error("Missing GitHub Token.");
     }
     const times = 1000;
@@ -302,5 +301,6 @@ export default () => {
     const { remote, env, dev_root } = config;
     const dev = [null, { dev_root }][+hasLocal];
     runReef(dev, remote, env);
+    //runReef(null, remote, "PRODUCTION-LOGIN");
   });
 };
