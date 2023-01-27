@@ -86,7 +86,7 @@ interface UseTempFile {
 }
 type Obj = Record<string, unknown>;
 
-type NameTree = {
+export type NameTree = {
   command: string,
   tree: TreeAny
 } 
@@ -130,8 +130,11 @@ function isForInstall(o: Obj): o is UserInstallRaw {
   return needs.every(v => v);
 }
 
-type ClientAuthData = NewClientOut["client_auth_data"];
-function isLoginStart (o: NodeAny): o is ClientAuthData {
+export type LoginStart = {
+  client_auth_data: NewClientOut["client_auth_data"]
+}
+function isLoginStart (nt: TreeAny): nt is LoginStart {
+  const o = (nt as LoginStart).client_auth_data || "";
   if (!isTree(o)) return false;
   const needs = [
     typeof o.sid === "string",
@@ -142,8 +145,11 @@ function isLoginStart (o: NodeAny): o is ClientAuthData {
   return needs.every(v => v);
 }
 
-type ClientAuthResult = ClientOut["client_auth_result"];
-function isLoginEnd(o: NodeAny): o is ClientAuthResult {
+export type LoginEnd = {
+  client_auth_result: ClientOut["client_auth_result"]
+}
+function isLoginEnd(nt: TreeAny): nt is LoginEnd {
+  const o = (nt as LoginEnd).client_auth_result || "";
   if (!isTree(o)) return false;
   return o.Au instanceof Uint8Array;
 }
@@ -297,9 +303,7 @@ const readLoginStart: ReadLoginStart = async (ins) => {
   while (tries < Math.ceil(max_tries)) {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText(ins);
-    const { tree } = toNameTree(text);
-    const obj = tree.client_auth_data || "";
-    if (isLoginStart(obj)) {
+    if (isLoginStart(toNameTree(text).tree)) {
       return true;
     }
     tries += 1;
@@ -318,8 +322,7 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
     await new Promise(r => setTimeout(r, dt));
     const text = await toPastedText(ins);
     const { tree } = toNameTree(text);
-    const obj = tree.client_auth_result || "";
-    if (isLoginEnd(obj)) {
+    if (isLoginEnd(tree)) {
       return true;
     }
     tries += 1;

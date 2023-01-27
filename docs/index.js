@@ -1,9 +1,9 @@
 import { 
-  toPub, toShared, toServerAuth, toAppPublic
+  toPub, toSharedCache, toServerAuthCache, toAppPublic
 } from "pub";
+import { toSockClient } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
-import { toSyncOp, clientLogin,  writeText } from "io";
-import { dispatch, WikiMailer, toGitHubDelay } from "wiki";
+import { toSyncOp, clientLogin,  writeText, toGitHubDelay } from "io";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
 import { templates } from "templates";
@@ -60,7 +60,7 @@ const useSearch = async (search, app_manifest) => {
     typeof search?.state === "string",
     typeof search?.code === "string",
   ]
-  if (needs_1.every(v => v) && toShared()) {
+  if (needs_1.every(v => v) && toSharedCache()) {
     const pub_str = await toAppPublic(search.code);
     return { first: 1, pub_str, app_str: "" };
   }
@@ -70,7 +70,7 @@ const useSearch = async (search, app_manifest) => {
     state: search.state,
     manifest: app_val,
   })).toString();
-  toShared("");
+  toSharedCache("");
   return { first: 0, app_str, pub_str: "" };
 }
 
@@ -111,6 +111,7 @@ const runReef = (dev, remote, env) => {
     app_str: "",
     Au: null, //TODO
     local: dev !== null,
+    delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
     dev_file: "dev.txt",
     user_id: "root",
@@ -132,6 +133,19 @@ const runReef = (dev, remote, env) => {
     remote: remote.join('/'),
     loading: { ...NO_LOADING }
   });
+  const readLocal = async () => {
+    const headers = {
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache"
+    };
+    const pub = [DATA.host, "pub.txt"].join('/');
+    const result = await fetch(pub, { headers });
+    return (await (result).text()).replaceAll('\n', '');
+  }
+  const writeLocal = (text) => {
+    const f = DATA.dev_handle;
+    if (f) writeText(f, text);
+  }
   const readSearch = async () => {
     const search = parseSearch(toPub(), window.location);
     const opts = await useSearch(search, MANIFEST);
@@ -144,43 +158,45 @@ const runReef = (dev, remote, env) => {
   const props = { DATA, templates };
   const workflow = new Workflow(props);
   const final_step = workflow.paths.length - 1;
-  const wiki_props = { 
-    host, git: DATA.git, local: DATA.local
-  };
-  const wikiMailer = new WikiMailer(wiki_props);
-  const mailerStart = (first_step) => {
-    wikiMailer.start();
-    const { user_id } = DATA;
-    if (first_step === 0) {
-      wikiMailer.addHandler('app', async (pasted) => {
-        const Opaque = await toSyncOp();
-        const { toServerPepper, toServerSecret } = Opaque;
-        const { client_auth_data } = pasted;
-        const { pw } = client_auth_data;
-        const { pepper } = toServerPepper({ user_id, pw });
-        const out = toServerSecret({ pepper, client_auth_data });
-        const { server_auth_data } = out;
-        toServerAuth(server_auth_data);
-        toShared(out.token);
-        await readSearch();
-      });
+  const mailerStart = async (first_step) => {
+    const local_in = { read: readLocal }; 
+    const { user_id, git, local, delay } = DATA;
+    const input = local ? local_in : { git };
+    const pub_sock = {
+      input, output: null, delay
     }
-    wikiMailer.addHandler('install', async (pasted) => {
-      const { Au } = pasted.client_auth_result; 
-      DATA.Au = Au; // TODO
+    const PubSock = await toSockClient(pub_sock);
+    if (first_step === 0) {
+      const Opaque = await toSyncOp();
+      const { toServerPepper, toServerSecret } = Opaque;
+      const appi = await PubSock.get("app", "in");
+      const { client_auth_data } = appi;
+      const { pw } = client_auth_data;
+      const pepper_in = { user_id, pw };
+      const { pepper } = toServerPepper(pepper_in);
+      const out = toServerSecret({ pepper, client_auth_data });
+      toServerAuthCache(out.server_auth_data);
+      toSharedCache(out.token);
+      await readSearch();
+    }
+    await PubSock.get("app", "out").then(appo => {
+      const { client_auth_result } = appo;
+      DATA.Au = client_auth_result.Au;
     });
-    wikiMailer.addHandler('auth', async (pasted) => {
-      const shared = toShared();
-      const { encrypted } = pasted;
+    await PubSock.get("app", "auth").then(appa => {
+      const enc_str = toB64urlQuery(appa);
+      const shared = toSharedCache();
+      PubSock.quit();
       if (!shared) return cleanRefresh();
-      const token = await decryptQuery(encrypted, shared);
-      DATA.git.owner_token = token.plain_text;
-      DATA.step = final_step - 1;
-      wikiMailer.finish();
+      decryptQuery(enc_str, shared).then(token => {
+        DATA.git.owner_token = token.plain_text;
+        DATA.step = final_step - 1;
+      }).catch((e) => {
+        console.error(e.message);
+      });
     });
   }
   const cleanRefresh = () => {
-    wikiMailer.finish();
     DATA.loading = { ...NO_LOADING };
     readSearch().then((first_step) => {
       console.log({ first_step }); //TODO
@@ -199,27 +215,21 @@ const runReef = (dev, remote, env) => {
   }
 
   async function encryptWithPassword ({ pass }) {
-    const { git, env, user_id, local, host } = DATA;
+    const { git, user_id, local, delay } = DATA;
     DATA.loading.socket = true;
     if (!git?.owner_token) {
       throw new Error("Missing GitHub Token.");
     }
     const times = 1000;
-    const delay = toGitHubDelay(local);
-    const send_local = (text) => {
-      const f = DATA.dev_handle;
-      if (f) writeText(f, text);
-    }
-    const send_remote = (text, workflow) => {
-      dispatch({ text, workflow, git });
-    }
-    const send = local ? send_local : send_remote;
-    const user_in = { git, env, local, delay, host };
-    await clientLogin({ user_id, user_in, pass, times, send });
+    const local_in = { read: readLocal }; 
+    const local_out = { write: writeLocal };
+    const input = local ? local_in : { git };
+    const op_out = local ? local_out : { git, key: "op" };
+    await clientLogin({ input, output: op_out, user_id, pass, times, delay });
     DATA.loading.finish = false;
     const to_encrypt = {
       password: pass,
-      secret_text: toShared(),
+      secret_text: toSharedCache(),
     }
     return await encryptSecrets(to_encrypt);
   }

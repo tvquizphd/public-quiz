@@ -2,15 +2,15 @@ import { DBTrio } from "dbtrio";
 import { templates } from "templates";
 import { toEnv } from "environment";
 //import { OP } from "opaque-low-io";
-import { toMailSock,  writeText } from "io";
-import { clientLogin } from "io";
+import { toSockClient } from "sock-secret";
+import { toGitHubDelay, writeText } from "io";
+import { toMailMapper, clientLogin } from "io";
 //import { request } from "@octokit/request";
 import { Workflow } from "workflow";
 import { toHash } from "encrypt";
 import { encryptQueryMaster } from "encrypt";
 import { decryptQueryMaster } from "decrypt";
 import { decryptQuery, toBytes } from "decrypt";
-import { dispatch, toGitHubDelay } from "wiki";
 /*
  * Globals needed on window object:
  *
@@ -86,14 +86,6 @@ const noTemplate = () => {
   `;
 }
 
-/*
-function giver (logger, op_id, tag, msg) {
-  const k = this.sock.toKey(op_id, tag);
-  this.sock.sendMail(k, msg);
-  logger(k);
-}
-*/
-
 const runReef = (dev, remote, env) => {
 
   const passFormId = "pass-form";
@@ -118,6 +110,7 @@ const runReef = (dev, remote, env) => {
     master_key: null,
     session_hash: null,
     local: dev !== null,
+    delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
     dev_file: "dev.txt",
     dev_handle: null,
@@ -138,6 +131,33 @@ const runReef = (dev, remote, env) => {
     newRows: [...EMPTY_NEW],
     tables: [...EMPTY_TABLES]
   });
+  const fromKey = (from_key) => {
+    const { master_key } = DATA;
+    return { 
+      from_master: readKey(master_key),
+      from_session: readKey(from_key)
+    };
+  }
+  const toKey = (to_key) => {
+    const { master_key } = DATA;
+    return { 
+      to_master: writeKey(master_key),
+      to_session: writeKey(to_key)
+    };
+  }
+  const readLocal = async () => {
+    const headers = {
+      "Cache-Control": "no-store",
+      "Pragma": "no-cache"
+    };
+    const pub = [DATA.host, "pub.txt"].join('/');
+    const result = await fetch(pub, { headers });
+    return (await (result).text()).replaceAll('\n', '');
+  }
+  const writeLocal = (text) => {
+    const f = DATA.dev_handle;
+    if (f) writeText(f, text);
+  }
   const cleanRefresh = () => {
     DATA.loading = {...NO_LOADING};
     DATA.mailer = undefined;
@@ -165,25 +185,17 @@ const runReef = (dev, remote, env) => {
   }
 
   const uploadDatabase = async () => {
-    const { env, git, host, local } = DATA;
-    const { master_key, user_key } = DATA;
+    const { env, git, local, delay, user_key } = DATA;
     const { dbt } = API;
-    const delay = toGitHubDelay(local);
-    const send_local = (text) => {
-      const f = DATA.dev_handle;
-      if (f) writeText(f, text);
-    }
-    const user_args = { 
-      to_master: writeKey(master_key),
-      to_session: writeKey(user_key)
-    };
     DATA.loading.sending = true;
-    const send_mail = local ? send_local : null;
-    const user_in = { git, env, local, delay, host };
-    const user_sock_in = { send: send_mail, user_in, key_in: user_args };
-    const { Sock: UserSock } = await toMailSock(user_sock_in);
-    // TODO -- make sure it works
-    const encrypted = await dbt.encrypt(user_args);
+    const local_in = { read: readLocal } 
+    const local_out = { write: writeLocal };
+    const mail_out = local ? local_out : { git, env };
+    const mail_sock_in = { 
+      input: null, output: mail_out, delay
+    };
+    const UserSock = await toSockClient(mail_sock_in);
+    const encrypted = await dbt.encrypt(toKey(user_key));
     UserSock.give("mail", "table", encrypted);
     DATA.loading.sending = false;
     console.log('Sent mail.');
@@ -214,51 +226,43 @@ const runReef = (dev, remote, env) => {
     const master_key = result.master_key;
     const shared = result.plain_text;
     const user_key = toBytes(shared);
+    const user = fromKey(user_key);
     DATA.master_key = master_key;
     DATA.user_key = user_key;
     const { dbt } = API;
-    const { user_id } = DATA;
-    const { env, git, host, local } = DATA;
-    const delay = toGitHubDelay(local);
+    const { user_id, delay } = DATA;
+    const { git, local } = DATA;
     const times = 1000;
-    //await devStartWaiter({ local, delay, host });
-    const send_local = (text) => {
-      const f = DATA.dev_handle;
-      if (f) writeText(f, text);
-    }
-    const send_remote = (text, workflow) => {
-      dispatch({ text, workflow, git });
-    }
-    const user_args = { 
-      from_master: readKey(master_key),
-      from_session: readKey(user_key)
+    const local_out = { write: writeLocal };
+    const local_in = { read: readLocal }; 
+    const input = local ? local_in : { git };
+    const op_out = local ? local_out : { git, key: "op" };
+    const user_decrypt = dbt.decryptUser.bind(dbt, user);
+    const user_mapper = toMailMapper(user_decrypt, "user");
+    const mail_user = {
+      mapper: user_mapper, input, output: null, delay
     };
-    // Use user key to recieve GitHub token
-    const send_mail = local ? send_local : null;
-    const send = local ? send_local : send_remote;
-    const user_in = { git, env, local, delay, host };
-    const opaque_in = { send, user_id, user_in, pass, times };
-    const user_sock_in = { send: send_mail, user_in, key_in: user_args };
-    const { Sock: UserSock } = await toMailSock(user_sock_in);
-    const user = await UserSock.get("mail", "user");
-    const { installed } = await dbt.decryptUser(user_args, user);
+    const UserSock = await toSockClient(mail_user);
+    const installed = await UserSock.get("mail", "user");
     git.owner_token = installed.token;
     DATA.loading.socket = false;
     DATA.loading.mailer = true;
     UserSock.quit();
     // Login to recieve session key
+    const opaque_in = { 
+      input, output: op_out, user_id, pass, times, delay
+    };
     const token = await clientLogin(opaque_in);
-    const session_key = toBytes(token);
-    const session_args = { 
-      from_master: readKey(master_key),
-      from_session: readKey(session_key)
+    const session = fromKey(toBytes(token));
+    const session_decrypt = dbt.decryptSession.bind(dbt, session);
+    const session_mapper = toMailMapper(session_decrypt, "session");
+    const mail_session = { 
+      mapper: session_mapper, input, output: null, delay
     };
     DATA.loading.mailer = false;
     DATA.loading.database = true;
-    const session_sock_in = { send: send_mail, user_in, key_in: session_args };
-    const { Sock } = await toMailSock(session_sock_in);
-    const mail = await Sock.get("mail", "session");
-    const { ascii } = await dbt.decryptSession(session_args, mail);
+    const Sock = await toSockClient(mail_session);
+    const ascii = await Sock.get("mail", "session");
     console.log({ token, ascii });
     Sock.quit();
     // TODO should use this or user_key hash?

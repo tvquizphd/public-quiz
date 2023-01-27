@@ -14,7 +14,7 @@ const toPub = () => {
   return private_state;
 }
 
-const toServerAuth = (server_auth_data) => {
+const toServerAuthCache = (server_auth_data) => {
   const LOCAL_KEY = "server-auth-data";
   if (server_auth_data) {
     const server_auth_str = toB64urlQuery(server_auth_data);
@@ -25,7 +25,7 @@ const toServerAuth = (server_auth_data) => {
   return fromB64urlQuery(server_auth_str);
 }
 
-const toShared = (shared) => {
+const toSharedCache = (shared) => {
   const LOCAL_KEY = "shared-secret";
   if (shared) {
     sessionStorage.setItem(LOCAL_KEY, shared);
@@ -44,8 +44,8 @@ const toAppCode = (code) => {
 }
 
 const toAppPublic = async (code_in) => {
-  const password = toShared();
-  const S = toServerAuth();
+  const password = toSharedCache();
+  const S = toServerAuthCache();
   const code = toAppCode(code_in);
   if (code && S && password) {
     const C = await encryptSecrets({
@@ -58,7 +58,7 @@ const toAppPublic = async (code_in) => {
 
 export { 
   toPub,
-  toShared,
-  toServerAuth,
+  toSharedCache,
+  toServerAuthCache,
   toAppPublic,
 };

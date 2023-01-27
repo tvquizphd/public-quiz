@@ -1,20 +1,9 @@
-import type { SockServer } from "sock-secret";
 import type { Git, Trio } from "./util/types.js";
-import type { TreeAny } from "sock-secret";
+import type { LoginStart, LoginEnd } from "./util/pasted.js";
 import type { ServerFinal } from "opaque-low-io";
-import type { Op, Ops } from 'opaque-low-io';
-declare type SockInputs = {
-    git: Git;
-    env: string;
-    secrets: TreeAny;
-};
-declare type UserOutputs = {
-    Sock: SockServer;
-    Opaque: Op;
-};
-interface ToUserSock {
-    (i: SockInputs): Promise<UserOutputs>;
-}
+import type { Ops } from 'opaque-low-io';
+declare type CommandKeys = ("OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" | "CLOSE_IN" | "CLOSE_USER" | "CLOSE_MAIL");
+export declare type Commands = Record<CommandKeys, string>;
 interface ToSyncOp {
     (): Promise<Ops>;
 }
@@ -30,18 +19,19 @@ declare type ConfigIn = {
     env: string;
     git: Git;
 };
-declare type Register = {
-    sid: string;
-    pw: Uint8Array;
+declare type RegisterInputs = {
+    tree: LoginStart;
+};
+declare type LoginInputs = {
+    tree: LoginEnd;
 };
 declare type Inputs = {
-    finish: string;
-    command: string;
-    tree: TreeAny;
     log_in: ConfigIn;
+    commands: Commands;
 };
-declare type InputsFirst = Inputs & Register;
-declare type InputsFinal = Inputs & ServerFinal & {
+declare type InputsFirst = Inputs & RegisterInputs;
+declare type InputsFinal = Inputs & LoginInputs & {
+    final: ServerFinal;
     trio: Trio;
     inst: string;
     ses: string;
@@ -52,8 +42,7 @@ interface Start {
 interface Login {
     (i: InputsFinal): Promise<SecretOut>;
 }
-declare const toUserSock: ToUserSock;
 declare const toSyncOp: ToSyncOp;
 declare const vStart: Start;
 declare const vLogin: Login;
-export { toUserSock, toSyncOp, vStart, vLogin };
+export { toSyncOp, vStart, vLogin };

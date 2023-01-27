@@ -1,14 +1,19 @@
 import _sodium from 'libsodium-wrappers';
 import { request } from "@octokit/request";
+import { toB64urlQuery } from "sock-secret";
 
 import type { Git } from "./types.js";
+import type { NameTree } from "./pasted.js";
 
-type AddInputs = {
-  secret: string,
-  name: string,
+type Inputs = {
   env: string,
   git: Git
 }
+type SetTextInputs = Inputs & {
+  secret: string,
+  name: string,
+}
+type SetInputs = Inputs & NameTree; 
 type Ev = Record<"key_id" | "ev", string>;
 interface Sodiumize {
   (auth: string, id: number, env: string, value: string): Promise<Ev>
@@ -39,7 +44,7 @@ const sodiumize: Sodiumize = async (auth, id, env, value) => {
   return { key_id, ev };
 }
 
-const addSecret = async (inputs: AddInputs) => {
+const setSecretText = async (inputs: SetTextInputs) => {
   const { git, env, secret, name } = inputs;
   if (!isProduction(env)) {
     process.env[name] = secret;
@@ -63,6 +68,15 @@ const addSecret = async (inputs: AddInputs) => {
   })
 }
 
+const setSecret = (inputs: SetInputs) => {
+  const { git, env, command, tree } = inputs;
+  const secret = toB64urlQuery(tree);
+  const text_inputs = {
+    git, env, secret, name: command
+  };
+  return setSecretText(text_inputs);
+}
+
 export {
-  addSecret, isProduction
+  setSecretText, setSecret, isProduction
 }

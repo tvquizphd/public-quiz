@@ -1,9 +1,10 @@
 import { isLoginStart, isLoginEnd, isTree, toInstallation } from "./util/pasted.js";
-import { readLoginStart, readLoginEnd, toNameTree } from "./util/pasted.js";
+import { readLoginStart, readLoginEnd } from "./util/pasted.js";
 import { readUserApp, readUserInstall } from "./util/pasted.js";
 import { readInbox, readDevInbox } from "./util/pasted.js";
-import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
-import { addSecret, isProduction } from "./util/secrets.js";
+import { toNameTree, fromNameTree } from "./util/pasted.js";
+import { toB64urlQuery } from "sock-secret";
+import { setSecretText, setSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin, toSyncOp } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
@@ -15,6 +16,7 @@ import dotenv from "dotenv";
 import argon2 from 'argon2';
 import fs from "fs";
 
+import type { Commands } from "./verify.js";
 import type { AppOutput } from "./create.js";
 import type { TreeAny } from "sock-secret"
 import type { DevConfig } from "./util/pasted.js";
@@ -23,6 +25,7 @@ import type { ServerFinal } from "opaque-low-io";
 import type { Trio } from "./util/types.js";
 
 type Env = Record<string, string | undefined>;
+
 type Result = {
   success: boolean,
   message: string
@@ -120,16 +123,21 @@ const writeSecretText: WriteSecretText = (inputs) => {
 
 const toNew = (opts: NewClientOut) => {
   const { client_auth_data, ...rest } = opts;
-  const pub_obj = { client_auth_data };
+  const tree = { client_auth_data };
+  const command = "app__in";
+  const next_step = { 
+    command: "step", tree: rest
+  }
   return {
-    for_pages: toB64urlQuery(pub_obj),
-    for_next: toB64urlQuery(rest)
+    for_pages: fromNameTree({ command, tree }),
+    for_next: fromNameTree(next_step)
   }
 }
 
 const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
   const { token: shared, client_auth_result } = out;
-  const pub_obj = { client_auth_result };
+  const tree = { client_auth_result };
+  const command = "app__out";
   const next_obj = { 
     shared,
     app: {
@@ -139,9 +147,13 @@ const useSecrets = (out: ClientSecretOut, app: AppOutput) => {
       client_secret: app.client_secret
     },
   };
+  const next_step = {
+    command: "step",
+    tree: next_obj
+  }
   return {
-    for_pages: toB64urlQuery(pub_obj),
-    for_next: toB64urlQuery(next_obj)
+    for_pages: fromNameTree({ command, tree }),
+    for_next: fromNameTree(next_step)
   }
 }
 
@@ -247,70 +259,66 @@ const toGitToken = (prod: boolean, inst: string) => {
     }
   }
   else if (login) {
-    const commands = {
-      FINISH_CLOSE: "mail__session",
-      OPEN: "op:pake__client_auth_data",
-      CLOSE: "op:pake__client_auth_result",
-      FINISH_OPEN: "op:pake__server_auth_data",
+    const commands: Commands = {
+      OPEN_IN: "op:pake__client_auth_data",
+      OPEN_OUT: "op:pake__server_auth_data",
+      OPEN_NEXT: "token__server_final",
+      CLOSE_IN: "op:pake__client_auth_result",
+      CLOSE_USER: "mail__user",
+      CLOSE_MAIL: "mail__session"
     }
     try {
       if (mayReset(process.env)) {
         log_in.reset = await canReset(process.env);
       }
-      const work_in = args[3];
-      const secret_in = args[2];
-      const { command, tree } = toNameTree(work_in);
-      const given = fromB64urlQuery(secret_in);
       if (args[1] === "OPEN") {
+        const { command, tree } = toNameTree(args[3]);
         if (!tree.client_auth_data) {
-          throw new Error('No workflow inputs.');
+          throw new Error('No login open command.');
         }
-        if (!isLoginStart(tree.client_auth_data)) {
-          throw new Error('Invalid workflow inputs.');
+        if (!isLoginStart(tree)) {
+          throw new Error('No login open command.');
         }
-        if (command !== commands.OPEN) {
-          throw new Error('Invalid workflow command.');
+        if (command !== commands.OPEN_IN) {
+          throw new Error('No login open command.');
         }
-        const { sid, pw } = tree.client_auth_data;
-        const finish = commands.FINISH_OPEN;
         const { installed, app } = toInstallation(inst);
         const start_in = {
-          app, sid, pw, log_in, finish, command, tree 
+          app, log_in, commands, tree 
         };
-        const started = await vStart(start_in);
-        const { for_next, for_pages } = started;
         const { owner, repo } = git;
         const owner_token = installed.token;
         const igit = { owner, repo, owner_token };
-        await addSecret({ 
-          git: igit, env, secret: for_next, name: state
+        const payload = await vStart(start_in);
+        const secret = payload.for_next;
+        await setSecretText({ 
+          git: igit, env, secret, name: state
         });
-        writeSecretText({ for_pages, for_next });
+        writeSecretText(payload);
         console.log('Began to verify user.\n');
       }
       else if (args[1] === "CLOSE") {
+        const { command, tree } = toNameTree(args[3]);
         const trio = await readInbox({ user_in, inst, sec });
+        const { tree: final } = toNameTree(args[2]);
         if (!tree.client_auth_result) {
           throw new Error('No workflow inputs.');
         }
-        if (!isLoginEnd(tree.client_auth_result)) {
+        if (!isLoginEnd(tree)) {
           throw new Error('Invalid workflow inputs.');
         }
-        if (!isServerFinal(given)) {
+        if (!isServerFinal(final)) {
           throw new Error('Invalid server inputs.');
         }
-        if (command !== commands.CLOSE) {
+        if (command !== commands.CLOSE_IN) {
           throw new Error('Invalid workflow command.');
         }
-        const finish = commands.FINISH_CLOSE;
-        const { app } = toInstallation(inst);
         const end_in = { 
-          ...given, log_in, finish,
-          command, tree, trio, ses, inst, app
+          final, log_in, commands,
+          tree, trio, ses, inst
         };
         const payload = await vLogin(end_in);
-        const { for_next, for_pages } = payload;
-        writeSecretText({ for_pages, for_next });
+        writeSecretText(payload);
         console.log('Verified user.\n');
       }
     }
@@ -331,8 +339,7 @@ const toGitToken = (prod: boolean, inst: string) => {
       try {
         const new_client = toNewClientAuth(client_in);
         console.log("Created secure public channel.\n");
-        const { for_pages, for_next } = toNew(new_client);
-        writeSecretText({ for_pages, for_next });
+        writeSecretText(toNew(new_client));
       }
       catch (e: any) {
         console.error(e?.message);
@@ -341,15 +348,14 @@ const toGitToken = (prod: boolean, inst: string) => {
       }
     }
     const times = 1000;
-    const secret_in = args[2];
-    const given = fromB64urlQuery(secret_in);
     if (args[1] === "APP") {
-      if (!isClientState(given)) {
+      const { tree } = toNameTree(args[2]);
+      if (!isClientState(tree)) {
         const message = "Can't create App.";
         return { success: false, message };
       }
       console.log(`Creating GitHub App.`);
-      const { r, xu, mask } = given;
+      const { r, xu, mask } = tree;
       try {
         const user_out = await readUserApp(user_in);
         const { C, S: server_auth_data } = user_out;
@@ -373,29 +379,32 @@ const toGitToken = (prod: boolean, inst: string) => {
       }
     }
     if (args[1] === "TOKEN") {
-      if (!isTokenInputs(given)) {
+      const { tree } = toNameTree(args[2]);
+      if (!isTokenInputs(tree)) {
         const message = "Can't create Token.";
         return { success: false, message };
       }
       console.log(`Creating GitHub Token.`);
-      const { shared, app } = given;
+      const { shared, app } = tree;
       try {
         const install_in = { git, app, delay };
         const install = await readUserInstall(install_in);
         const installed = await toInstall(install);
-        const secret = toB64urlQuery({
-          installed, shared, app
-        });
         const { owner, repo } = git;
         const owner_token = installed.token;
         const igit = { owner, repo, owner_token };
-        await addSecret({ git: igit, env, secret, name: inst });
-        const for_pages = toB64urlQuery(await encryptSecrets({
+        const itree = { installed, shared, app };
+        await setSecret({ 
+          git: igit, env, tree: itree, command: inst
+        });
+        const tree = await encryptSecrets({
           secret_text: owner_token,
           password: shared
-        }));
+        });
+        const command = "app__auth";
         console.log("Created GitHub Token.\n");
-        writeSecretText({ for_pages, for_next: secret }); //TODO for_next: ""
+        const for_pages = fromNameTree({ command, tree });
+        writeSecretText({ for_pages, for_next: "" });
       }
       catch (e: any) {
         console.error(e);
@@ -413,7 +422,6 @@ const toGitToken = (prod: boolean, inst: string) => {
       return process.env[v];
     });
     const new_env = env_vars.map((v) => {
-      // set in non-production addSecret call
       return `${v}="${process.env[v]}"`;
     }).join('\n');
     try {

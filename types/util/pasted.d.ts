@@ -65,7 +65,7 @@ interface ToTries {
     (u: number): Tries;
 }
 declare type Obj = Record<string, unknown>;
-declare type NameTree = {
+export declare type NameTree = {
     command: string;
     tree: TreeAny;
 };
@@ -77,10 +77,14 @@ interface FromNameTree {
 }
 declare function isObj(u: unknown): u is Obj;
 declare function isTree(u: NodeAny): u is TreeAny;
-declare type ClientAuthData = NewClientOut["client_auth_data"];
-declare function isLoginStart(o: NodeAny): o is ClientAuthData;
-declare type ClientAuthResult = ClientOut["client_auth_result"];
-declare function isLoginEnd(o: NodeAny): o is ClientAuthResult;
+export declare type LoginStart = {
+    client_auth_data: NewClientOut["client_auth_data"];
+};
+declare function isLoginStart(nt: TreeAny): nt is LoginStart;
+export declare type LoginEnd = {
+    client_auth_result: ClientOut["client_auth_result"];
+};
+declare function isLoginEnd(nt: TreeAny): nt is LoginEnd;
 declare const toTries: ToTries;
 declare const toBytes: (s: string) => Uint8Array;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;

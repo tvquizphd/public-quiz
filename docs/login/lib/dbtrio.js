@@ -25,32 +25,29 @@ class DBTrio {
   }
 
   decryptUser(params, mail) {
-    const etree = mail.data;
-    const mail_text = toB64urlQuery(mail);
-    const { from_master, from_session } = params;
+    const { command, tree } = mail;
+    const mail_text = toB64urlQuery(tree);
+    const { from_session } = params;
     return new Promise((resolve, reject) => {
-      if (!("ev" in (etree || {}))) {
-        console.log('No message to decrypt.');
-        return resolve(this.at.DATA.tables);
+      if (!("ev" in (tree.data || {}))) {
+        return reject('No message to decrypt.');
       }
       from_session(mail_text).then(s_str => {
         const installed = fromB64urlQuery(s_str);
-        resolve({ installed });
+        resolve({ command, tree: installed });
       }).catch(e => {
-        console.error('Session decryption error');
         reject(e);
       })
     });
   }
 
   decryptSession(params, mail) {
-    const etree = mail.data;
-    const mail_text = toB64urlQuery(mail);
+    const { command, tree } = mail;
+    const mail_text = toB64urlQuery(tree);
     const { from_master, from_session } = params;
     return new Promise((resolve, reject) => {
-      if (!("ev" in (etree || {}))) {
-        console.log('No message to decrypt.');
-        return resolve(this.at.DATA.tables);
+      if (!("ev" in (tree.data || {}))) {
+        return reject('No message to decrypt.');
       }
       from_session(mail_text).then(s_str => {
         const m_trio = s_str.split(SEP.TS);
@@ -61,9 +58,9 @@ class DBTrio {
           return from_master(text)
         })
         Promise.all(masters).then(trio => {
-          this.at.ascii = trio.join(SEP.TS);
-          const { ascii } = this.at;
-          resolve({ ascii });
+          const ascii = trio.join(SEP.TS);
+          this.at.ascii = ascii;
+          resolve({ command, tree: ascii });
         }).catch(() => {
           const msg = 'Master decryption error';
           reject(new Error(msg));
