@@ -11,7 +11,7 @@
     "lint:src": "eslint src",
     "lint:docs": "eslint docs",
     "develop": "ts-node-esm src/index.ts",
-    "p": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir . dist/index.js0"
+    "p": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir . dist/index.js"
   },
   "repository": {
     "type": "git",
