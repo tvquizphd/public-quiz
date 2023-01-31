@@ -2,6 +2,7 @@ import { toRandom } from "to-key";
 import { encryptSecrets } from "encrypt";
 import { toB64urlQuery } from "sock-secret";
 import { fromB64urlQuery } from "sock-secret";
+import { fromCommandTreeList } from "sock-secret";
 
 const toPub = () => {
   const LOCAL_KEY = "private-state-key";
@@ -51,7 +52,9 @@ const toAppPublic = async (code_in) => {
     const C = await encryptSecrets({
       password, secret_text: code
     });
-    return toB64urlQuery({ C, S });
+    const U__C = { command: 'U__C', tree: C };
+    const U__S = { command: 'U__S', tree: S };
+    return fromCommandTreeList([ U__C, U__S ]);
   }
   return "";
 }

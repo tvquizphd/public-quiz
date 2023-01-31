@@ -1,18 +1,20 @@
 import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
 import { hasEncryptionKeys, decryptSecret } from "./decrypt.js";
-import { toSign, isInstallation } from "../create.js";
+import { parseInstall, isInstallation } from "../create.js";
+import { isObjAny, toSign } from "../create.js";
+import { toSockClient } from "sock-secret";
 import { request } from "@octokit/request";
 import { isTrio } from "./types.js";
 import path from 'node:path';
 import fs from 'fs'
 
 import type { ClientOut, NewClientOut } from "opaque-low-io";
-import type { Secrets } from "./encrypt.js";
-import type { TreeAny, NodeAny } from "sock-secret"
 import type { UserInstallRaw } from "../create.js";
+import type { TreeAny } from "sock-secret"
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
 import type { Git, Trio } from "./types.js";
+import type { Secrets } from "./encrypt.js";
 
 export type HasGit = { git: Git }
 export type DevConfig = {
@@ -38,11 +40,8 @@ type ServerAuthData = {
   beta: Uint8Array,
   c: Record<"pu" | "Pu" | "Ps", ItemInC>
 }
-export type Pasted = {
+export type UserApp = {
   C: Secrets,
-  S?: ServerAuthData
-}
-export type UserApp = Pasted & {
   S: ServerAuthData
 }
 type DevInboxIn = {
@@ -51,7 +50,7 @@ type DevInboxIn = {
   sec: Trio
 }
 interface ToUserInstall {
-  (u: InstallIn): Promise<Obj>;
+  (u: InstallIn): Promise<UserInstallRaw>;
 }
 interface ReadUserInstall {
   (u: InstallIn): Promise<UserInstall>;
@@ -75,17 +74,9 @@ type Tries = {
 interface ToTries {
   (u: number): Tries; 
 }
-interface ToIssueText {
-  (s: UserIn) : Promise<string>;
-}
-interface ToPastedText {
-  (s: UserIn) : Promise<string>;
-}
 interface UseTempFile {
   (i: DevConfig): string; 
 }
-type Obj = Record<string, unknown>;
-
 export type NameTree = {
   command: string,
   tree: TreeAny
@@ -97,19 +88,9 @@ interface FromNameTree {
   (t: NameTree): string;
 }
 
-function isObj(u: unknown): u is Obj {
-  return u != null && typeof u === "object";
-}
-function isTree(u: NodeAny): u is TreeAny {
-  return u != null && typeof u === "object";
-}
-
-function hasCode(o: TreeAny): o is Pasted {
-  if (!isTree(o.C)) {
-    return false;
-  }
-  const { salt, key, data } = o.C;
-  if (!isTree(key) || !isTree(data)) {
+function isEncrypted(d: TreeAny): d is Secrets {
+  const { salt, key, data } = d;
+  if (!isObjAny(key) || !isObjAny(data)) {
     return false;
   }
   const needs = [
@@ -119,23 +100,12 @@ function hasCode(o: TreeAny): o is Pasted {
   return needs.every(v => v instanceof Uint8Array);
 }
 
-function isForInstall(o: Obj): o is UserInstallRaw {
-  if (!isObj(o)) {
-    return false;
-  }
-  const needs = [
-    typeof o.id === "number",
-    isObj(o.permissions)
-  ];
-  return needs.every(v => v);
-}
-
 export type LoginStart = {
   client_auth_data: NewClientOut["client_auth_data"]
 }
 function isLoginStart (nt: TreeAny): nt is LoginStart {
   const o = (nt as LoginStart).client_auth_data || "";
-  if (!isTree(o)) return false;
+  if (!isObjAny(o)) return false;
   const needs = [
     typeof o.sid === "string",
     o.pw instanceof Uint8Array,
@@ -150,7 +120,7 @@ export type LoginEnd = {
 }
 function isLoginEnd(nt: TreeAny): nt is LoginEnd {
   const o = (nt as LoginEnd).client_auth_result || "";
-  if (!isTree(o)) return false;
+  if (!isObjAny(o)) return false;
   return o.Au instanceof Uint8Array;
 }
 
@@ -160,42 +130,35 @@ const useTempFile: UseTempFile = (dev_config) => {
   return path.join(tmp_dir, home);
 }
 
-const toIssueText: ToIssueText = async (user_in) => {
-  const { repo, owner, owner_token } = user_in.git;
-  const api_root = "https://api.github.com";
-  const query = `?creator=${owner}&state=open`;
-  const authorization = 'bearer ' + owner_token;
-  const api_url = `${api_root}/repos/{owner}/{repo}/issues${query}`;
-  const out = await request(`GET ${api_url}`, {
-    owner, repo, headers: { authorization }
-  });
-  if (out.data.length >= 1) {
-    return out.data[0].body || "";
-  }
-  return "";
-}
-
-const toPastedText: ToPastedText = async (user_in) => {
-  if (user_in.prod) {
-    const txt = await toIssueText(user_in);
+const toReader = (dev_config: DevConfig) => {
+  const src = useTempFile(dev_config);
+  const encoding = 'utf-8';
+  return async () => {
+    const txt = fs.readFileSync(src, { encoding });
     return txt.replaceAll('\n', '');
   }
-  const encoding = 'utf-8';
-  const { dev_config } = user_in;
-  const src = useTempFile(dev_config);
-  const txt = fs.readFileSync(src, { encoding });
-  return txt.replaceAll('\n', '');
 }
 
-function isForApp(o: Pasted): o is UserApp {
-  const d = o?.S;
-  if (!d || !isTree(d)) {
+const readUserApp: ReadUserApp = async (user_in) => {
+  const { git, prod, delay, dev_config } = user_in;
+  const file_in = { read: toReader(dev_config) }; 
+  const issue_in = { git, issues: 1 };
+  const input = prod ? issue_in : file_in;
+  const sock = await toSockClient({ input, delay });
+  const C = await sock.get("U", "C");
+  const S = await sock.get("U", "S");
+  sock.quit();
+  if (C && isEncrypted(C) && S && isServerAuthData(S)) {
+    return { C, S };
+  }
+  throw new Error('User pasted invalid App input');
+}
+
+function isServerAuthData(d: TreeAny): d is ServerAuthData {
+  if (!isObjAny(d.c)) {
     return false;
   }
-  if (!isTree(d.c)) {
-    return false;
-  }
-  if (!isTree(d.c.pu) || !isTree(d.c.Pu) || !isTree(d.c.Ps)) {
+  if (!isObjAny(d.c.pu) || !isObjAny(d.c.Pu) || !isObjAny(d.c.Ps)) {
     return false;
   }
   const needs = [
@@ -262,13 +225,13 @@ const readInbox: ReadInbox = async (inputs) => {
 const readDevInbox: ReadInbox = async (inputs) => {
   const { user_in, inst, sec } = inputs;
   if (user_in.prod) {
-    const { home } = user_in.dev_config;
-    throw new Error(`Data only in ${home} during development`);
+    throw new Error('This command is not available in production.');
   }
   const { shared } = toInstallation(inst);
   const key = toBytes(shared);
   try {
-    const text = await toPastedText(user_in);
+    const { dev_config } = user_in
+    const text = await toReader(dev_config)();
     const { command, tree } = toNameTree(text);
     const ok_command = command === "mail__table";
     const data = tree.data || "";
@@ -294,57 +257,26 @@ const readDevInbox: ReadInbox = async (inputs) => {
 }
 
 const readLoginStart: ReadLoginStart = async (ins) => {
-  const { dt, max_tries } = toTries(ins.delay);
   if (ins.prod) {
-    const { home } = ins.dev_config;
-    throw new Error(`Data only in ${home} during development`);
+    throw new Error('This command is not available in production.');
   }
-  let tries = 0;
-  while (tries < Math.ceil(max_tries)) {
-    await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(ins);
-    if (isLoginStart(toNameTree(text).tree)) {
-      return true;
-    }
-    tries += 1;
-  }
-  throw new Error("Timeout waiting for GitHub App");
+  const input = { read: toReader(ins.dev_config) }; 
+  const sock = await toSockClient({ input, delay: ins.delay });
+  const tree = await sock.get("op:pake", "client_auth_data");
+  sock.quit();
+  return isLoginStart(tree || {});
 }
 
 const readLoginEnd: ReadLoginEnd = async (ins) => {
-  const { dt, max_tries } = toTries(ins.delay);
   if (ins.prod) {
-    const { home } = ins.dev_config;
-    throw new Error(`Data only in ${home} during development`);
+    throw new Error('This command is not available in production.');
   }
-  let tries = 0;
-  while (tries < Math.ceil(max_tries)) {
-    await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(ins);
-    const { tree } = toNameTree(text);
-    if (isLoginEnd(tree)) {
-      return true;
-    }
-    tries += 1;
-  }
-  throw new Error("Timeout waiting for GitHub App");
+  const input = { read: toReader(ins.dev_config) }; 
+  const sock = await toSockClient({ input, delay: ins.delay });
+  const tree = await sock.get("op:pake", "client_auth_result");
+  sock.quit();
+  return isLoginEnd(tree || {});
 }
-
-const readUserApp: ReadUserApp = async (ins) => {
-  const { dt, max_tries } = toTries(ins.delay);
-  let tries = 0;
-  while (tries < Math.ceil(max_tries)) {
-    await new Promise(r => setTimeout(r, dt));
-    const text = await toPastedText(ins);
-    const pasted = fromB64urlQuery(text);
-    if (hasCode(pasted) && isForApp(pasted)) {
-      return pasted;
-    }
-    tries += 1;
-  }
-  throw new Error("Timeout waiting for GitHub App");
-}
-
 
 const toUserInstall: ToUserInstall = async (ins) => {
   const authorization = 'bearer ' + toSign(ins.app);
@@ -353,18 +285,17 @@ const toUserInstall: ToUserInstall = async (ins) => {
     username: ins.git.owner,
     headers: { authorization }
   })
-  return out.data;
+  return parseInstall(out.data);
 }
 
-const readUserInstall: ReadUserInstall = async (ins) => {
-  const { dt, max_tries } = toTries(ins.delay);
-  console.log('Awaiting app installation...');
-  let tries = 0;
-  while (tries < Math.ceil(max_tries)) {
-    await new Promise(r => setTimeout(r, dt));
-    let install: Obj = {};
+const toInstallReader = (ins: InstallIn) => {
+  const command = "install__ready";
+  return async () => {
     try {
-      install = await toUserInstall(ins);
+      const install = await toUserInstall(ins);
+      const { id, permissions } = install;
+      const tree = { id: `${id}`, permissions };
+      return fromNameTree({ command, tree });
     }
     catch (e: any) {
       if (e?.status !== 404) {
@@ -372,17 +303,23 @@ const readUserInstall: ReadUserInstall = async (ins) => {
         throw new Error("Error getting user installation");
       }
     }
-    if (isForInstall(install)) {
-      return {
-        git: ins.git,
-        app: ins.app,
-        id: install.id,
-        permissions: install.permissions
-      };
-    }
-    tries += 1;
+    return "";
   }
-  throw new Error("Timeout waiting for installation");
+}
+
+const readUserInstall: ReadUserInstall = async (ins) => {
+  const input = { read: toInstallReader(ins) }; 
+  const sock = await toSockClient({ input, delay: ins.delay });
+  console.log('Awaiting app installation...');
+  const tree = await sock.get("install", "ready");
+  const install = parseInstall(tree || {});
+  sock.quit();
+  return {
+    git: ins.git,
+    app: ins.app,
+    id: install.id,
+    permissions: install.permissions
+  };
 }
 
 const toNameTree: ToNameTree = (s) => {
@@ -404,7 +341,7 @@ const fromNameTree: FromNameTree = ({ command, tree }) => {
 
 export { 
   readUserApp, readUserInstall, toTries,
-  isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree,
-  readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes,
+  isLoginStart, isLoginEnd, toNameTree, fromNameTree,
+  readLoginStart, readLoginEnd, readDevInbox, toBytes,
   toInstallation, readInbox
 }

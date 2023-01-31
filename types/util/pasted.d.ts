@@ -1,9 +1,9 @@
 import type { ClientOut, NewClientOut } from "opaque-low-io";
-import type { Secrets } from "./encrypt.js";
-import type { TreeAny, NodeAny } from "sock-secret";
+import type { TreeAny } from "sock-secret";
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
 import type { Git, Trio } from "./types.js";
+import type { Secrets } from "./encrypt.js";
 export declare type HasGit = {
     git: Git;
 };
@@ -30,11 +30,8 @@ declare type ServerAuthData = {
     beta: Uint8Array;
     c: Record<"pu" | "Pu" | "Ps", ItemInC>;
 };
-export declare type Pasted = {
+export declare type UserApp = {
     C: Secrets;
-    S?: ServerAuthData;
-};
-export declare type UserApp = Pasted & {
     S: ServerAuthData;
 };
 declare type DevInboxIn = {
@@ -64,7 +61,6 @@ declare type Tries = {
 interface ToTries {
     (u: number): Tries;
 }
-declare type Obj = Record<string, unknown>;
 export declare type NameTree = {
     command: string;
     tree: TreeAny;
@@ -75,8 +71,6 @@ interface ToNameTree {
 interface FromNameTree {
     (t: NameTree): string;
 }
-declare function isObj(u: unknown): u is Obj;
-declare function isTree(u: NodeAny): u is TreeAny;
 export declare type LoginStart = {
     client_auth_data: NewClientOut["client_auth_data"];
 };
@@ -85,6 +79,7 @@ export declare type LoginEnd = {
     client_auth_result: ClientOut["client_auth_result"];
 };
 declare function isLoginEnd(nt: TreeAny): nt is LoginEnd;
+declare const readUserApp: ReadUserApp;
 declare const toTries: ToTries;
 declare const toBytes: (s: string) => Uint8Array;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;
@@ -92,8 +87,7 @@ declare const readInbox: ReadInbox;
 declare const readDevInbox: ReadInbox;
 declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;
-declare const readUserApp: ReadUserApp;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
 declare const fromNameTree: FromNameTree;
-export { readUserApp, readUserInstall, toTries, isTree, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, isObj, readDevInbox, toBytes, toInstallation, readInbox };
+export { readUserApp, readUserInstall, toTries, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox };

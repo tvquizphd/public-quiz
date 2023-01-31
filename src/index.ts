@@ -1,4 +1,4 @@
-import { isLoginStart, isLoginEnd, isTree, toInstallation } from "./util/pasted.js";
+import { isLoginStart, isLoginEnd, toInstallation } from "./util/pasted.js";
 import { readLoginStart, readLoginEnd } from "./util/pasted.js";
 import { readUserApp, readUserInstall } from "./util/pasted.js";
 import { readInbox, readDevInbox } from "./util/pasted.js";
@@ -9,7 +9,7 @@ import { vStart, vLogin, toSyncOp } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
 import { isQuad, isTrio, isDuo } from "./util/types.js";
-import { isJWK, toApp, toInstall } from "./create.js";
+import { isObjAny, isJWK, toApp, toInstall } from "./create.js";
 import { vShare } from "./util/share.js";
 import { getRandomValues } from "crypto";
 import dotenv from "dotenv";
@@ -78,10 +78,10 @@ function isClientState (o: TreeAny): o is ClientState {
 }
 
 function isTokenInputs (o: TreeAny): o is TokenIn {
-  if (!isTree(o.app)) {
+  if (!isObjAny(o.app)) {
     return false;
   }
-  if (!isTree(o.app.jwk)) {
+  if (!isObjAny(o.app.jwk)) {
     return false;
   }
   const needs = [ 
@@ -204,7 +204,7 @@ const toGitToken = (prod: boolean, inst: string) => {
     home: "dev.txt",
     tmp: "tmp-dev"
   }
-  const delay = 2; // 2 sec
+  const delay = 0.2; // 200ms sec
   if (!prod) {
     console.log('DEVELOPMENT\n');
     dotenv.config();
@@ -212,12 +212,12 @@ const toGitToken = (prod: boolean, inst: string) => {
   else {
     console.log('PRODUCTION\n');
   }
-  const v_in = { git, env, delay };
+  const v_in = { git, env };
   const share = isQuad(args) && args[0] === "SHARE";
   const login = isQuad(args) && args[0] === "LOGIN";
   const setup = isTrio(args) && args[0] === "SETUP";
   const dev = isDuo(args) && args[0] === "DEV";
-  const log_in = { ...v_in, pep, login, reset: false };
+  const log_in = { ...v_in, pep, reset: false };
   const user_in = { git, prod, delay, dev_config };
   if (dev) {
     try {

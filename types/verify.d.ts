@@ -13,8 +13,6 @@ declare type SecretOut = {
 };
 declare type ConfigIn = {
     reset: boolean;
-    login: boolean;
-    delay: number;
     pep: string;
     env: string;
     git: Git;

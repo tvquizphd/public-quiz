@@ -1,5 +1,5 @@
 import type { Git } from "./util/types.js";
-import type { NodeAny } from "sock-secret";
+import type { NodeAny, TreeAny } from "sock-secret";
 interface ToAppInput {
     code: string;
 }
@@ -36,9 +36,15 @@ export declare type Installation = {
     app: AppOutput;
     shared: string;
 };
+export declare type ObjAny = TreeAny | {
+    [key: string]: unknown;
+};
+export interface Permissions {
+    [key: string]: string;
+}
 export declare type UserInstallRaw = {
     id: number;
-    permissions: Record<string, string>;
+    permissions: Permissions;
 };
 export declare type UserInstall = UserInstallRaw & {
     git: Git;
@@ -47,11 +53,12 @@ export declare type UserInstall = UserInstallRaw & {
 interface ToInstall {
     (i: UserInstall): Promise<Installed>;
 }
-declare type Obj = Record<string, unknown>;
+declare function parseInstall(o: ObjAny): UserInstallRaw;
+declare function isObjAny(u: unknown): u is ObjAny;
 declare function isInstallation(o: NodeAny): o is Installation;
-declare function isJWK(o: Obj): o is JWK;
+declare function isJWK(o: ObjAny): o is JWK;
 declare const toPEM: (key: JWK) => string;
 declare const toApp: ToApp;
 declare const toInstall: ToInstall;
 declare const toSign: (app: AppOutput) => string;
-export { toPEM, isJWK, toSign, toApp, toInstall, isInstallation };
+export { isObjAny, toPEM, isJWK, toSign, toApp, toInstall, isInstallation, parseInstall };

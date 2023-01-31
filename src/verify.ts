@@ -3,10 +3,9 @@ import { toSockServer, fromCommandTreeList } from "sock-secret";
 import { setSecret, setSecretText } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
-import { isTree } from "./util/pasted.js";
 import { fromNameTree, toBytes } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
-import { isInstallation } from "./create.js";
+import { isObjAny, isInstallation } from "./create.js";
 
 import type { SockServer } from "sock-secret";
 import type { QMI } from "./util/encrypt.js";
@@ -40,8 +39,6 @@ type SecretOut = {
 }
 type ConfigIn = {
   reset: boolean,
-  login: boolean,
-  delay: number,
   pep: string,
   env: string,
   git: Git
@@ -84,7 +81,7 @@ interface Login {
 
 const isServerOut = (o: NodeAny): o is ServerOut => {
   const t = (o as ServerOut).server_auth_data;
-  if (!t || !isTree(t)) {
+  if (!t || !isObjAny(t)) {
     return false;
   }
   const { beta, Xs, As, c } = t;

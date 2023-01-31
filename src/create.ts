@@ -1,11 +1,10 @@
 import { request } from "@octokit/request";
 import { createPrivateKey } from "crypto";
-import { isTree, isObj } from "./util/pasted.js";
-import type { Git } from "./util/types.js";
 import { sign } from 'jws';
 
 import type { Header } from 'jws';
-import type { NodeAny } from "sock-secret"
+import type { Git } from "./util/types.js";
+import type { NodeAny, TreeAny } from "sock-secret"
 
 interface ToAppInput {
   code: string;
@@ -50,9 +49,15 @@ export type Installation = {
   app: AppOutput,
   shared: string
 }
+export type ObjAny = TreeAny | {
+  [key: string]: unknown;
+}
+export interface Permissions {
+  [key: string]: string;
+}
 export type UserInstallRaw = {
   id: number,
-  permissions: Record<string, string>
+  permissions: Permissions 
 }
 export type UserInstall = UserInstallRaw & {
   git: Git,
@@ -61,14 +66,26 @@ export type UserInstall = UserInstallRaw & {
 interface ToInstall {
   (i: UserInstall): Promise<Installed>;
 }
-type Obj = Record<string, unknown>;
 type Payload = {
   iss: number,
   iat: number,
   exp: number
 }
 
-function hasTokenDate (o: Obj): o is InstalledRaw {
+function parseInstall (o: ObjAny): UserInstallRaw {
+  const { permissions } = o;
+  const id = parseInt(`${o.id}`);
+  if (!isNaN(id) && isPermissions(permissions)) {
+    return { id, permissions };
+  }
+  throw new Error("Installation Error");
+}
+
+function isObjAny(u: unknown): u is ObjAny {
+  return u != null && typeof u === "object";
+}
+
+function hasTokenDate(o: ObjAny): o is InstalledRaw {
   const needs = [
     typeof o.token === "string",
     typeof o.expires_at === "string",
@@ -76,7 +93,7 @@ function hasTokenDate (o: Obj): o is InstalledRaw {
   return needs.every(v => v);
 }
 
-function hasTokenTime(o: Obj): o is Installed {
+function hasTokenTime(o: TreeAny): o is Installed {
   const needs = [
     typeof o.token === "string",
     typeof o.expiration === "string",
@@ -85,9 +102,9 @@ function hasTokenTime(o: Obj): o is Installed {
 }
 
 function isInstallation (o: NodeAny): o is Installation {
-  if (!isTree(o)) return false;
+  if (!isObjAny(o)) return false;
   const { installed, app, shared } = o;
-  if (!isTree(installed) || !isTree(app)) {
+  if (!isObjAny(installed) || !isObjAny(app)) {
     return false;
   }
   const needs = [
@@ -98,7 +115,12 @@ function isInstallation (o: NodeAny): o is Installation {
   return needs.every(v => v);
 }
 
-function isJWK (o: Obj): o is JWK {
+function isPermissions(u: unknown): u is Permissions {
+  if (!isObjAny(u)) return false;
+  return Object.values(u).every(v => typeof v === "string");
+}
+
+function isJWK (o: ObjAny): o is JWK {
   if (o.kty !== 'RSA') {
     return false;
   }
@@ -119,9 +141,9 @@ function isApp (o: Record<string, any>): o is AppRaw {
   return needs.every(v => v);
 }
 
-function isAppOutput (o: Obj): o is AppOutput {
+function isAppOutput (o: TreeAny): o is AppOutput {
   const { jwk } = o;
-  if (!isObj(jwk)) {
+  if (!isObjAny(jwk)) {
     return false;
   }
   const needs = [
@@ -152,8 +174,8 @@ const toJWK = (key: string): JWK => {
   });
   const jwk = priv.export({
     format: 'jwk'
-  });
-  if (!isJWK(jwk)) {
+  }) as ObjAny;
+  if (!isObjAny(jwk) || !isJWK(jwk)) {
     throw new Error('Invalid private key');
   }
   return jwk;
@@ -233,4 +255,4 @@ const toSign = (app: AppOutput) => {
   return authorization;
 }
 
-export { toPEM, isJWK, toSign, toApp, toInstall, isInstallation };
+export { isObjAny, toPEM, isJWK, toSign, toApp, toInstall, isInstallation, parseInstall };

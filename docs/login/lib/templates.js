@@ -60,9 +60,9 @@ const actionTemplate = (step, action) => {
     `;
     const fn = async () => {
       const dir_opts = { mode: "readwrite" };
-      const dir = await window.showDirectoryPicker(dir_opts);
       let dev_root = null;
       while (!dev_root) {
+        const dir = await window.showDirectoryPicker(dir_opts);
         dev_root = await isValid(dir);
       }
       step(dev_root);
