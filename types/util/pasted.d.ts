@@ -1,9 +1,10 @@
 import type { ClientOut, NewClientOut } from "opaque-low-io";
+import type { Installed } from "../create.js";
 import type { TreeAny } from "sock-secret";
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
 import type { Git, Trio } from "./types.js";
-import type { Secrets } from "./encrypt.js";
+import type { Encrypted, Secrets } from "./encrypt.js";
 export declare type HasGit = {
     git: Git;
 };
@@ -15,6 +16,9 @@ export declare type UserIn = HasGit & {
     delay: number;
     prod: boolean;
     dev_config: DevConfig;
+};
+declare type HasSessionHash = {
+    session_hash: Uint8Array;
 };
 declare type InstallIn = HasGit & {
     delay: number;
@@ -45,6 +49,9 @@ interface ReadUserInstall {
 interface ReadUserApp {
     (u: UserIn): Promise<UserApp>;
 }
+interface ReadReset {
+    (u: UserIn): Promise<boolean>;
+}
 interface ReadInbox {
     (u: DevInboxIn): Promise<Trio>;
 }
@@ -54,13 +61,6 @@ interface ReadLoginStart {
 interface ReadLoginEnd {
     (u: UserIn): Promise<boolean>;
 }
-declare type Tries = {
-    max_tries: number;
-    dt: number;
-};
-interface ToTries {
-    (u: number): Tries;
-}
 export declare type NameTree = {
     command: string;
     tree: TreeAny;
@@ -68,9 +68,8 @@ export declare type NameTree = {
 interface ToNameTree {
     (t: string): NameTree;
 }
-interface FromNameTree {
-    (t: NameTree): string;
-}
+declare function hasSessionHash(u: TreeAny): u is HasSessionHash;
+declare function isEncrypted(d: TreeAny): d is Encrypted;
 export declare type LoginStart = {
     client_auth_data: NewClientOut["client_auth_data"];
 };
@@ -80,14 +79,14 @@ export declare type LoginEnd = {
 };
 declare function isLoginEnd(nt: TreeAny): nt is LoginEnd;
 declare const readUserApp: ReadUserApp;
-declare const toTries: ToTries;
 declare const toBytes: (s: string) => Uint8Array;
+declare const useGitInstalled: (git: Git, installed: Installed) => Git;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;
 declare const readInbox: ReadInbox;
 declare const readDevInbox: ReadInbox;
+declare const readDevReset: ReadReset;
 declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
-declare const fromNameTree: FromNameTree;
-export { readUserApp, readUserInstall, toTries, isLoginStart, isLoginEnd, toNameTree, fromNameTree, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox };
+export { readUserApp, readUserInstall, isEncrypted, isLoginStart, isLoginEnd, toNameTree, useGitInstalled, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox, readDevReset, hasSessionHash };

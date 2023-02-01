@@ -1,13 +1,14 @@
 import { DBTrio } from "dbtrio";
 import { templates } from "templates";
 import { toEnv } from "environment";
-//import { OP } from "opaque-low-io";
+import { toB64urlQuery } from "sock-secret";
 import { toSockClient } from "sock-secret";
+import { toCommandTreeList } from "sock-secret";
 import { toGitHubDelay, writeText } from "io";
 import { toMailMapper, clientLogin } from "io";
-//import { request } from "@octokit/request";
+import { encryptSecrets } from "encrypt";
 import { Workflow } from "workflow";
-import { toHash } from "encrypt";
+import { toHash, textToBytes } from "encrypt";
 import { encryptQueryMaster } from "encrypt";
 import { decryptQueryMaster } from "decrypt";
 import { decryptQuery, toBytes } from "decrypt";
@@ -18,15 +19,6 @@ import { decryptQuery, toBytes } from "decrypt";
  */
 const EMPTY_NEW = [ [""], [""], ["","",""] ];
 const EMPTY_TABLES = [ [], [], [] ];
-
-/*
-async function toOpaqueSock(inputs) {
-  const { opaque } = inputs;
-  const Sock = await toSock(inputs, "opaque");
-  await clearOpaqueClient(Sock, opaque);
-  return Sock;
-}
-*/
 
 const outage = async () => {
   const fault = "GitHub internal outage";
@@ -48,34 +40,6 @@ const outage = async () => {
   });
 }
 
-/*
-async function triggerGithubAction(data) {
-  const { local, env, git } = data;
-  const { session_hash, reset } = data;
-  if (reset && !session_hash) {
-    throw new Error("Unable to reset master.");
-  }
-  const options = [session_hash, ""];
-  const reset_key = options[+!reset];
-  const payload = { "reset-key": reset_key };
-  if (local) {
-    if (reset && reset_key) {
-      const message = "Copy to develop.bash";
-      data.modal = { message, copy: reset_key };
-    }
-    console.log('DEVELOPMENT: please run action locally.');
-    return;
-  }
-  console.log('PRODUCTION: calling GitHub action.');
-  try {
-    await dispatch({ git, env, payload });
-  }
-  catch (e) {
-    console.log(e?.message);
-  }
-}
-*/
-
 const noTemplate = () => {
   return `
     <div class="wrap-lines">
@@ -89,8 +53,8 @@ const noTemplate = () => {
 const runReef = (dev, remote, env) => {
 
   const passFormId = "pass-form";
-  const path = window.location.pathname;
   const host = window.location.origin;
+  const href = host + window.location.pathname; 
   const {store, component} = window.reef;
 
   if (!remote || !env) {
@@ -108,8 +72,8 @@ const runReef = (dev, remote, env) => {
   const DATA = store({
     user_key: null,
     master_key: null,
-    session_hash: null,
     local: dev !== null,
+    last_session_string: null,
     delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
     dev_file: "dev.txt",
@@ -120,7 +84,7 @@ const runReef = (dev, remote, env) => {
     modal: null,
     step: 0,
     host,
-    path,
+    href,
     env,
     git: {
       owner_token: "",
@@ -154,6 +118,18 @@ const runReef = (dev, remote, env) => {
     const result = await fetch(pub, { headers });
     return (await (result).text()).replaceAll('\n', '');
   }
+  const toResetPreface = async (user_reset_ok) => {
+    if (!user_reset_ok) return "";
+    const command = "user__reset";
+    const s = DATA.last_session_string;
+    const argon_out = await toHash(s);
+    const tree = { session_hash: textToBytes(argon_out) };
+    return [{ command, tree }];
+  }
+  const toLocalPreface = async () => {
+    const current = await (await DATA.dev_handle.getFile()).text();
+    return toCommandTreeList(current.replaceAll('\n', ''));
+  }
   const writeLocal = (text) => {
     const f = DATA.dev_handle;
     if (f) writeText(f, text);
@@ -184,22 +160,22 @@ const runReef = (dev, remote, env) => {
     }
   }
 
-  const uploadDatabase = async () => {
+  const uploadDatabase = async (preface) => {
     const { env, git, local, delay, user_key } = DATA;
     const { dbt } = API;
     DATA.loading.sending = true;
-    const local_in = { read: readLocal } 
+    const secret_out = { git, env };
     const local_out = { write: writeLocal };
-    const mail_out = local ? local_out : { git, env };
+    const mail_out = local ? local_out : secret_out;
     const mail_sock_in = { 
-      input: null, output: mail_out, delay
+      preface, input: null, output: mail_out, delay
     };
-    const UserSock = await toSockClient(mail_sock_in);
+    const sock = await toSockClient(mail_sock_in);
     const encrypted = await dbt.encrypt(toKey(user_key));
-    UserSock.give("mail", "table", encrypted);
+    sock.give("mail", "table", encrypted);
     DATA.loading.sending = false;
     console.log('Sent mail.');
-    UserSock.quit();
+    sock.quit();
   }
 
   const props = { DATA, API, templates };
@@ -218,25 +194,25 @@ const runReef = (dev, remote, env) => {
   }
 
   async function decryptWithPassword(inputs) {
-    const { newPass } = inputs;
-    const pass = newPass || inputs.pass;
     DATA.loading.socket = true;
     const { hash: search } = window.location;
-    const result = await decryptQuery(search, pass);
+    const result = await decryptQuery(search, inputs.pass);
+    const pass = inputs.newPass || inputs.pass;
     const master_key = result.master_key;
     const shared = result.plain_text;
     const user_key = toBytes(shared);
     const user = fromKey(user_key);
     DATA.master_key = master_key;
     DATA.user_key = user_key;
-    const { dbt } = API;
-    const { user_id, delay } = DATA;
-    const { git, local } = DATA;
     const times = 1000;
-    const local_out = { write: writeLocal };
+    const { dbt } = API;
+    const { git, local } = DATA;
+    const { user_id, delay } = DATA;
     const local_in = { read: readLocal }; 
-    const input = local ? local_in : { git };
-    const op_out = local ? local_out : { git, key: "op" };
+    const release_in = { git };
+    const secret_out = { git, env };
+    const dispatch_out = { git, key: "op" };
+    const input = local ? local_in : release_in;
     const user_decrypt = dbt.decryptUser.bind(dbt, user);
     const user_mapper = toMailMapper(user_decrypt, "user");
     const mail_user = {
@@ -245,54 +221,61 @@ const runReef = (dev, remote, env) => {
     const UserSock = await toSockClient(mail_user);
     const installed = await UserSock.get("mail", "user");
     git.owner_token = installed.token;
+    const user_reset_ok = [
+      DATA.reset, pass !== inputs.pass, DATA.last_session_string
+    ].every(v => v);
     DATA.loading.socket = false;
     DATA.loading.mailer = true;
     UserSock.quit();
-    // Login to recieve session key
+    const preface = await toResetPreface(user_reset_ok);
+    const local_out = { write: writeLocal };
+    const op_out = local ? local_out : dispatch_out;
     const opaque_in = { 
-      input, output: op_out, user_id, pass, times, delay
+      preface, input, output: op_out, user_id, pass, times, delay
     };
-    const token = await clientLogin(opaque_in);
-    const session = fromKey(toBytes(token));
-    const session_decrypt = dbt.decryptSession.bind(dbt, session);
-    const session_mapper = toMailMapper(session_decrypt, "session");
-    const mail_session = { 
-      mapper: session_mapper, input, output: null, delay
-    };
+    // Login to recieve session key
+    const session_string = await clientLogin(opaque_in);
     DATA.loading.mailer = false;
-    DATA.loading.database = true;
-    const Sock = await toSockClient(mail_session);
-    const ascii = await Sock.get("mail", "session");
-    console.log({ token, ascii });
-    Sock.quit();
-    // TODO should use this or user_key hash?
-    DATA.session_hash = await toHash(token);
-    DATA.loading.database = false;
-    return ["Logged in"];
-    // TODO password reset
-    /*
-    if (typeof newPass === "string") { 
-      const { token } = DATA.git;
-      const to_encrypt = {
-        password: newPass,
-        secret_text: token
-      }
+    if (user_reset_ok) {
+      // Use last session as new user key 
+      const s = DATA.last_session_string;
+      const new_user_key = toBytes(s);
+      DATA.user_key = new_user_key;
+      // Update URL hash after password reset
+      const to_encrypt = { password: pass, secret_text: s }
       const encrypted = await encryptSecrets(to_encrypt);
-      const search = toB64urlQuery(encrypted);
-      const url = `${DATA.path}${search}`;
+      const query = toB64urlQuery(encrypted);
+      const roundtrip = await decryptQuery(query, pass);
+      DATA.master_key = roundtrip.master_key;
+      const url = `${DATA.href}${query}`;
       history.pushState(null, '', url);
-      const result = await decryptQuery(search, newPass);
-      await uploadDatabase(result.master_key);
-      const full_url = `${DATA.host}${url}`;
+      // Save DB after password reset
+      const preface = local ? await toLocalPreface() : [];
+      await uploadDatabase(preface);
       const message = [
         "Updated the master password.",
         "Copy and save new login link."
       ].join(' ');
-      DATA.modal = { message, copy: full_url, simple: true };
-      output.push("Saved database");
+      DATA.modal = { message, copy: url, simple: true };
+      return ["Updated Master Password"];
     }
-    return output;
-    */
+    else {
+      // Read the latest database
+      const session = fromKey(toBytes(session_string));
+      const session_decrypt = dbt.decryptSession.bind(dbt, session);
+      const session_mapper = toMailMapper(session_decrypt, "session");
+      const mail_session = { 
+        mapper: session_mapper, input, output: null, delay
+      };
+      DATA.loading.database = true;
+      const Sock = await toSockClient(mail_session);
+      await Sock.get("mail", "session");
+      Sock.quit();
+      DATA.loading.database = false;
+    }
+    // Update last session string
+    DATA.last_session_string = session_string;
+    return ["Logged in"];
   }
 
   function submitHandler (event) {
@@ -330,7 +313,7 @@ const runReef = (dev, remote, env) => {
       }
     }
     if (event.target.closest('.send-mail')) {
-      return uploadDatabase();
+      return uploadDatabase([]);
     }
   }
 

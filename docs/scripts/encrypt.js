@@ -94,4 +94,4 @@ const encryptQueryMaster = async (inputs) => {
   return toB64urlQuery({ data });
 }
 
-export { toHash, encryptSecrets, encryptQueryMaster };
+export { toHash, encryptSecrets, encryptQueryMaster, textToBytes };

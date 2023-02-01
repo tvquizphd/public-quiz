@@ -1,8 +1,8 @@
 #!/bin/bash
 SET_SESSION=$(cat .env | egrep "^SESSION")
-SESSION=$(sed -r "s/.*=.(.+)./\1/" <<< $SET_SESSION)
+SESSION=$(sed -r "s@.*=.(.+).@\1@" <<< $SET_SESSION)
 GIT_URL=$(git config --get remote.origin.url)
-REMOTE=$(sed -r "s_.*[:/](.+/.+)_\1_" <<< $GIT_URL)
+REMOTE=$(sed -r "s@.*[:/](.+/.+)@\1@" <<< $GIT_URL)
 DEPLOYMENT="DEVELOPMENT-TEST"
 export DEPLOYMENT
 export REMOTE
@@ -32,8 +32,9 @@ waiter () {
 enter () {
   pnpm develop DEV OPEN
   WORK=$(head -n 1 $1)
+  PUB_CTLI=$(head -n 1 $CLIENT_IN)
   # Must have client_auth_data
-  pnpm develop LOGIN OPEN ?noop $WORK
+  pnpm develop LOGIN OPEN $PUB_CTLI $WORK
   # Must send server_auth_data
   echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN
   pnpm develop DEV CLOSE
@@ -50,9 +51,7 @@ if [ ! -z $SESSION ]; then
   if [ $yn == "y" ]; then
     read -p "Use existing password (y/n)?: " yn
     if [ $yn != "y" ]; then
-      echo $'\n\nPaste your argon hash:\n'
-      read -r OLD_HASH
-      export OLD_HASH
+      pnpm develop DEV RESET
     fi
     pnpm develop DEV INBOX
     echo "Running login development action." $'\n'

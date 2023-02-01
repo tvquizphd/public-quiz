@@ -3,23 +3,28 @@ import { toSockServer, fromCommandTreeList } from "sock-secret";
 import { setSecret, setSecretText } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
-import { fromNameTree, toBytes } from "./util/pasted.js";
+import { toBytes } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
-import { isObjAny, isInstallation } from "./create.js";
+import { isObjAny } from "./create.js";
 
 import type { SockServer } from "sock-secret";
 import type { QMI } from "./util/encrypt.js";
 import type { Git, Trio } from "./util/types.js";
+import type { Installation, HasToken } from "./create.js";
 import type { CommandTreeList, NodeAny, TreeAny } from "sock-secret";
 import type { LoginStart, LoginEnd } from "./util/pasted.js";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
 import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
 
 type CommandKeys = (
-  "OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" |
-  "CLOSE_IN" | "CLOSE_USER" | "CLOSE_MAIL"
+  "RESET" | "OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" |
+  "CLOSE_IN" | "NEW_SHARED"
+)
+type MailKeys = (
+  "USER" | "SESSION" 
 )
 export type Commands = Record<CommandKeys, string> 
+export type MailTypes = Record<MailKeys, string> 
 type SockInputs = {
   inputs: CommandTreeList 
 }
@@ -38,16 +43,12 @@ type SecretOut = {
   for_next: string
 }
 type ConfigIn = {
-  reset: boolean,
   pep: string,
   env: string,
   git: Git
 }
 type RegisterInputs = {
   tree: LoginStart
-}
-type LoginInputs = {
-  tree: LoginEnd
 }
 type PepperInputs = RegisterInputs & {
   Opaque: Op,
@@ -65,18 +66,38 @@ type Inputs = {
   log_in: ConfigIn,
   commands: Commands
 }
-type InputsFirst = Inputs & RegisterInputs; 
-type InputsFinal = Inputs & LoginInputs & {
-  final: ServerFinal, trio: Trio, inst: string, ses: string
+type InputsFirst = Inputs & RegisterInputs & {
+  pub_ctli: CommandTreeList,
+  shared: string,
+  reset: boolean
 }; 
-interface EncryptLine {
-  (e: QMI, c: string): Promise<string>;
+type InputsFinal = Inputs & {
+  final: ServerFinal, tree: LoginEnd, ses: string
+}; 
+type InputsUpdateUser = {
+  mail_types: MailTypes,
+  preface: CommandTreeList,
+  installation: Installation
+}
+type InputsMail = HasToken & {
+  trio: Trio,
+  mail_types: MailTypes,
+  installation: Installation
+}
+interface EncryptLines {
+  (lines: [QMI, string][]): Promise<string>;
 }
 interface Start {
   (i: InputsFirst): Promise<SecretOut>
 }
 interface Login {
-  (i: InputsFinal): Promise<SecretOut>
+  (i: InputsFinal): Promise<HasToken>
+}
+interface Mail {
+  (i: InputsMail): Promise<SecretOut>
+}
+interface UpdateUser {
+  (i: InputsUpdateUser): Promise<SecretOut>
 }
 
 const isServerOut = (o: NodeAny): o is ServerOut => {
@@ -115,7 +136,7 @@ const toPepper: ToPepper = async (opts) => {
   const secret_str = process.env[pep] || '';
   const pepper = fromB64urlQuery(secret_str);
   if (reset) {
-    console.log('Allowing password reset!');
+    console.log('Authorized Password reset!!');
   }
   if (!reset && isPepper(pepper)) {
     console.log('Loaded pepper from secrets.');
@@ -152,10 +173,22 @@ const toSyncOp: ToSyncOp = async () => {
   return await OPS();
 }
 
+interface ToResetOut {
+  (a: string, b: boolean, c: string): CommandTreeList;
+}
+
+const toResetOut: ToResetOut = (command, reset, shared) => {
+  if (reset && shared.length) {
+    return [{ command, tree: { shared } }];
+  }
+  return [] as CommandTreeList;
+}
+
 const vStart: Start = async (opts) => {
-  const { commands, tree } = opts;
-  const { git, env, pep, reset } = opts.log_in;
-  const { OPEN_IN, OPEN_NEXT, OPEN_OUT } = commands;
+  const { commands, pub_ctli, reset, tree } = opts;
+  const { git, env, pep } = opts.log_in;
+  const { OPEN_IN, OPEN_OUT } = commands;
+  const { OPEN_NEXT, NEW_SHARED } = commands;
   const inputs = [{ command: OPEN_IN, tree }];
   const { Opaque, Sock } = await toUserSock({ inputs });
   const times = 1000;
@@ -171,19 +204,26 @@ const vStart: Start = async (opts) => {
   if (!pages_out || !isServerOut(pages_out.tree)) {
     throw new Error('Cannot send invalid data.');
   }
-  const for_next = fromCommandTreeList([ next_out ]);
-  const for_pages = fromCommandTreeList([ pages_out ]);
+  const reset_out = toResetOut(NEW_SHARED, reset, opts.shared);
+  const for_next = fromCommandTreeList([ next_out, ...reset_out ]);
+  const old_out = pub_ctli.filter((ct) => {
+    return ct.command !== pages_out.command;
+  });
+  const for_pages = fromCommandTreeList([ ...old_out, pages_out ]);
   return { for_next, for_pages }
 }
 
-const encryptLine: EncryptLine = async (en, command) => {
-  const tree = fromB64urlQuery(await encryptQueryMaster(en));
-  return fromNameTree({ command, tree });
+const encryptLines: EncryptLines = async (lines) => {
+  const ctli = lines.map(async ([en, command]) => {
+    const tree = fromB64urlQuery(await encryptQueryMaster(en));
+    return { command, tree };
+  })
+  return fromCommandTreeList(await Promise.all(ctli));
 }
 
 const vLogin: Login = async (opts) => {
-  const { ses, inst, commands, tree, final } = opts;
-  const { CLOSE_IN, CLOSE_USER, CLOSE_MAIL } = commands;
+  const { ses, commands, tree, final } = opts;
+  const { CLOSE_IN } = commands;
   const inputs = [{ command: CLOSE_IN, tree }];
   const { Opaque } = await toUserSock({ inputs });
   // Authorized the client
@@ -198,14 +238,32 @@ const vLogin: Login = async (opts) => {
     console.error('Can\'t save session to secrets.');
     console.error(e.message);
   }
-  const ins_value = process.env[inst] || "";
-  const ins_obj = fromB64urlQuery(ins_value);
-  if (!isInstallation(ins_obj)) {
-    throw new Error(`Secret ${inst} invalid.`);
-  }
-  const { installed, shared } = ins_obj;
+  return { token };
+}
+
+const updateUser: UpdateUser = async (opts) => {
+  const { mail_types, installation, preface } = opts;
+  const { installed, shared } = installation;
   const ins_text = toB64urlQuery(installed);
-  const text_rows = opts.trio.join('\n');
+  const user_key = toBytes(shared);
+  const en = {
+    plain_text: ins_text, 
+    master_key: user_key
+  }
+  const encrypted = await encryptQueryMaster(en);
+  const tree = fromB64urlQuery(encrypted);
+  const for_pages = fromCommandTreeList([
+    { command: mail_types.USER, tree }, ...preface
+  ]);
+  return { for_next: "", for_pages };
+}
+
+const vMail: Mail = async (opts) => {
+  const { mail_types, token } = opts;
+  const { installation, trio } = opts;
+  const { installed, shared } = installation;
+  const ins_text = toB64urlQuery(installed);
+  const text_rows = trio.join('\n');
   const session_key = toBytes(token);
   const user_key = toBytes(shared);
   const encrypt_user = {
@@ -216,10 +274,12 @@ const vLogin: Login = async (opts) => {
     plain_text: text_rows, 
     master_key: session_key
   };
-  const user_line = await encryptLine(encrypt_user, CLOSE_USER);
-  const session_line = await encryptLine(encrypt_session, CLOSE_MAIL);
-  const for_pages = [user_line, session_line].join('/');
+  const for_pages = await encryptLines([
+    [encrypt_user, mail_types.USER],
+    [encrypt_session, mail_types.SESSION]
+  ]);
   return { for_next: "", for_pages };
 }
 
-export { toSyncOp, vStart, vLogin };
+
+export { toSyncOp, vStart, vLogin, vMail, updateUser };

@@ -35,7 +35,7 @@ export type AppOutput = AppStrings & {
 interface ToApp {
   (i: ToAppInput): Promise<AppOutput>;
 }
-type HasToken = {
+export type HasToken = {
   token: string
 }
 type InstalledRaw = HasToken & {

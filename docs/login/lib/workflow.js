@@ -236,9 +236,9 @@ class Workflow  {
     this.DATA.step = 1;
   }
   stepBack() {
-    const { step, session_hash } = this.DATA;
+    const { step, last_session_string } = this.DATA;
     if (step === 1) {
-      if (!session_hash) return;
+      if (!last_session_string) return;
       this.DATA.reset = true;
     }
     this.DATA.step = Math.floor(step/2);

@@ -9,7 +9,7 @@ const formTemplate = (inputs) => {
   const pwd_auto = 'autocomplete="current-password"';
   const pwd_props = `id="${p_id}" ${pwd_auto}`;
   let bottom = `
-    <button class="true-blue">Log In</button>
+    <button class="true-blue">Sign up</button>
   `;
   if (loading) {
     bottom = `<div class="loading large-font">

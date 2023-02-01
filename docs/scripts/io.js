@@ -2,11 +2,11 @@ import { OPS, OP } from "opaque-low-io";
 import { toSockClient } from "sock-secret";
 
 async function toOpaqueSock(opts, workflow) {
-  const { delay, input, output } = opts;
+  const { preface, delay, input, output } = opts;
   if ("key" in output) {
     output.workflow = workflow;
   }
-  const sock_in = { delay, input, output };
+  const sock_in = { preface, delay, input, output };
   const Sock = await toSockClient(sock_in);
   if (Sock === null) {
     throw new Error('Unable to make socket.');

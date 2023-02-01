@@ -1,7 +1,11 @@
-name: Open Login
+name: Update Token
 on:
-  repository_dispatch:
-    types: [call-login-open]
+  schedule:
+    - cron: '4 11-23/2 * * *'
+    - cron: '19 12-22/2 * * *'
+    - cron: '34 11-23/2 * * *'
+    - cron: '49 12-22/2 * * *'
+  workflow_dispatch:
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
@@ -13,7 +17,7 @@ permissions:
   issues: read
   contents: write
 jobs:
-  login_open:
+  reset_token:
     environment:
       name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
@@ -32,7 +36,7 @@ jobs:
           curl -L -o index $INDEX_URL
           chmod +x index
           echo "" > secret.txt
-          ./index LOGIN OPEN "$PUB_CTLI" "$OP"
+          ./index UPDATAE TOKEN "$PUB_CTLI"
           STEP=$(head -n 1 secret.txt)
           ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
         env:
@@ -41,4 +45,3 @@ jobs:
           PUB_CTLI: ${{ steps.index.outputs.body }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
-          OP: ${{ github.event.client_payload.op }}

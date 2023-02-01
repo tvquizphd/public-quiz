@@ -25,7 +25,7 @@ export declare type AppOutput = AppStrings & {
 interface ToApp {
     (i: ToAppInput): Promise<AppOutput>;
 }
-declare type HasToken = {
+export declare type HasToken = {
     token: string;
 };
 export declare type Installed = HasToken & {

@@ -1,9 +1,13 @@
 import type { Git, Trio } from "./util/types.js";
+import type { Installation, HasToken } from "./create.js";
+import type { CommandTreeList } from "sock-secret";
 import type { LoginStart, LoginEnd } from "./util/pasted.js";
 import type { ServerFinal } from "opaque-low-io";
 import type { Ops } from 'opaque-low-io';
-declare type CommandKeys = ("OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" | "CLOSE_IN" | "CLOSE_USER" | "CLOSE_MAIL");
+declare type CommandKeys = ("RESET" | "OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" | "CLOSE_IN" | "NEW_SHARED");
+declare type MailKeys = ("USER" | "SESSION");
 export declare type Commands = Record<CommandKeys, string>;
+export declare type MailTypes = Record<MailKeys, string>;
 interface ToSyncOp {
     (): Promise<Ops>;
 }
@@ -12,7 +16,6 @@ declare type SecretOut = {
     for_next: string;
 };
 declare type ConfigIn = {
-    reset: boolean;
     pep: string;
     env: string;
     git: Git;
@@ -20,27 +23,45 @@ declare type ConfigIn = {
 declare type RegisterInputs = {
     tree: LoginStart;
 };
-declare type LoginInputs = {
-    tree: LoginEnd;
-};
 declare type Inputs = {
     log_in: ConfigIn;
     commands: Commands;
 };
-declare type InputsFirst = Inputs & RegisterInputs;
-declare type InputsFinal = Inputs & LoginInputs & {
+declare type InputsFirst = Inputs & RegisterInputs & {
+    pub_ctli: CommandTreeList;
+    shared: string;
+    reset: boolean;
+};
+declare type InputsFinal = Inputs & {
     final: ServerFinal;
-    trio: Trio;
-    inst: string;
+    tree: LoginEnd;
     ses: string;
+};
+declare type InputsUpdateUser = {
+    mail_types: MailTypes;
+    preface: CommandTreeList;
+    installation: Installation;
+};
+declare type InputsMail = HasToken & {
+    trio: Trio;
+    mail_types: MailTypes;
+    installation: Installation;
 };
 interface Start {
     (i: InputsFirst): Promise<SecretOut>;
 }
 interface Login {
-    (i: InputsFinal): Promise<SecretOut>;
+    (i: InputsFinal): Promise<HasToken>;
+}
+interface Mail {
+    (i: InputsMail): Promise<SecretOut>;
+}
+interface UpdateUser {
+    (i: InputsUpdateUser): Promise<SecretOut>;
 }
 declare const toSyncOp: ToSyncOp;
 declare const vStart: Start;
 declare const vLogin: Login;
-export { toSyncOp, vStart, vLogin };
+declare const updateUser: UpdateUser;
+declare const vMail: Mail;
+export { toSyncOp, vStart, vLogin, vMail, updateUser };

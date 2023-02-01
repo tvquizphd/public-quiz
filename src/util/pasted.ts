@@ -1,6 +1,7 @@
-import { fromB64urlQuery, toB64urlQuery } from "sock-secret";
 import { hasEncryptionKeys, decryptSecret } from "./decrypt.js";
 import { parseInstall, isInstallation } from "../create.js";
+import { fromCommandTreeList, toCommandTreeList } from "sock-secret";
+import { fromB64urlQuery } from "sock-secret";
 import { isObjAny, toSign } from "../create.js";
 import { toSockClient } from "sock-secret";
 import { request } from "@octokit/request";
@@ -9,12 +10,12 @@ import path from 'node:path';
 import fs from 'fs'
 
 import type { ClientOut, NewClientOut } from "opaque-low-io";
-import type { UserInstallRaw } from "../create.js";
+import type { UserInstallRaw, Installed } from "../create.js";
 import type { TreeAny } from "sock-secret"
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
 import type { Git, Trio } from "./types.js";
-import type { Secrets } from "./encrypt.js";
+import type { Encrypted, Secrets } from "./encrypt.js";
 
 export type HasGit = { git: Git }
 export type DevConfig = {
@@ -25,6 +26,9 @@ export type UserIn = HasGit & {
   delay: number,
   prod: boolean,
   dev_config: DevConfig
+}
+type HasSessionHash = {
+  session_hash: Uint8Array;
 }
 type InstallIn = HasGit & {
   delay: number,
@@ -58,6 +62,9 @@ interface ReadUserInstall {
 interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
 }
+interface ReadReset {
+  (u: UserIn): Promise<boolean>;
+}
 interface ReadInbox {
   (u: DevInboxIn): Promise<Trio>;
 }
@@ -71,9 +78,6 @@ type Tries = {
   max_tries: number,
   dt: number
 }
-interface ToTries {
-  (u: number): Tries; 
-}
 interface UseTempFile {
   (i: DevConfig): string; 
 }
@@ -84,20 +88,29 @@ export type NameTree = {
 interface ToNameTree {
   (t: string): NameTree;
 }
-interface FromNameTree {
-  (t: NameTree): string;
+
+function hasSessionHash(u: TreeAny): u is HasSessionHash {
+  if ("session_hash" in (u as HasSessionHash)) {
+    return ArrayBuffer.isView(u.session_hash);
+  }
+  return false;
 }
 
-function isEncrypted(d: TreeAny): d is Secrets {
+function isEncrypted(d: TreeAny): d is Encrypted {
+  const needs = [ d.iv, d.tag, d.ev ];
+  return needs.every(v => v instanceof Uint8Array);
+}
+
+function hasEncrypted(d: TreeAny): d is Secrets {
   const { salt, key, data } = d;
   if (!isObjAny(key) || !isObjAny(data)) {
     return false;
   }
   const needs = [
-    data.iv, data.tag, data.ev,
-    salt, key.iv, key.tag, key.ev
+    salt instanceof Uint8Array,
+    isEncrypted(data), isEncrypted(key)
   ];
-  return needs.every(v => v instanceof Uint8Array);
+  return needs.every(v => v);
 }
 
 export type LoginStart = {
@@ -148,7 +161,7 @@ const readUserApp: ReadUserApp = async (user_in) => {
   const C = await sock.get("U", "C");
   const S = await sock.get("U", "S");
   sock.quit();
-  if (C && isEncrypted(C) && S && isServerAuthData(S)) {
+  if (C && hasEncrypted(C) && S && isServerAuthData(S)) {
     return { C, S };
   }
   throw new Error('User pasted invalid App input');
@@ -169,17 +182,16 @@ function isServerAuthData(d: TreeAny): d is ServerAuthData {
   return needs.every(v => v instanceof Uint8Array);
 }
 
-const toTries: ToTries = (delay) => {
-  const min15 = 60 * 15;
-  const dt = delay * 1000;
-  const max_tries = min15 / delay;
-  return { dt, max_tries };
-}
-
 const toBytes = (s: string) => {
   const a: string[] = s.match(/../g) || [];
   const bytes = a.map(h =>parseInt(h,16)); 
   return new Uint8Array(bytes);
+}
+
+const useGitInstalled = (git: Git, installed: Installed): Git => {
+  const { owner, repo } = git;
+  const owner_token = installed.token;
+  return { owner, repo, owner_token };
 }
 
 const toInstallation = (inst: string) => {
@@ -232,28 +244,40 @@ const readDevInbox: ReadInbox = async (inputs) => {
   try {
     const { dev_config } = user_in
     const text = await toReader(dev_config)();
-    const { command, tree } = toNameTree(text);
-    const ok_command = command === "mail__table";
-    const data = tree.data || "";
-    if (ok_command && hasEncryptionKeys(data)) {
-      const out = decryptSecret({ data, key });
-      const plain_text = new TextDecoder().decode(out);
-      const trio = plain_text.split("\n");
-      if (isTrio(trio)) {
-        sec.map((k: string, i: number) => {
-          process.env[k] = trio[i];
-        });
-        return trio;
+    const found = toCommandTreeList(text).find(ct => {
+      return ct.command === "mail__table";
+    });
+    if (found && found.tree.data) {
+      if (hasEncryptionKeys(found.tree.data)) {
+        const { data } = found.tree
+        const out = decryptSecret({ data, key });
+        const plain_text = new TextDecoder().decode(out);
+        const trio = plain_text.split("\n");
+        if (isTrio(trio)) {
+          sec.map((k: string, i: number) => {
+            process.env[k] = trio[i];
+          });
+          return trio;
+        }
       }
     }
-    else {
-      console.log('Missing dev inbox');
-    }
+    console.log('Missing dev inbox');
   }
   catch {
     console.log('No passwords in dev inbox');
   }
   return ["", "", ""];
+}
+
+const readDevReset: ReadReset = async (ins) => {
+  if (ins.prod) {
+    throw new Error('This command is not available in production.');
+  }
+  const input = { read: toReader(ins.dev_config) }; 
+  const sock = await toSockClient({ input, delay: ins.delay });
+  const tree = await sock.get("user", "reset");
+  sock.quit();
+  return hasSessionHash(tree || {});
 }
 
 const readLoginStart: ReadLoginStart = async (ins) => {
@@ -295,7 +319,7 @@ const toInstallReader = (ins: InstallIn) => {
       const install = await toUserInstall(ins);
       const { id, permissions } = install;
       const tree = { id: `${id}`, permissions };
-      return fromNameTree({ command, tree });
+      return fromCommandTreeList([{ command, tree }]);
     }
     catch (e: any) {
       if (e?.status !== 404) {
@@ -310,7 +334,6 @@ const toInstallReader = (ins: InstallIn) => {
 const readUserInstall: ReadUserInstall = async (ins) => {
   const input = { read: toInstallReader(ins) }; 
   const sock = await toSockClient({ input, delay: ins.delay });
-  console.log('Awaiting app installation...');
   const tree = await sock.get("install", "ready");
   const install = parseInstall(tree || {});
   sock.quit();
@@ -335,13 +358,9 @@ const toNameTree: ToNameTree = (s) => {
   return { command, tree };
 }
 
-const fromNameTree: FromNameTree = ({ command, tree }) => {
-  return command + toB64urlQuery(tree);
-}
-
 export { 
-  readUserApp, readUserInstall, toTries,
-  isLoginStart, isLoginEnd, toNameTree, fromNameTree,
+  readUserApp, readUserInstall, isEncrypted,
+  isLoginStart, isLoginEnd, toNameTree, useGitInstalled,
   readLoginStart, readLoginEnd, readDevInbox, toBytes,
-  toInstallation, readInbox
+  toInstallation, readInbox, readDevReset, hasSessionHash
 }
