@@ -1,6 +1,6 @@
 {
   "name": "public-quiz-device",
-  "version": "6.5.5",
+  "version": "6.5.6",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
