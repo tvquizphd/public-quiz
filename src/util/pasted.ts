@@ -74,10 +74,6 @@ interface ReadLoginStart {
 interface ReadLoginEnd {
   (u: UserIn): Promise<boolean>;
 }
-type Tries = {
-  max_tries: number,
-  dt: number
-}
 interface UseTempFile {
   (i: DevConfig): string; 
 }
@@ -155,8 +151,8 @@ const toReader = (dev_config: DevConfig) => {
 const readUserApp: ReadUserApp = async (user_in) => {
   const { git, prod, delay, dev_config } = user_in;
   const file_in = { read: toReader(dev_config) }; 
-  const issue_in = { git, issues: 1 };
-  const input = prod ? issue_in : file_in;
+  const release_in = { git };
+  const input = prod ? release_in : file_in;
   const sock = await toSockClient({ input, delay });
   const C = await sock.get("U", "C");
   const S = await sock.get("U", "S");

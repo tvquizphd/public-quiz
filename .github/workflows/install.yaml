@@ -1,7 +1,8 @@
 name: Register after new issues
 on:
-  issues:
-    types: [opened, reopened]
+  release:
+    types:
+      - prereleased
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}

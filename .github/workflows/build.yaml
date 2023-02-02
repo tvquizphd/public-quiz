@@ -1,13 +1,11 @@
-name: build
+name: Build And Release 
 concurrency:
-  group: build-and-open-pr
+  group: build-and-release
   cancel-in-progress: true
 on:
-  push:
-    tags:
-      - '*'
-  watch:
-    types: [started]
+  release:
+    types:
+      - prereleased
 jobs:
   environment:
     uses: ./.github/workflows/environment.yaml
@@ -27,6 +25,9 @@ jobs:
       contents: write
       pull-requests: write
     steps:
+      - id: tag
+        run: |
+          echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
       - name: Install Node.js
         uses: actions/setup-node@v3
@@ -60,7 +61,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          tag_name: ${{ env.tag }}
+          RELEASE: ${{ steps.tag.outputs.tag }}
           name: ${{ env.tag }}
           prerelease: false
           draft: false

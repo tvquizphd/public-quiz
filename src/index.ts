@@ -388,10 +388,9 @@ const toGitToken = (prod: boolean, inst: string) => {
         const installation = toInstallation(inst);
         // Update the shared key as instructed
         if (found_shared && hasShared(found_shared.tree)) {
-          const { installed, app } = installation;
+          const { installed } = installation;
           const igit = useGitInstalled(git, installed);
           installation.shared = found_shared.tree.shared;
-          const { shared } = found_shared.tree;
           await setSecret({ 
             git: igit, env, tree: installation, command: inst
           });
