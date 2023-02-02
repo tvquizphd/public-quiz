@@ -1,41 +1,36 @@
 # Public Quiz Device
 
-- For users: 🏃 [Setup and usage](#setup-and-usage), 🔑 [Security claims](#security-claims), and ☠️ [Security limitations](#security-limitations)
-- Developers should also read about ✍️ [testing](#testing) and 📦 [Production](#production-builds)
+- For users: [Setup and usage](#setup) and 🔑 [Security claims](#security-claims).
+- Developers should read about [testing](#testing).
 
-## Setup and usage
+## Setup
 
-- [Fork this repository][FORK_THIS] and add [GitHub Pages](../../settings/pages) via GitHub Actions.
-- Just before setup + installation, [open an issue](../../issues) on your fork.
+[Fork this repository][FORK_THIS]. Read this on your fork, let Workflows build [GitHub Pages](../../settings/pages), and publish a [pre-release](../../releases/new).
 
-### Register your App
+<img width="700" alt="Set GitHub Pages from Actions and Publish Prerelease" src="https://user-images.githubusercontent.com/75504552/216326060-d31c0dab-0b16-4c4a-a8f6-9b21b4adcea3.png">
 
-Follow these instructions at your new GitHub Pages site.
+### Register
 
-1. Click the link to create a GitHub App.
-2. Copy an "app code" to the body of your new issue.
-3. Click to add the GitHub app to your fork.
-4. 🔑 Choose a secure master password.
+Go to your fork's new password manager website. 
 
-You will be shown a new login link.
+- Create GitHub App. and copy a key to the latest [release](../releases/latest).
+- Install the GitHub App on your fork. Then, choose your master password.
 
-- 💾 Bookmark or save the login link.
-- ✏️  Memorize your master password.
+Keep your new "login link" and master password privately on each device.
 
 ## Security claims
 
-During installation, your workflow makes public an [OPRF-derived][OPRF] key. You also reveal your [OPRF-derived][OPRF] installation key. **After this key exchange**, all public messages between you and your workflows are encrypted with [a shared secret][PAKE].
-After creating and installing your app, each login takes ≈30 seconds to complete the password-authenticated [key exchange][PAKE] by:
+During installation, your workflow makes public an [OPRF-derived][OPRF] key. You also reveal your own installation key. Afterwards, you and your workflows share encrypted messages using [a shared secret][PAKE]. Each login attempts a password-authenticated [key exchange][PAKE] by:
 
 - Authenticating your password against [OPRF key][OPRF] known only to your workflow.
 - Returning a temporary session [AES-GCM][GCM] key for authenticated encryption.
 
-After login, all reading/writing to your passwords:
+Afterwards, your passwords are always encrypted twice:
 
-- Are protected with an [Argon2][Argon2] hash unkwnown to your workflows.
-- Are encrypted for your workflows with your single-session [shared secret][PAKE].
+- With an [Argon2][Argon2] hash unkwnown to your workflows.
+- With a single-session [shared secret][PAKE] with your workflows.
 
-## Security limitations
+### Security limitations
 
 To **update or delete** you passwords, 
 - You need your master password
@@ -57,8 +52,7 @@ When re-running installation workflow, first:
 
 - Delete [your old app](https://github.com/settings/apps)
 - Delete [the old environment](../../settings/environments)
-- Ensure [latest release](../../releases/latest) body is empty
-- Open or reopen an empty-bodied [issue](../../issues)
+- Create a new [pre-release](../../releases/new)
 - Then navigate to your Pages site
 
 ### Locally
@@ -96,22 +90,8 @@ Run `bash develop.bash` twice or more, following instructions.
   - It writes authentication codes to `.env` and a new login link.
 
 ### Afterwards, it allows revisiting your login link
-  - If you want to make a new login link, press `n` after running.
-  - To use your existing login link, press `y` after running.
-
-## Production builds
-
-Update the version in `package.json` and with a tag:
-
-```properties
-git tag v5.x.y
-git push origin main --tags
-```
-
-On each pushed tag, the `build` workflow will:
-
-- Create a pull request for compiled (`tsc`) packaged (`pkg`) linux executable
-- Upload the `docs` directory to GitHub Pages.
+  - If logginng in normally, press `n` after running.
+  - If trying password reset, press `y` after running.
 
 [HELP_COLLAB]: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-access-to-your-personal-repositories/inviting-collaborators-to-a-personal-repository
 [HELP_SECURE]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure
