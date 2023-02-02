@@ -33,7 +33,8 @@ jobs:
           echo "" > secret.txt
           ./index LOGIN CLOSE "${{ secrets.STATE }}" "$OP"
           STEP=$(head -n 1 secret.txt)
-          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+          MESSAGE="Use your private login link."
+          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP $MESSAGE
         env:
           MAIL__TABLE: ${{ secrets.MAIL__TABLE }}
           INSTALLATION : ${{ secrets.INSTALLATION }}
