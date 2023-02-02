@@ -20,7 +20,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       pre: ${{ steps.index.outputs.pre }}
-      index: ${{ steps.index.outputs.tag }}
+      tag: ${{ steps.index.outputs.tag }}
       link: ${{ steps.index.outputs.link }}
       index: ${{ steps.index.outputs.index }}
       release: ${{ steps.index.outputs.release }}
@@ -28,7 +28,8 @@ jobs:
       - name: Fetching executable
         id: index
         run: |
-          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
+          TAG=${GITHUB_REF##*/}
+          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/$TAG)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
           BODY=$(jq -r '.body' <<< $JSON)
@@ -38,7 +39,7 @@ jobs:
           echo "link=$LINK" >> $GITHUB_OUTPUT
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
-          echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
   code_and_token:
     if: setup.output.pre == 'false'
     needs: 
@@ -59,11 +60,11 @@ jobs:
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
-          TAG: ${{ jobs.setup.outputs.tag }}
+          TAG: ${{ needs.setup.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INDEX_URL: ${{ jobs.setup.outputs.index }}
-          RELEASE: ${{ jobs.setup.outputs.release }}
-          LINK: ${{ jobs.setup.outputs.link }}
+          INDEX_URL: ${{ needs.setup.outputs.index }}
+          RELEASE: ${{ needs.setup.outputs.release }}
+          LINK: ${{ needs.setup.outputs.link }}
       - name: Awaiting User Creating GitHub App
         run: |
           curl -L -o index $INDEX_URL
@@ -76,9 +77,9 @@ jobs:
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INDEX_URL: ${{ jobs.setup.outputs.index }}
-          RELEASE: ${{ jobs.setup.outputs.release }}
-          LINK: ${{ jobs.setup.outputs.link }}
+          INDEX_URL: ${{ needs.setup.outputs.index }}
+          RELEASE: ${{ needs.setup.outputs.release }}
+          LINK: ${{ needs.setup.outputs.link }}
       - name: Awaiting User Installing GitHub App
         run: |
           curl -L -o index $INDEX_URL
@@ -92,6 +93,6 @@ jobs:
           echo "inst=$INST" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INDEX_URL: ${{ jobs.setup.outputs.index }}
-          RELEASE: ${{ jobs.setup.outputs.release }}
-          LINK: ${{ jobs.setup.outputs.link }}
+          INDEX_URL: ${{ needs.setup.outputs.index }}
+          RELEASE: ${{ needs.setup.outputs.release }}
+          LINK: ${{ needs.setup.outputs.link }}

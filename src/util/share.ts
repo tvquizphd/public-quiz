@@ -15,8 +15,9 @@ const vShare: Share = async ({ git, body, release_id }) => {
   const api_root = "https://api.github.com";
   const authorization = 'bearer ' + owner_token;
   const api_url = `${api_root}/repos/{owner}/{repo}/releases/{release_id}`;
+  const make_latest = true;
   await request(`PATCH ${api_url}`, {
-    owner, repo, release_id, body,
+    owner, make_latest, repo, release_id, body,
     headers: { authorization }
   });
 }
