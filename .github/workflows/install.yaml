@@ -1,6 +1,5 @@
 name: Register after new issues
 on:
-  public:
   issues:
     types: [opened, reopened]
 env:
