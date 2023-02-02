@@ -73,10 +73,10 @@ jobs:
       contents: write
       pull-requests: write
     steps:
-      - name: Release
+      - id: body 
         run: |
           README="\n\n[Open your new website](${URL})"
-          echo $README > __release__body__.txt
+          echo "body=$URL" >> $GITHUB_OUTPUT
         env:
           URL: ${{ needs.environment.outputs.url }}
       - name: Add Readme to Final Release
@@ -84,8 +84,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
+          body: ${{ steps.body.outputs.body }}
           tag_name: ${{ steps.tag.outputs.tag }}
-          pody_path: __release__body__.txt
           name: ${{ env.tag }}
           prerelease: false 
           draft: false
