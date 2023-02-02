@@ -5,15 +5,15 @@
 
 ## Setup
 
-[Fork this repository][FORK_THIS]. Read this on your fork, let Workflows build [GitHub Pages](../../settings/pages), and publish a [pre-release](../../releases/new).
+Read this on [your new fork][FORK_THIS], set up [GitHub Pages](../../settings/pages) from "actions", and publish a [pre-release](../../releases/new).
 
 <img width="700" alt="Set GitHub Pages from Actions and Publish Prerelease" src="https://user-images.githubusercontent.com/75504552/216326060-d31c0dab-0b16-4c4a-a8f6-9b21b4adcea3.png">
 
 ### Register
 
-Go to your fork's new password manager website. 
+Refresh the [release](../../releases/latest) page, and follow the link when posted.
 
-- Create GitHub App. and copy a key to the latest [release](../releases/latest).
+- Create GitHub App. and copy a key to the latest [release](../../releases/latest).
 - Install the GitHub App on your fork. Then, choose your master password.
 
 Keep your new "login link" and master password privately on each device.
