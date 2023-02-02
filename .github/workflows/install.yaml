@@ -2,7 +2,7 @@ name: Register after new issues
 on:
   release:
     types:
-      - prereleased
+      - released
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
