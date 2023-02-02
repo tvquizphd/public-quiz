@@ -22,7 +22,7 @@ specifiers:
   octokit: ^2.0.7
   opaque-low-io: ^3.2.1
   pkg: ^5.8.0
-  sock-secret: 4.4.1
+  sock-secret: 4.5.0
   ts-node: ^10.9.1
   typescript: ^4.8.3
 
@@ -35,7 +35,7 @@ dependencies:
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
   opaque-low-io: 3.2.1
-  sock-secret: 4.4.1
+  sock-secret: 4.5.0
   ts-node: 10.9.1_u7tj3mdglidusk2sd73zi6kt7q
 
 devDependencies:
@@ -2333,8 +2333,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /sock-secret/4.4.1:
-    resolution: {integrity: sha512-jcTGncksq8amN1W/Mxzl4p+MU86ILbsD6Y+S8nxrGRW/DvALJIxwo4xL00aU+YRrV04cRfJi8gt65xIoibex8A==}
+  /sock-secret/4.5.0:
+    resolution: {integrity: sha512-DDNKJ7bYAuaUkdkRA6lyqMNBLhFqYJKaKRrFIUCSXuveXugrrQvE13USLHvZNEz+YeNA8mXsW9yXp0Wu97yU4Q==}
     dependencies:
       '@octokit/request': 6.2.3
       '@octokit/request-error': 3.0.3

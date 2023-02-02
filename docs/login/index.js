@@ -116,7 +116,7 @@ const runReef = (dev, remote, env) => {
     };
     const pub = [DATA.host, "pub.txt"].join('/');
     const result = await fetch(pub, { headers });
-    return (await (result).text()).replaceAll('\n', '');
+    return await (result).text();
   }
   const toResetPreface = async (user_reset_ok) => {
     if (!user_reset_ok) return "";
@@ -128,7 +128,7 @@ const runReef = (dev, remote, env) => {
   }
   const toLocalPreface = async () => {
     const current = await (await DATA.dev_handle.getFile()).text();
-    return toCommandTreeList(current.replaceAll('\n', ''));
+    return toCommandTreeList(current);
   }
   const writeLocal = (text) => {
     const f = DATA.dev_handle;

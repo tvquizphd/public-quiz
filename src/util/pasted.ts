@@ -143,8 +143,7 @@ const toReader = (dev_config: DevConfig) => {
   const src = useTempFile(dev_config);
   const encoding = 'utf-8';
   return async () => {
-    const txt = fs.readFileSync(src, { encoding });
-    return txt.replaceAll('\n', '');
+    return fs.readFileSync(src, { encoding });
   }
 }
 

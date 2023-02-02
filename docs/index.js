@@ -140,7 +140,7 @@ const runReef = (dev, remote, env) => {
     };
     const pub = [DATA.host, "pub.txt"].join('/');
     const result = await fetch(pub, { headers });
-    return (await (result).text()).replaceAll('\n', '');
+    return await (result).text();
   }
   const writeLocal = (text) => {
     const f = DATA.dev_handle;
