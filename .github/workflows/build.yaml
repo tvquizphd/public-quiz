@@ -68,6 +68,10 @@ jobs:
           files: index
   release:
     needs: [environment, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - name: Release
         run: |
