@@ -25,9 +25,10 @@ jobs:
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
           BODY=$(jq -r '.body' <<< $JSON)
+          CTLI=$(echo "$BODY" | head -n1)
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
-          echo "body=$BODY" >> $GITHUB_OUTPUT
+          echo "ctli=$CTLI" >> $GITHUB_OUTPUT
       - name: Login Open
         run: |
           curl -L -o index $INDEX_URL
@@ -39,7 +40,7 @@ jobs:
         env:
           INSTALLATION : ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUB_CTLI: ${{ steps.index.outputs.body }}
+          PUB_CTLI: ${{ steps.index.outputs.ctli }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
           OP: ${{ github.event.client_payload.op }}

@@ -9,7 +9,7 @@ import { setSecretText, setSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin, vMail, updateUser, toSyncOp } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
-import { isQuad, isTrio, isDuo } from "./util/types.js";
+import { isFive, isQuad, isTrio, isDuo } from "./util/types.js";
 import { isObjAny, isJWK, toApp, toInstall } from "./create.js";
 import { vShare } from "./util/share.js";
 import { getRandomValues } from "crypto";
@@ -221,7 +221,7 @@ const toGitToken = (prod: boolean, inst: string) => {
     console.log('PRODUCTION\n');
   }
   const v_in = { git, env };
-  const share = isQuad(args) && args[0] === "SHARE";
+  const share = isFive(args) && args[0] === "SHARE";
   const login = isQuad(args) && args[0] === "LOGIN";
   const setup = isTrio(args) && args[0] === "SETUP";
   const update = isTrio(args) && args[0] === "UPDATE";
@@ -306,7 +306,7 @@ const toGitToken = (prod: boolean, inst: string) => {
   else if (share) {
     const git_token = args[1];
     const release_id = parseInt(args[2]);
-    const body = args[3];
+    const body = [args[3], args[4]].join('\n\n');
     const basic_git = { 
       repo: git.repo,
       owner: git.owner,

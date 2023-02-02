@@ -75,8 +75,8 @@ jobs:
     steps:
       - id: body 
         run: |
-          README="\n\n${URL}"
-          echo "body=$README" >> $GITHUB_OUTPUT
+          PREFIX='noop#noop=noop\n\n'
+          echo "body=$PREFIX$URL" >> $GITHUB_OUTPUT
         env:
           URL: ${{ needs.environment.outputs.url }}
       - name: Add Readme to Final Release
