@@ -42,7 +42,7 @@ jobs:
         env:
           TAG: ${{ inputs.tag }}
   code_and_token:
-    if: needs.setup.output.pre == 'false'
+    if: needs.setup.output.pre == false
     needs: 
       - setup
     environment:
