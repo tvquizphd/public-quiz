@@ -17,6 +17,7 @@ jobs:
     environment:
       name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
+    if: inputs.tag != ''
     outputs:
       pre: ${{ steps.index.outputs.pre }}
       tag: ${{ steps.index.outputs.tag }}
@@ -27,7 +28,6 @@ jobs:
       - name: Fetching executable
         id: index
         run: |
-          TAG=${{ inputs.tag }}
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/$TAG)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
@@ -39,6 +39,8 @@ jobs:
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
+        env:
+          TAG: ${{ inputs.tag }}
   code_and_token:
     if: needs.setup.output.pre == 'false'
     needs: 
