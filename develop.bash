@@ -66,13 +66,16 @@ echo "" > $CLIENT_OUT
 
 pnpm develop SETUP PUB OPAQUE 
 echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN
+cat $CLIENT_IN
 
 waiter $CLIENT_OUT
 
 pnpm develop SETUP APP $(tail -n 1 $SECRET_TXT)
 echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN
+cat $CLIENT_IN
 
 pnpm develop SETUP TOKEN $(tail -n 1 $SECRET_TXT)
 echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN
+cat $CLIENT_IN
 
 enter $CLIENT_OUT

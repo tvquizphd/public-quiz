@@ -179,22 +179,22 @@ const runReef = (dev, remote, env) => {
       toSharedCache(out.token);
       await readSearch();
     }
-    await PubSock.get("app", "out").then(appo => {
-      const { client_auth_result } = appo;
-      DATA.Au = client_auth_result.Au;
-    });
-    await PubSock.get("app", "auth").then(appa => {
-      const enc_str = toB64urlQuery(appa);
-      const shared = toSharedCache();
-      PubSock.quit();
-      if (!shared) return cleanRefresh();
-      decryptQuery(enc_str, shared).then(token => {
-        DATA.git.owner_token = token.plain_text;
-        DATA.step = final_step - 1;
-      }).catch((e) => {
-        console.error(e.message);
-      });
-    });
+    const appo = await PubSock.get("app", "out");
+    const { client_auth_result } = appo;
+    DATA.Au = client_auth_result.Au;
+    const appa = await PubSock.get("app", "auth")
+    const enc_str = toB64urlQuery(appa);
+    const shared = toSharedCache();
+    PubSock.quit();
+    if (!shared) return cleanRefresh();
+    try {
+      const token = await decryptQuery(enc_str, shared)
+      DATA.git.owner_token = token.plain_text;
+      DATA.step = final_step - 1;
+    }
+    catch (e) {
+      console.error(e.message);
+    }
   }
   const cleanRefresh = () => {
     DATA.loading = { ...NO_LOADING };

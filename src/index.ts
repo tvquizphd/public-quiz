@@ -18,7 +18,7 @@ import argon2 from 'argon2';
 import fs from "fs";
 
 import type { Commands } from "./verify.js";
-import type { DevConfig } from "./util/pasted.js";
+import type { DevConfig, LoginEnd } from "./util/pasted.js";
 import type { AppOutput, Installation } from "./create.js";
 import type { ClientOut, NewClientOut } from "opaque-low-io";
 import type { TreeAny, NameTree, CommandTreeList } from "sock-secret"
@@ -49,15 +49,13 @@ type ClientState = {
   xu: Uint8Array,
   mask: Uint8Array,
 }
-type ClientAuthResult = ClientOut["client_auth_result"];
-type ClientSecretOut = {
-  token: string,
-  client_auth_result: ClientAuthResult
+type ClientSecretOut = LoginEnd & {
+  token: string
 };
 type HasShared = {
   shared: string 
 }
-type TokenIn = HasShared & {
+type TokenIn = HasShared & LoginEnd & {
   app: AppOutput
 };
 
@@ -89,7 +87,11 @@ function isClientState (o: TreeAny): o is ClientState {
   return needs.every(v => v);
 }
 
-function isTokenInputs (o: TreeAny): o is TokenIn {
+function isTokenInputs (u: TreeAny): u is TokenIn {
+  const o = u as TokenIn;
+  if (!isLoginEnd(o)) {
+    return false;
+  }
   if (!isObjAny(o.app)) {
     return false;
   }
@@ -145,6 +147,7 @@ const useSecrets = (stages: Stages, out: ClientSecretOut, app: AppOutput) => {
   const { token: shared, client_auth_result } = out;
   const tree = { client_auth_result };
   const next_obj = { 
+    ...tree,
     shared,
     app: {
       id: app.id,
@@ -494,7 +497,12 @@ const toGitToken = (prod: boolean, inst: string) => {
         });
         const command = stages.OUT;
         console.log("Created GitHub Token.\n");
-        const for_pages = fromCommandTreeList([{ command, tree }]);
+        const { client_auth_result } = found.tree;
+        const prev = { client_auth_result };
+        const for_pages = fromCommandTreeList([
+          { command: stages.APP, tree: prev },
+          { command, tree }
+        ]);
         writeSecretText({ for_pages, for_next: "" });
       }
       catch (e: any) {
