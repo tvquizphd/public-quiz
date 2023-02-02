@@ -38,7 +38,8 @@ jobs:
           echo "" > secret.txt
           ./index UPDATAE TOKEN "$PUB_CTLI"
           STEP=$(head -n 1 secret.txt)
-          ./index SHARE $GITHUB_TOKEN $RELEASE $STEP
+          MESSAGE="Use your private login link."
+          ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
         env:
           INSTALLATION : ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

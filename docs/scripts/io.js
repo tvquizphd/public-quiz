@@ -76,11 +76,7 @@ const writeFile = async (opts) => {
 
 const toGitHubDelay = (local) => {
   // Return delay in seconds
-  if (local) return 1;
-  const rph = 600 * .50; // 50%
-  const rpm = rph / 60;
-  const rps = rpm / 60;
-  return Math.floor(1 / rps);
+  return local ? 0.1 : 0.5;
 }
 
 export { 

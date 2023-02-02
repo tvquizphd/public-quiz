@@ -51,7 +51,7 @@ const digest: Digester = async (text, opts) => {
   }
   const url = await argon2.hash(text, options);
   const [s64, h64] = url.split('$').slice(-2);
-  const coded = `#salt=:${s64}#hash=:${h64}`;
+  const coded = `#salt=:${s64}&hash=:${h64}`;
   const coded_url = toUniformUrl(coded);
   const output = fromB64urlQuery(coded_url);
   if (isDigest(output)) {
