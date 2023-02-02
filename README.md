@@ -40,9 +40,8 @@ To **edit or delete** you passwords,
 - You need your master password
 - **AND** your personal login link
 
-Immediately reset your master password if you reveal your password AND your login link. 
-
-Don't give others write access to your fork:
+**Immediately** reset your master password if you reveal your password AND your login link. 
+**Don't give others write access to your fork**:
 
 - ⚠️ Don't add [collaborators][HELP_COLLAB] to your fork
 - ☠️ Don't let your GitHub account [be compromised][HELP_SECURE]
