@@ -199,8 +199,8 @@ const toGitToken = (prod: boolean, inst: string) => {
     const message = "Invalid env: DEPLOYMENT";
     return { success: false, message };
   }
-  if (!isQuad(args) && !isTrio(args) && !isDuo(args)) {
-    const message = "2 to 4 arguments required";
+  if (![isFive, isQuad, isTrio, isDuo].some(fn => fn(args))) {
+    const message = "2 to 5 arguments required";
     return { success: false, message };
   }
   const git = {
