@@ -181,6 +181,7 @@ const toGitToken = (prod: boolean, inst: string) => {
     const message = "Missing 1st arg: MY_TOKEN";
     return { success: false, message };
   }
+  const NOOP = "noop";
   const state = "STATE";
   const ses = "SESSION";
   const pep = "ROOT_PEPPER";
@@ -235,7 +236,7 @@ const toGitToken = (prod: boolean, inst: string) => {
       const { SESSION, USER } = mail_types;
       const pub_ctli = toCommandTreeList(args[2]);
       const mail_ctli = pub_ctli.filter((ct) => {
-        return [ SESSION, USER ].includes(ct.command);
+        return [ SESSION, USER, NOOP ].includes(ct.command);
       });
       if (mail_ctli.length !== pub_ctli.length) {
         console.warn("Unexpected public text.");

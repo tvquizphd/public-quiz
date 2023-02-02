@@ -75,7 +75,7 @@ jobs:
     steps:
       - id: body 
         run: |
-          README="\n\n[Open your new website](${URL})"
+          README="noop#noop=noop\n\n${URL}"
           echo "body=$URL" >> $GITHUB_OUTPUT
         env:
           URL: ${{ needs.environment.outputs.url }}
