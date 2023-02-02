@@ -12,7 +12,7 @@ env:
   DEPLOYMENT: PRODUCTION-LOGIN
 concurrency:
   group: PRODUCTION-LOGIN
-  cancel-in-progress: true
+  cancel-in-progress: false
 permissions:
   issues: read
   contents: write
