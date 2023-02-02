@@ -25,7 +25,7 @@ jobs:
       contents: write
       pull-requests: write
     outputs:
-      url: ${{ steps.tag.outputs.tag }}
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - id: tag
         run: |
