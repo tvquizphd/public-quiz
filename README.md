@@ -37,7 +37,7 @@ After login, all reading/writing to your passwords:
 
 ## Security limitations
 
-To **edit or delete** you passwords, 
+To **update or delete** you passwords, 
 - You need your master password
 - **AND** your personal login link
 
