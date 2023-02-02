@@ -36,14 +36,18 @@ After login, all queries or mutations related to your passwords:
 
 ## Security limitations
 
-Unauthorized 3rd parties _can reset/clear your passwords_ if:
+To **edit or delete** you passwords, 
+- You need your master password
+- **AND** your personal login link
 
-- ⚠️ your fork has allowed outside [collaborators][HELP_COLLAB]
-- ☠️ or your GitHub account has [been compromised][HELP_SECURE]
+Immediately reset your master password if you reveal your password AND your login link. 
 
-### Your passwords only be viewed/edited with:
+Don't give others write access to your fork:
 
-Your master password AND your bookmarked login link.
+- ⚠️ Don't add [collaborators][HELP_COLLAB] to your fork
+- ☠️ Don't let your GitHub account [be compromised][HELP_SECURE]
+
+If they have write access to your fork, they can **erase** your data.
 
 ## Testing
 
