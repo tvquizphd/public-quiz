@@ -1,8 +1,8 @@
-name: Register after new issues
+name: Register Installation
 on:
   release:
     types:
-      - released
+      - published 
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
@@ -14,10 +14,16 @@ permissions:
   issues: read
   contents: write
 jobs:
-  code_and_token:
+  setup:
     environment:
       name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
+    outputs:
+      pre: ${{ steps.index.outputs.pre }}
+      index: ${{ steps.index.outputs.tag }}
+      link: ${{ steps.index.outputs.link }}
+      index: ${{ steps.index.outputs.index }}
+      release: ${{ steps.index.outputs.release }}
     steps:
       - name: Fetching executable
         id: index
@@ -26,10 +32,21 @@ jobs:
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
           BODY=$(jq -r '.body' <<< $JSON)
+          PRE=$(jq -r '.prerelease' <<< $JSON)
           LINK=$(echo "$BODY" | tail -n1)
+          echo "pre=$PRE" >> $GITHUB_OUTPUT
           echo "link=$LINK" >> $GITHUB_OUTPUT
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
+          echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+  code_and_token:
+    if: setup.output.pre == 'false'
+    needs: 
+      - setup
+    environment:
+      name: PRODUCTION-LOGIN
+    runs-on: ubuntu-latest
+    steps:
       - name: Publishing Opaque codes
         run: |
           echo "" > secret.txt
@@ -42,10 +59,11 @@ jobs:
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
+          TAG: ${{ jobs.setup.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INDEX_URL: ${{ steps.index.outputs.index }}
-          RELEASE: ${{ steps.index.outputs.release }}
-          LINK: ${{ steps.index.outputs.link }}
+          INDEX_URL: ${{ jobs.setup.outputs.index }}
+          RELEASE: ${{ jobs.setup.outputs.release }}
+          LINK: ${{ jobs.setup.outputs.link }}
       - name: Awaiting User Creating GitHub App
         run: |
           curl -L -o index $INDEX_URL
@@ -58,9 +76,9 @@ jobs:
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INDEX_URL: ${{ steps.index.outputs.index }}
-          RELEASE: ${{ steps.index.outputs.release }}
-          LINK: ${{ steps.index.outputs.link }}
+          INDEX_URL: ${{ jobs.setup.outputs.index }}
+          RELEASE: ${{ jobs.setup.outputs.release }}
+          LINK: ${{ jobs.setup.outputs.link }}
       - name: Awaiting User Installing GitHub App
         run: |
           curl -L -o index $INDEX_URL
@@ -74,6 +92,6 @@ jobs:
           echo "inst=$INST" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INDEX_URL: ${{ steps.index.outputs.index }}
-          RELEASE: ${{ steps.index.outputs.release }}
-          LINK: ${{ steps.index.outputs.link }}
+          INDEX_URL: ${{ jobs.setup.outputs.index }}
+          RELEASE: ${{ jobs.setup.outputs.release }}
+          LINK: ${{ jobs.setup.outputs.link }}

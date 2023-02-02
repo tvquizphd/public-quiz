@@ -75,8 +75,7 @@ jobs:
     steps:
       - id: body 
         run: |
-          PREFIX='noop#noop=noop\n\n'
-          echo "body=$PREFIX$URL" >> $GITHUB_OUTPUT
+          echo "body=$URL" >> $GITHUB_OUTPUT
         env:
           URL: ${{ needs.environment.outputs.url }}
       - name: Add Readme to Final Release
@@ -84,7 +83,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          body: ${{ steps.body.outputs.body }}
+          body: |
+            noop#noop=noop
+
+            ${{ steps.body.outputs.body }}
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ env.tag }}
           prerelease: false 
