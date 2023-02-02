@@ -24,15 +24,16 @@ You will be shown a new login link.
 
 ## Security claims
 
-Before activation, [GitHub Pages][HELP_PAGES] publicly host an [OPRF-derived][OPRF] key. Starting with your pasted app code, all public messages between you and your GitHub fork use encryption with [a shared secret][PAKE]. After creating and installing your app, each login takes ≈30 seconds to complete the password-authenticated [key exchange][PAKE] by:
+During installation, your workflow makes public an [OPRF-derived][OPRF] key. You also reveal your [OPRF-derived][OPRF] installation key. **After this key exchange**, all public messages between you and your workflows are encrypted with [a shared secret][PAKE].
+After creating and installing your app, each login takes ≈30 seconds to complete the password-authenticated [key exchange][PAKE] by:
 
-- Authenticating your password against the [output of a pseudorandom function][OPRF].
+- Authenticating your password against [OPRF key][OPRF] known only to your workflow.
 - Returning a temporary session [AES-GCM][GCM] key for authenticated encryption.
 
-After login, all queries or mutations related to your passwords:
+After login, all reading/writing to your passwords:
 
-- Are encrypted/decrypted locally with the [Argon2][Argon2] hash of your password.
-- Move to/from GitHub Actions encrypted with your single-session AES-GCM key.
+- Are protected with an [Argon2][Argon2] hash unkwnown to your workflows.
+- Are encrypted for your workflows with your single-session [shared secret][PAKE].
 
 ## Security limitations
 
