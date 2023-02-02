@@ -63,6 +63,25 @@ jobs:
         with:
           tag_name: ${{ steps.tag.outputs.tag }}
           name: ${{ env.tag }}
-          prerelease: false
+          prerelease: true 
           draft: false
           files: index
+  release:
+    needs: [environment, build]
+    steps:
+      - name: Release
+        run: |
+          README="\n\n[Open your new website](${URL})"
+          echo $README > __release__body__.txt
+        env:
+          URL: ${{ needs.environment.outputs.url }}
+      - name: Add Readme to Final Release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          pody_path: __release_body__.txt
+          name: ${{ env.tag }}
+          prerelease: false 
+          draft: false

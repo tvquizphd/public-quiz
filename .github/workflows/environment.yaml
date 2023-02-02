@@ -8,11 +8,17 @@ on:
       deployment:
         required: true
         type: string
+    outputs:
+      url:
+        description: "GitHub Pages URL"
+        value: ${{ jobs.pages.outputs.url }}
 jobs:
   pages:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    outputs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v3
