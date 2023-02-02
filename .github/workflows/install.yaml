@@ -28,7 +28,7 @@ jobs:
       - name: Fetching executable
         id: index
         run: |
-          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/$TAG)
+          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/tags/$TAG)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
           BODY=$(jq -r '.body' <<< $JSON)
