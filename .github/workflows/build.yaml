@@ -24,6 +24,8 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    outputs:
+      url: ${{ steps.tag.outputs.tag }}
     steps:
       - id: tag
         run: |
@@ -91,3 +93,14 @@ jobs:
           name: ${{ env.tag }}
           prerelease: false 
           draft: false
+  install:
+    uses: ./.github/workflows/install.yaml
+    needs: [build, release]
+    permissions:
+      issues: read
+      contents: write
+    with:
+      tag: ${{ needs.build.outputs.tag }}
+    concurrency:
+      group: PRODUCTION-LOGIN
+      cancel-in-progress: true

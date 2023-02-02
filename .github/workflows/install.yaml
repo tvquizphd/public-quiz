@@ -1,15 +1,14 @@
 name: Register Installation
 on:
-  release:
-    types:
-      - published 
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
 env:
   ROOT: "https://api.github.com"
   REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
-concurrency:
-  group: PRODUCTION-LOGIN
-  cancel-in-progress: true
 permissions:
   issues: read
   contents: write
@@ -28,7 +27,7 @@ jobs:
       - name: Fetching executable
         id: index
         run: |
-          TAG=${GITHUB_REF##*/}
+          TAG=${{ inputs.tag }}
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/$TAG)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
