@@ -41,7 +41,7 @@ jobs:
           echo "release=$ID" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
   code_and_token:
-    if: setup.output.pre == 'false'
+    if: needs.setup.output.pre == 'false'
     needs: 
       - setup
     environment:
