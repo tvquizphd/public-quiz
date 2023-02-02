@@ -24,6 +24,7 @@ jobs:
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
+          BODY=$(jq -r '.body' <<< $JSON)
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
           echo "body=$BODY" >> $GITHUB_OUTPUT

@@ -25,6 +25,9 @@ jobs:
           JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
           URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
+          BODY=$(jq -r '.body' <<< $JSON)
+          LINK=$(echo "$BODY" | tail -n1)
+          echo "link=$LINK" >> $GITHUB_OUTPUT
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
       - name: Publishing Opaque codes
@@ -35,13 +38,14 @@ jobs:
           ./index SETUP PUB OPAQUE
           STEP=$(head -n 1 secret.txt)
           STATE=$(tail -n 1 secret.txt)
-          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP"
+          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP\n\n$LINK"
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
+          LINK: ${{ steps.index.outputs.link }}
       - name: Awaiting User Creating GitHub App
         run: |
           curl -L -o index $INDEX_URL
@@ -49,13 +53,14 @@ jobs:
           ./index SETUP APP "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
           STATE=$(tail -n 1 secret.txt)
-          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP"
+          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP\n\n$LINK"
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
+          LINK: ${{ steps.index.outputs.link }}
       - name: Awaiting User Installing GitHub App
         run: |
           curl -L -o index $INDEX_URL
@@ -64,10 +69,11 @@ jobs:
           STEP=$(head -n 1 secret.txt)
           INST=$(tail -n 1 secret.txt)
           echo "INST length is ${#INST}"
-          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP"
+          ./index SHARE $GITHUB_TOKEN $RELEASE "$STEP\n\n$LINK"
           echo "::add-mask::$INST"
           echo "inst=$INST" >> $GITHUB_ENV
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
+          LINK: ${{ steps.index.outputs.link }}
