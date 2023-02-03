@@ -27,8 +27,8 @@ jobs:
           JSON=$(curl -s \
             -H "$API" -H "$AUTH" -H "$VND"\
             $ROOT/repos/$REMOTE/releases/latest)
-          ID='"'$(jq -r '.id' <<< $JSON)'"'
-          URL='"'$(jq -r '.url' <<< $JSON)'"'
+          ID=$(jq -r '.id' <<< $JSON)
+          URL=$(jq -r '.url' <<< $JSON)
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
       - name: Login Close

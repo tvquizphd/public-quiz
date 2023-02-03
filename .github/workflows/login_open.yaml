@@ -28,9 +28,9 @@ jobs:
             -H "$API" -H "$AUTH" -H "$VND"\
             $ROOT/repos/$REMOTE/releases/latest)
           BODY=$(jq -r '.body' <<< $JSON)
-          ID='"'$(jq -r '.id' <<< $JSON)'"'
-          PUB='"'$(echo "$BODY" | head -n1)'"'
-          URL='"'$(jq -r '.url' <<< $JSON)'"'
+          ID=$(jq -r '.id' <<< $JSON)
+          PUB=$(echo "$BODY" | head -n1)
+          URL=$(jq -r '.url' <<< $JSON)
           echo "pub=$PUB" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
           echo "index=$URL" >> $GITHUB_OUTPUT

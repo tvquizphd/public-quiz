@@ -34,10 +34,10 @@ jobs:
             -H "$API" -H "$AUTH" -H "$VND"\
             $ROOT/repos/$REMOTE/releases/tags/$TAG)
           BODY=$(jq -r '.body' <<< $JSON)
-          ID='"'$(jq -r '.id' <<< $JSON)'"'
-          LINK='"'$(echo "$BODY" | tail -n1)'"'
-          PRE='"'$(jq -r '.prerelease' <<< $JSON)'"'
-          URL='"'$(jq -r '.url' <<< $JSON)'"'
+          ID=$(jq -r '.id' <<< $JSON)
+          LINK=$(echo "$BODY" | tail -n1)
+          PRE=$(jq -r '.prerelease' <<< $JSON)
+          URL=$(jq -r '.url' <<< $JSON)
           echo "release=$ID" >> $GITHUB_OUTPUT
           echo "link=$LINK" >> $GITHUB_OUTPUT
           echo "pre=$PRE" >> $GITHUB_OUTPUT
