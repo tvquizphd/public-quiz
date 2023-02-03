@@ -43,13 +43,13 @@ jobs:
           curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
           chmod +x index
           echo "" > secret.txt
-          ./index UPDATAE TOKEN "$PUB"
+          ./index UPDATE TOKEN "$PUB"
           STEP=$(head -n 1 secret.txt)
           MESSAGE="Use your private login link."
-          ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" '"'"$MESSAGE"'"'
+          ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
         env:
           PUB: ${{ steps.index.outputs.pub }}
-          INSTALLATION : ${{ secrets.INSTALLATION }}
+          ROOT__INSTALLATION : ${{ secrets.ROOT__INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
