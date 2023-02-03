@@ -20,9 +20,9 @@ specifiers:
   jws: ^4.0.0
   libsodium-wrappers: 0.7.8
   octokit: ^2.0.7
-  opaque-low-io: ^3.2.1
+  opaque-low-io: ^4.0.0
   pkg: ^5.8.0
-  sock-secret: 5.1.1
+  sock-secret: 6.0.0
   ts-node: ^10.9.1
   typescript: ^4.8.3
 
@@ -34,8 +34,8 @@ dependencies:
   jws: 4.0.0
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
-  opaque-low-io: 3.2.1
-  sock-secret: 5.1.1
+  opaque-low-io: 4.0.0
+  sock-secret: 6.0.0
   ts-node: 10.9.1_u7tj3mdglidusk2sd73zi6kt7q
 
 devDependencies:
@@ -1996,8 +1996,8 @@ packages:
     dependencies:
       wrappy: 1.0.2
 
-  /opaque-low-io/3.2.1:
-    resolution: {integrity: sha512-oOZV37LdHHmifob+kwvapVSeTUBjm+TPriD907CUzGDWHJGPg5PjPtxrt+j0VeL+TufhM567KkSWbiKqZtRulw==}
+  /opaque-low-io/4.0.0:
+    resolution: {integrity: sha512-XYcP6jbkLmVyV37iCSqhxVNmfyTjZtuzBTPBEjiDo2V6ofR3txg81XExx665NclCbAE6HWSajfpeNqaGCwoQgQ==}
     dependencies:
       libsodium-wrappers-sumo: 0.7.8
       oprf: 2.0.0
@@ -2333,8 +2333,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /sock-secret/5.1.1:
-    resolution: {integrity: sha512-0KhiWbLzRU55RHhQdrWhgaafEN80RT5Ppw5EzKeiai5om138kuskSmOm+OSkRkTkK1RffGvuyhsVm7WMv6VWew==}
+  /sock-secret/6.0.0:
+    resolution: {integrity: sha512-Y0eWJNOIolpRha16ujlG5sqoM58M+XJxWxetAPkKpfX8uLPbJpH7BTD9ZNDarXlOKdPDITFzQYN69tWeNnzJ7A==}
     dependencies:
       '@octokit/request': 6.2.3
       '@octokit/request-error': 3.0.3

@@ -38,10 +38,12 @@ export declare type UserApp = {
     C: Secrets;
     S: ServerAuthData;
 };
-declare type DevInboxIn = {
-    user_in: UserIn;
+declare type InboxIn = {
     inst: string;
-    sec: Trio;
+    table: string;
+};
+declare type DevInboxIn = InboxIn & {
+    user_in: UserIn;
 };
 interface ReadUserInstall {
     (u: InstallIn): Promise<UserInstall>;
@@ -53,7 +55,10 @@ interface ReadReset {
     (u: UserIn): Promise<boolean>;
 }
 interface ReadInbox {
-    (u: DevInboxIn): Promise<Trio>;
+    (u: InboxIn): Promise<Trio>;
+}
+interface ReadDevInbox {
+    (u: DevInboxIn): Promise<void>;
 }
 interface ReadLoginStart {
     (u: UserIn): Promise<boolean>;
@@ -83,7 +88,7 @@ declare const toBytes: (s: string) => Uint8Array;
 declare const useGitInstalled: (git: Git, installed: Installed) => Git;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;
 declare const readInbox: ReadInbox;
-declare const readDevInbox: ReadInbox;
+declare const readDevInbox: ReadDevInbox;
 declare const readDevReset: ReadReset;
 declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;

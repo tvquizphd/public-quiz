@@ -13,7 +13,7 @@ class Workflow  {
   get loader () {
     const { loading } = this;
     const labels = {
-      socket: "Connecting...",
+      socket: "Registering...",
       finish: "Finishing..."
     }
     const title = labels[loading[0]?.[0]];

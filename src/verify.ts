@@ -1,6 +1,6 @@
 import { toB64urlQuery, fromB64urlQuery } from "sock-secret";
 import { toSockServer, fromCommandTreeList } from "sock-secret";
-import { setSecret, setSecretText } from "./util/secrets.js";
+import { setSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
 import { toBytes } from "./util/pasted.js";
@@ -48,7 +48,8 @@ type ConfigIn = {
   git: Git
 }
 type RegisterInputs = {
-  tree: LoginStart
+  tree: LoginStart,
+  delay: number
 }
 type PepperInputs = RegisterInputs & {
   Opaque: Op,
@@ -63,13 +64,14 @@ interface ToPepper {
   (i: PepperInputs): Promise<HasPepper> 
 }
 type Inputs = {
+  delay: number,
   log_in: ConfigIn,
   commands: Commands
 }
 type InputsFirst = Inputs & RegisterInputs & {
   pub_ctli: CommandTreeList,
   shared: string,
-  reset: boolean
+  reset: boolean,
 }; 
 type InputsFinal = Inputs & {
   final: ServerFinal, tree: LoginEnd, ses: string
@@ -131,7 +133,7 @@ const isPepper = (t: TreeAny): t is Pepper => {
 
 const toPepper: ToPepper = async (opts) => {
   const { git, env, times, pep } = opts;
-  const { Opaque, reset, tree } = opts;
+  const { Opaque, reset, tree, delay } = opts;
   const { sid, pw } = tree.client_auth_data;
   const secret_str = process.env[pep] || '';
   const pepper = fromB64urlQuery(secret_str);
@@ -148,9 +150,9 @@ const toPepper: ToPepper = async (opts) => {
     throw new Error('Unable to register Opaque client');
   }
   try {
-    await setSecret({ 
-      git, env, tree: reg.pepper, command: pep
-    });
+    const command = pep;
+    const tree = reg.pepper;
+    await setSecret({ git, env, delay, tree, command });
     console.log('Saved pepper to secrets.');
   }
   catch (e: any) {
@@ -185,7 +187,8 @@ const toResetOut: ToResetOut = (command, reset, shared) => {
 }
 
 const vStart: Start = async (opts) => {
-  const { commands, pub_ctli, reset, tree } = opts;
+  const { delay, reset, tree } = opts;
+  const { commands, pub_ctli } = opts;
   const { git, env, pep } = opts.log_in;
   const { OPEN_IN, OPEN_OUT } = commands;
   const { OPEN_NEXT, NEW_SHARED } = commands;
@@ -193,7 +196,7 @@ const vStart: Start = async (opts) => {
   const { Opaque, Sock } = await toUserSock({ inputs });
   const times = 1000;
   const pepper_in = {
-    Opaque, times, reset, env, pep, git, tree
+    Opaque, times, delay, reset, env, pep, git, tree
   };
   const reg = await toPepper(pepper_in);
   const next_tree = await Opaque.serverStep(reg, "op");
@@ -205,7 +208,11 @@ const vStart: Start = async (opts) => {
     throw new Error('Cannot send invalid data.');
   }
   const reset_out = toResetOut(NEW_SHARED, reset, opts.shared);
-  const for_next = fromCommandTreeList([ next_out, ...reset_out ]);
+  const ctli = [ next_out, ...reset_out ];
+  await Promise.all(ctli.map(async ({ command, tree }) => {
+    await setSecret({ git, env, delay, tree, command });
+  }));
+  const for_next = fromCommandTreeList(ctli);
   const old_out = pub_ctli.filter((ct) => {
     return ct.command !== pages_out.command;
   });
@@ -222,21 +229,22 @@ const encryptLines: EncryptLines = async (lines) => {
 }
 
 const vLogin: Login = async (opts) => {
-  const { ses, commands, tree, final } = opts;
+  const { ses, commands } = opts;
+  const { delay, tree, final } = opts;
   const { CLOSE_IN } = commands;
   const inputs = [{ command: CLOSE_IN, tree }];
   const { Opaque } = await toUserSock({ inputs });
   // Authorized the client
   const { token } = await Opaque.serverStep(final, "op");
   try {
-    const secret = final.token;
+    const command = ses;
     const { git, env } = opts.log_in;
-    await setSecretText({ git, secret, env, name: ses });
+    const tree = { shared: final.token };
+    await setSecret({ git, env, delay, tree, command });
     console.log('Saved session to secrets.');
   }
   catch (e: any) {
     console.error('Can\'t save session to secrets.');
-    console.error(e.message);
   }
   return { token };
 }

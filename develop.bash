@@ -1,5 +1,5 @@
 #!/bin/bash
-SET_SESSION=$(cat .env | egrep "^SESSION")
+SET_SESSION=$(cat .env | egrep "^ROOT__SESSION")
 SESSION=$(sed -r "s@.*=.(.+).@\1@" <<< $SET_SESSION)
 GIT_URL=$(git config --get remote.origin.url)
 REMOTE=$(sed -r "s@.*[:/](.+/.+)@\1@" <<< $GIT_URL)
@@ -40,7 +40,7 @@ enter () {
   pnpm develop DEV CLOSE
   WORK=$(head -n 1 $1)
   # Must have Au + token + client_auth_result
-  pnpm develop LOGIN CLOSE $(tail -n 1 $SECRET_TXT) $WORK
+  pnpm develop LOGIN CLOSE OUTBOX $WORK
   # Must send clients, servers, secrets
   echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN
 }

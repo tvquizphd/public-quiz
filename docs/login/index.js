@@ -172,7 +172,7 @@ const runReef = (dev, remote, env) => {
     };
     const sock = await toSockClient(mail_sock_in);
     const encrypted = await dbt.encrypt(toKey(user_key));
-    sock.give("mail", "table", encrypted);
+    await sock.give("MAIL", "TABLE", encrypted);
     DATA.loading.sending = false;
     console.log('Sent mail.');
     sock.quit();
@@ -256,6 +256,7 @@ const runReef = (dev, remote, env) => {
         "Updated the master password.",
         "Copy and save new login link."
       ].join(' ');
+      DATA.reset = false;
       DATA.modal = { message, copy: url, simple: true };
       return ["Updated Master Password"];
     }

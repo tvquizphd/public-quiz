@@ -3,9 +3,9 @@ import { readLoginStart, readLoginEnd } from "./util/pasted.js";
 import { readUserApp, readUserInstall, isEncrypted } from "./util/pasted.js";
 import { readInbox, readDevReset, readDevInbox } from "./util/pasted.js";
 import { useGitInstalled, hasSessionHash } from "./util/pasted.js";
-import { toB64urlQuery } from "sock-secret";
+import { toB64urlQuery, fromB64urlQuery } from "sock-secret";
 import { toCommandTreeList, fromCommandTreeList } from "sock-secret";
-import { setSecretText, setSecret, isProduction } from "./util/secrets.js";
+import { setSecret, isProduction } from "./util/secrets.js";
 import { vStart, vLogin, vMail, updateUser, toSyncOp } from "./verify.js";
 import { encryptSecrets } from "./util/encrypt.js";
 import { decryptQuery } from "./util/decrypt.js";
@@ -23,7 +23,6 @@ import type { AppOutput, Installation } from "./create.js";
 import type { NewClientOut } from "opaque-low-io";
 import type { TreeAny, NameTree, CommandTreeList } from "sock-secret"
 import type { ServerFinal } from "opaque-low-io";
-import type { Trio } from "./util/types.js";
 
 type Result = {
   success: boolean,
@@ -39,7 +38,7 @@ type StageKeys = (
 type Stages = Record<StageKeys, string> 
 type Found = NameTree | undefined
 interface CanResetUser {
-  (o: { ses: string, ct: Found }): Promise<boolean>;
+  (o: { shared: string, ct: Found }): Promise<boolean>;
 }
 interface WriteSecretText {
   (i: Partial<SecretOutputs>): void;
@@ -108,14 +107,13 @@ function isTokenInputs (u: TreeAny): u is TokenIn {
   return needs.every(v => v);
 }
 
-const canResetUser: CanResetUser = async ({ ses, ct }) => {
+const canResetUser: CanResetUser = async ({ shared, ct }) => {
   if (!ct || !hasSessionHash(ct.tree)) {
     return false;
   }
-  const latest_session = process.env[ses] || "";
   const { session_hash: s_bytes } = ct.tree;
   const s = new TextDecoder().decode(s_bytes);
-  return await argon2.verify(s, latest_session);
+  return await argon2.verify(s, shared);
 }
 
 const toNewPassword = () => {
@@ -178,19 +176,36 @@ const toGitToken = (prod: boolean, inst: string) => {
   }
 }
 
+const toEnvCommands = (sl: string[]): CommandTreeList => {
+  return sl.filter(s => s in process.env).map((s) => {
+    const tree = fromB64urlQuery(process.env[s] || "");
+    return { command: s, tree };
+  })
+}
+
 (async (): Promise<Result> => {
   const args = process.argv.slice(2);
   if (args.length < 1) {
     const message = "Missing 1st arg: MY_TOKEN";
     return { success: false, message };
   }
+  const commands: Commands = {
+    OPEN_IN: "op:pake__client_auth_data",
+    OPEN_OUT: "op:pake__server_auth_data",
+    CLOSE_IN: "op:pake__client_auth_result",
+    OPEN_NEXT: "SERVER__FINAL",
+    NEW_SHARED: "NEW__USER",
+    RESET: "user__reset"
+  }
+  const final_env = [
+    commands.OPEN_NEXT, commands.NEW_SHARED
+  ];
   const NOOP = "noop";
-  const state = "STATE";
-  const ses = "SESSION";
-  const pep = "ROOT_PEPPER";
-  const inst = "INSTALLATION";
-  const sec: Trio = [ "SERVERS", "CLIENTS", "SECRETS" ];
-  const env_all = [ses, pep, inst, state, ...sec];
+  const table = "MAIL__TABLE";
+  const ses = "ROOT__SESSION";
+  const pep = "ROOT__PEPPER";
+  const inst = "ROOT__INSTALLATION";
+  const env_all = [ses, pep, table, inst, ...final_env];
   const remote = process.env.REMOTE?.split("/") || [];
   const env = process.env.DEPLOYMENT || "";
   const prod = isProduction(env);
@@ -270,7 +285,7 @@ const toGitToken = (prod: boolean, inst: string) => {
           installed, shared, app
         };
         await setSecret({
-          git: igit, env, tree: installation, command: inst
+          delay, git: igit, env, tree: installation, command: inst
         });
         const mail_in = { 
           installation, mail_types, preface 
@@ -291,7 +306,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         await readDevReset(user_in);
       }
       if (args[1] === "INBOX") {
-        await readDevInbox({ user_in, inst, sec });
+        await readDevInbox({ user_in, inst, table });
       }
       if (args[1] === "OPEN") {
         await readLoginStart(user_in);
@@ -328,14 +343,6 @@ const toGitToken = (prod: boolean, inst: string) => {
     }
   }
   else if (login) {
-    const commands: Commands = {
-      OPEN_IN: "op:pake__client_auth_data",
-      OPEN_OUT: "op:pake__server_auth_data",
-      OPEN_NEXT: "token__server_final",
-      CLOSE_IN: "op:pake__client_auth_result",
-      NEW_SHARED: "new__user_key",
-      RESET: "user__reset"
-    }
     try {
       if (args[1] === "OPEN") {
         const pub_ctli = toCommandTreeList(args[2]).filter((ct) => {
@@ -350,31 +357,34 @@ const toGitToken = (prod: boolean, inst: string) => {
         if (!found_op || !isLoginStart(found_op.tree)) {
           throw new Error('No login open command.');
         }
-        const reset = await canResetUser({ ses, ct: found_reset });
-        const shared = process.env[ses] || "";
+        const ses_str = process.env[ses] || "";
+        const session = fromB64urlQuery(ses_str);
+        const shared = (() => {
+          if (!hasShared(session)) return "";
+          return session.shared;
+        })();
+        const reset = await (async () => {
+          const ct = found_reset;
+          if (!shared.length) return false;
+          return await canResetUser({ shared, ct });
+        })();
         const { tree } = found_op;
         const start_in = {
-          reset, shared, log_in, commands, tree, pub_ctli
+          reset, shared, log_in, delay,
+          commands, tree, pub_ctli
         };
-        const payload = await vStart(start_in);
-        const secret = payload.for_next;
-        const { installed } = toInstallation(inst);
-        const igit = useGitInstalled(git, installed);
-        await setSecretText({ 
-          git: igit, env, secret, name: state
-        });
-        writeSecretText(payload);
+        writeSecretText(await vStart(start_in));
         console.log('Began to verify user.\n');
       }
       else if (args[1] === "CLOSE") {
-        const trio = await readInbox({ user_in, inst, sec });
+        const trio = await readInbox({ inst, table });
         const found = toCommandTreeList(args[3]).find((ct) => {
           return ct.command === commands.CLOSE_IN;
         });
-        const opened = toCommandTreeList(args[2]).find((ct) => {
+        const opened = toEnvCommands(final_env).find((ct) => {
           return ct.command === commands.OPEN_NEXT;
         });
-        const found_shared = toCommandTreeList(args[2]).find((ct) => {
+        const found_shared = toEnvCommands(final_env).find((ct) => {
           return ct.command === commands.NEW_SHARED;
         });
         if (!found || !isLoginEnd(found.tree)) {
@@ -386,7 +396,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         const final = opened.tree;
         const { tree } = found;
         const end_in = { 
-          final, log_in, commands, tree, ses,
+          final, log_in, delay, commands, tree, ses,
         };
         const { token } = await vLogin(end_in);
         const installation = toInstallation(inst);
@@ -396,7 +406,7 @@ const toGitToken = (prod: boolean, inst: string) => {
           const igit = useGitInstalled(git, installed);
           installation.shared = found_shared.tree.shared;
           await setSecret({ 
-            git: igit, env, tree: installation, command: inst
+            delay, git: igit, env, tree: installation, command: inst
           });
           console.log('Updated shared user key.');
         }
@@ -489,7 +499,7 @@ const toGitToken = (prod: boolean, inst: string) => {
         const igit = useGitInstalled(git, installed);
         const installation = { installed, shared, app };
         await setSecret({ 
-          git: igit, env, tree: installation, command: inst
+          delay, git: igit, env, tree: installation, command: inst
         });
         const tree = await encryptSecrets({
           secret_text: igit.owner_token,

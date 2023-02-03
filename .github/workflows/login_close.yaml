@@ -36,12 +36,14 @@ jobs:
           curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
           chmod +x index
           echo "" > secret.txt
-          ./index LOGIN CLOSE "${{ secrets.STATE }}" "$OP"
+          ./index LOGIN CLOSE OUTBOX "$OP"
           STEP=$(head -n 1 secret.txt)
           MESSAGE="Use your private login link."
           ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
         env:
+          NEW__USER: ${{ secrets.NEW__USER }}
           MAIL__TABLE: ${{ secrets.MAIL__TABLE }}
+          SERVER__FINAL: ${{ secrets.SERVER__FINAL }}
           INSTALLATION : ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}

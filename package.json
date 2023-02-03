@@ -1,6 +1,6 @@
 {
   "name": "public-quiz-device",
-  "version": "6.7.10",
+  "version": "6.8.0",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
@@ -31,8 +31,8 @@
     "jws": "^4.0.0",
     "libsodium-wrappers": "0.7.8",
     "octokit": "^2.0.7",
-    "opaque-low-io": "^3.2.1",
-    "sock-secret": "5.1.1",
+    "opaque-low-io": "^4.0.0",
+    "sock-secret": "6.0.0",
     "ts-node": "^10.9.1"
   },
   "pnpm": {

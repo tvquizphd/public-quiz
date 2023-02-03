@@ -47,10 +47,17 @@ export type UserApp = {
   C: Secrets,
   S: ServerAuthData
 }
-type DevInboxIn = {
-  user_in: UserIn,
+type InboxIn = {
   inst: string,
-  sec: Trio
+  table: string
+}
+type DevInboxIn = InboxIn & {
+  user_in: UserIn
+}
+type ParseInboxIn = {
+  table: string,
+  text: string,
+  shared: string,
 }
 interface ReadUserInstall {
   (u: InstallIn): Promise<UserInstall>;
@@ -61,8 +68,15 @@ interface ReadUserApp {
 interface ReadReset {
   (u: UserIn): Promise<boolean>;
 }
+
+interface ParseInbox {
+  (o: ParseInboxIn): Trio;
+}
 interface ReadInbox {
-  (u: DevInboxIn): Promise<Trio>;
+  (u: InboxIn): Promise<Trio>;
+}
+interface ReadDevInbox {
+  (u: DevInboxIn): Promise<void>;
 }
 interface ReadLoginStart {
   (u: UserIn): Promise<boolean>;
@@ -194,20 +208,14 @@ const toInstallation = (inst: string) => {
   return ins_obj;
 }
 
-const readInbox: ReadInbox = async (inputs) => {
-  const { user_in, inst, sec } = inputs;
-  if (!user_in.prod) {
-    return sec.map((k: string) => {
-      return process.env[k] || "";
-    }) as Trio;
-  }
-  const { shared } = toInstallation(inst);
+const parseInbox: ParseInbox = ({ text, shared, table }) => {
   const key = toBytes(shared);
-  try {
-    const text = process.env["MAIL__TABLE"];
-    const tree = fromB64urlQuery(text || "");
-    const data = tree.data || "";
-    if (hasEncryptionKeys(data)) {
+  const found = toCommandTreeList(text).find(ct => {
+    return ct.command === table;
+  });
+  if (found && found.tree.data) {
+    if (hasEncryptionKeys(found.tree.data)) {
+      const { data } = found.tree
       const out = decryptSecret({ data, key });
       const plain_text = new TextDecoder().decode(out);
       const trio = plain_text.split("\n");
@@ -215,49 +223,39 @@ const readInbox: ReadInbox = async (inputs) => {
         return trio;
       }
     }
-    else {
-      console.log('Missing dev inbox');
-    }
   }
-  catch {
-    console.log('No passwords in dev inbox');
+  throw new Error('Missing dev inbox');
+}
+
+const readInbox: ReadInbox = async (inputs) => {
+  const { inst, table } = inputs;
+  const { shared } = toInstallation(inst);
+  try {
+    const text = process.env[table] || "";
+    return parseInbox({text, shared, table});
+  }
+  catch(e: any) {
+    if (e instanceof Error) {
+      console.error(e.message);
+    }
   }
   return ["", "", ""];
 }
 
-const readDevInbox: ReadInbox = async (inputs) => {
-  const { user_in, inst, sec } = inputs;
+const readDevInbox: ReadDevInbox = async (inputs) => {
+  const { user_in, table, inst } = inputs;
+  const { dev_config } = user_in
   if (user_in.prod) {
     throw new Error('This command is not available in production.');
   }
   const { shared } = toInstallation(inst);
-  const key = toBytes(shared);
   try {
-    const { dev_config } = user_in
     const text = await toReader(dev_config)();
-    const found = toCommandTreeList(text).find(ct => {
-      return ct.command === "mail__table";
-    });
-    if (found && found.tree.data) {
-      if (hasEncryptionKeys(found.tree.data)) {
-        const { data } = found.tree
-        const out = decryptSecret({ data, key });
-        const plain_text = new TextDecoder().decode(out);
-        const trio = plain_text.split("\n");
-        if (isTrio(trio)) {
-          sec.map((k: string, i: number) => {
-            process.env[k] = trio[i];
-          });
-          return trio;
-        }
-      }
-    }
-    console.log('Missing dev inbox');
+    parseInbox({text, shared, table});
   }
   catch {
     console.log('No passwords in dev inbox');
   }
-  return ["", "", ""];
 }
 
 const readDevReset: ReadReset = async (ins) => {
@@ -294,8 +292,8 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
 }
 
 const readUserInstall: ReadUserInstall = async (ins) => {
+  const k = "install" as const;
   const { owner } = ins.git;
-  const k: "install" = "install";
   const app_token = toSign(ins.app);
   const input = { k, owner, app_token };
   const sock = await toSockClient({ input, delay: ins.delay });

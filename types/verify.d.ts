@@ -22,8 +22,10 @@ declare type ConfigIn = {
 };
 declare type RegisterInputs = {
     tree: LoginStart;
+    delay: number;
 };
 declare type Inputs = {
+    delay: number;
     log_in: ConfigIn;
     commands: Commands;
 };
