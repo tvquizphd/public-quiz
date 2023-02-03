@@ -25,7 +25,7 @@ jobs:
         id: index
         run: |
           JSON=$(curl -s \
-            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$VND""'"\
+            -H "$API" -H "$AUTH" -H "$VND"\
             $ROOT/repos/$REMOTE/releases/latest)
           ID='"'$(jq -r '.id' <<< $JSON)'"'
           URL='"'$(jq -r '.url' <<< $JSON)'"'
@@ -34,7 +34,7 @@ jobs:
       - name: Login Close
         run: |
           curl -L \
-            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -H "$API" -H "$AUTH" -H "$OCTET"\
             -o index $INDEX_URL
           chmod +x index
           echo "" > secret.txt

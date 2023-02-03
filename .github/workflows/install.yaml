@@ -31,7 +31,7 @@ jobs:
         id: index
         run: |
           JSON=$(curl -s \
-            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$VND""'"\
+            -H "$API" -H "$AUTH" -H "$VND"\
             $ROOT/repos/$REMOTE/releases/tags/$TAG)
           BODY=$(jq -r '.body' <<< $JSON)
           ID='"'$(jq -r '.id' <<< $JSON)'"'
@@ -56,7 +56,7 @@ jobs:
         run: |
           echo "" > secret.txt
           curl -L \
-            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -H "$API" -H "$AUTH" -H "$OCTET"\
             -o index $INDEX_URL
           chmod +x index
           ./index SETUP PUB OPAQUE
@@ -73,7 +73,7 @@ jobs:
       - name: Awaiting User Creating GitHub App
         run: |
           curl -L \
-            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -H "$API" -H "$AUTH" -H "$OCTET"\
             -o index $INDEX_URL
           chmod +x index
           ./index SETUP APP "${{ env.state }}"
@@ -90,7 +90,7 @@ jobs:
       - name: Awaiting User Installing GitHub App
         run: |
           curl -L \
-            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -H "$API" -H "$AUTH" -H "$OCTET"\
             -o index $INDEX_URL
           chmod +x index
           ./index SETUP TOKEN "${{ env.state }}"
