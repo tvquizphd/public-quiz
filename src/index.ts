@@ -24,6 +24,7 @@ import type { NewClientOut } from "opaque-low-io";
 import type { TreeAny, NameTree, CommandTreeList } from "sock-secret"
 import type { ServerFinal } from "opaque-low-io";
 
+type Log = "log" | "error";
 type Result = {
   success: boolean,
   message: string
@@ -542,12 +543,12 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
   }
   const message = "Action complete!\n";
   return { success: true, message };
-})().then((result: Result) => {
-  if (result.success) {
-    return console.log(result.message);
-  }
-  return console.error(result.message);
+})().then(({ success, message }: Result) => {
+  const fn: Log = success ? "log": "error";
+  process.exitCode = success ? 0 : 1;
+  console[fn](message);
 }).catch((e: any) => {
-  console.error("Unexpected Error Occured");
-  console.error(e?.message);
+  if (e instanceof Error) console.error(e.message);
+  else console.error("Unexpected Error Occured");
+  process.exitCode = 1;
 });
