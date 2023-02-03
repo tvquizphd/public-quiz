@@ -30,7 +30,7 @@ jobs:
           BODY=$(jq -r '.body' <<< $JSON)
           ID=$(jq -r '.id' <<< $JSON)
           PUB=$(echo "$BODY" | head -n1)
-          URL=$(jq -r '.url' <<< $JSON)
+          URL=$(jq -r '.assets[0].url' <<< $JSON)
           echo "pub=$PUB" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
           echo "index=$URL" >> $GITHUB_OUTPUT
