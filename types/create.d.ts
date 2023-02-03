@@ -43,7 +43,7 @@ export interface Permissions {
     [key: string]: string;
 }
 export declare type UserInstallRaw = {
-    id: number;
+    id: string;
     permissions: Permissions;
 };
 export declare type UserInstall = UserInstallRaw & {
@@ -53,7 +53,7 @@ export declare type UserInstall = UserInstallRaw & {
 interface ToInstall {
     (i: UserInstall): Promise<Installed>;
 }
-declare function parseInstall(o: ObjAny): UserInstallRaw;
+declare function parseInstall(o: TreeAny): UserInstallRaw;
 declare function isObjAny(u: unknown): u is ObjAny;
 declare function isInstallation(o: NodeAny): o is Installation;
 declare function isJWK(o: ObjAny): o is JWK;

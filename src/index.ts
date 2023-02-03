@@ -20,7 +20,7 @@ import fs from "fs";
 import type { Commands } from "./verify.js";
 import type { DevConfig, LoginEnd } from "./util/pasted.js";
 import type { AppOutput, Installation } from "./create.js";
-import type { ClientOut, NewClientOut } from "opaque-low-io";
+import type { NewClientOut } from "opaque-low-io";
 import type { TreeAny, NameTree, CommandTreeList } from "sock-secret"
 import type { ServerFinal } from "opaque-low-io";
 import type { Trio } from "./util/types.js";

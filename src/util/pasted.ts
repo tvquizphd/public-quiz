@@ -1,16 +1,15 @@
 import { hasEncryptionKeys, decryptSecret } from "./decrypt.js";
 import { parseInstall, isInstallation } from "../create.js";
-import { fromCommandTreeList, toCommandTreeList } from "sock-secret";
+import { toCommandTreeList } from "sock-secret";
 import { fromB64urlQuery } from "sock-secret";
 import { isObjAny, toSign } from "../create.js";
 import { toSockClient } from "sock-secret";
-import { request } from "@octokit/request";
 import { isTrio } from "./types.js";
 import path from 'node:path';
 import fs from 'fs'
 
 import type { ClientOut, NewClientOut } from "opaque-low-io";
-import type { UserInstallRaw, Installed } from "../create.js";
+import type { Installed } from "../create.js";
 import type { TreeAny } from "sock-secret"
 import type { UserInstall } from "../create.js";
 import type { AppOutput } from "../create.js";
@@ -52,9 +51,6 @@ type DevInboxIn = {
   user_in: UserIn,
   inst: string,
   sec: Trio
-}
-interface ToUserInstall {
-  (u: InstallIn): Promise<UserInstallRaw>;
 }
 interface ReadUserInstall {
   (u: InstallIn): Promise<UserInstall>;
@@ -297,37 +293,11 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
   return isLoginEnd(tree || {});
 }
 
-const toUserInstall: ToUserInstall = async (ins) => {
-  const authorization = 'bearer ' + toSign(ins.app);
-  const api_url = '/users/{username}/installation';
-  const out = await request(`GET ${api_url}`, {
-    username: ins.git.owner,
-    headers: { authorization }
-  })
-  return parseInstall(out.data);
-}
-
-const toInstallReader = (ins: InstallIn) => {
-  const command = "install__ready";
-  return async () => {
-    try {
-      const install = await toUserInstall(ins);
-      const { id, permissions } = install;
-      const tree = { id: `${id}`, permissions };
-      return fromCommandTreeList([{ command, tree }]);
-    }
-    catch (e: any) {
-      if (e?.status !== 404) {
-        console.error(e?.message);
-        throw new Error("Error getting user installation");
-      }
-    }
-    return "";
-  }
-}
-
 const readUserInstall: ReadUserInstall = async (ins) => {
-  const input = { read: toInstallReader(ins) }; 
+  const { owner } = ins.git;
+  const k: "install" = "install";
+  const app_token = toSign(ins.app);
+  const input = { k, owner, app_token };
   const sock = await toSockClient({ input, delay: ins.delay });
   const tree = await sock.get("install", "ready");
   const install = parseInstall(tree || {});

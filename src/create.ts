@@ -56,7 +56,7 @@ export interface Permissions {
   [key: string]: string;
 }
 export type UserInstallRaw = {
-  id: number,
+  id: string,
   permissions: Permissions 
 }
 export type UserInstall = UserInstallRaw & {
@@ -72,11 +72,10 @@ type Payload = {
   exp: number
 }
 
-function parseInstall (o: ObjAny): UserInstallRaw {
-  const { permissions } = o;
-  const id = parseInt(`${o.id}`);
-  if (!isNaN(id) && isPermissions(permissions)) {
-    return { id, permissions };
+function parseInstall (o: TreeAny): UserInstallRaw {
+  const { permissions, id } = o;
+  if (isPermissions(permissions) && typeof id === "string") {
+    if (!isNaN(parseInt(id))) return { id, permissions };
   }
   throw new Error("Installation Error");
 }
