@@ -6,11 +6,14 @@ on:
         required: true
         type: string
 env:
-  ROOT: "https://api.github.com"
-  REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
+  REMOTE: ${{ github.repository }}
+  ROOT: "https://api.github.com"
+  API: "X-GitHub-Api-Version: 2022-11-28"
+  OCTET: "Accept: application/octet-stream"
+  VND: "Accept: application/vnd.github+json"
+  AUTH: "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
 permissions:
-  issues: read
   contents: write
 jobs:
   setup:
@@ -20,7 +23,6 @@ jobs:
     if: inputs.tag != ''
     outputs:
       pre: ${{ steps.index.outputs.pre }}
-      tag: ${{ steps.index.outputs.tag }}
       link: ${{ steps.index.outputs.link }}
       index: ${{ steps.index.outputs.index }}
       release: ${{ steps.index.outputs.release }}
@@ -28,23 +30,23 @@ jobs:
       - name: Fetching executable
         id: index
         run: |
-          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/tags/$TAG)
-          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
-          ID=$(jq -r '.id' <<< $JSON)
+          JSON=$(curl -s \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$VND""'"\
+            $ROOT/repos/$REMOTE/releases/tags/$TAG)
           BODY=$(jq -r '.body' <<< $JSON)
-          PRE=$(jq -r '.prerelease' <<< $JSON)
-          LINK=$(echo "$BODY" | tail -n1)
-          echo "prerelease? $PRE"
-          echo "pre=$PRE" >> $GITHUB_OUTPUT
-          echo "link=$LINK" >> $GITHUB_OUTPUT
-          echo "index=$URL" >> $GITHUB_OUTPUT
+          ID='"'$(jq -r '.id' <<< $JSON)'"'
+          LINK='"'$(echo "$BODY" | tail -n1)'"'
+          PRE='"'$(jq -r '.prerelease' <<< $JSON)'"'
+          URL='"'$(jq -r '.url' <<< $JSON)'"'
           echo "release=$ID" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "link=$LINK" >> $GITHUB_OUTPUT
+          echo "pre=$PRE" >> $GITHUB_OUTPUT
+          echo "index=$URL" >> $GITHUB_OUTPUT
         env:
           TAG: ${{ inputs.tag }}
   code_and_token:
     if: needs.setup.output.pre == false
-    needs: 
+    needs:
       - setup
     environment:
       name: PRODUCTION-LOGIN
@@ -53,7 +55,9 @@ jobs:
       - name: Publishing Opaque codes
         run: |
           echo "" > secret.txt
-          curl -L -o index $INDEX_URL
+          curl -L \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -o index $INDEX_URL
           chmod +x index
           ./index SETUP PUB OPAQUE
           STEP=$(head -n 1 secret.txt)
@@ -62,14 +66,15 @@ jobs:
           echo "::add-mask::$STATE"
           echo "state=$STATE" >> $GITHUB_ENV
         env:
-          TAG: ${{ needs.setup.outputs.tag }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ needs.setup.outputs.index }}
           RELEASE: ${{ needs.setup.outputs.release }}
           LINK: ${{ needs.setup.outputs.link }}
       - name: Awaiting User Creating GitHub App
         run: |
-          curl -L -o index $INDEX_URL
+          curl -L \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -o index $INDEX_URL
           chmod +x index
           ./index SETUP APP "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
@@ -84,7 +89,9 @@ jobs:
           LINK: ${{ needs.setup.outputs.link }}
       - name: Awaiting User Installing GitHub App
         run: |
-          curl -L -o index $INDEX_URL
+          curl -L \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -o index $INDEX_URL
           chmod +x index
           ./index SETUP TOKEN "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)

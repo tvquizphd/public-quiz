@@ -3,14 +3,17 @@ on:
   repository_dispatch:
     types: [call-login-open]
 env:
-  ROOT: "https://api.github.com"
-  REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
+  REMOTE: ${{ github.repository }}
+  ROOT: "https://api.github.com"
+  API: "X-GitHub-Api-Version: 2022-11-28"
+  OCTET: "Accept: application/octet-stream"
+  VND: "Accept: application/vnd.github+json"
+  AUTH: "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
 concurrency:
   group: PRODUCTION-LOGIN
   cancel-in-progress: true
 permissions:
-  issues: read
   contents: write
 jobs:
   login_open:
@@ -21,27 +24,31 @@ jobs:
       - name: Configure Latest Release URL
         id: index
         run: |
-          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
-          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
-          ID=$(jq -r '.id' <<< $JSON)
+          JSON=$(curl -s \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$VND""'"\
+            $ROOT/repos/$REMOTE/releases/latest)
           BODY=$(jq -r '.body' <<< $JSON)
-          CTLI=$(echo "$BODY" | head -n1)
-          echo "index=$URL" >> $GITHUB_OUTPUT
+          ID='"'$(jq -r '.id' <<< $JSON)'"'
+          PUB='"'$(echo "$BODY" | head -n1)'"'
+          URL='"'$(jq -r '.url' <<< $JSON)'"'
+          echo "pub=$PUB" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
-          echo "ctli=$CTLI" >> $GITHUB_OUTPUT
+          echo "index=$URL" >> $GITHUB_OUTPUT
       - name: Login Open
         run: |
-          curl -L -o index $INDEX_URL
+          curl -L \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -o index $INDEX_URL
           chmod +x index
           echo "" > secret.txt
-          ./index LOGIN OPEN "$PUB_CTLI" "$OP"
+          ./index LOGIN OPEN "$PUB" "$OP"
           STEP=$(head -n 1 secret.txt)
           MESSAGE="Use your private login link."
           ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
         env:
           INSTALLATION : ${{ secrets.INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PUB_CTLI: ${{ steps.index.outputs.ctli }}
+          PUB: ${{ steps.index.outputs.pub }}
           INDEX_URL: ${{ steps.index.outputs.index }}
           RELEASE: ${{ steps.index.outputs.release }}
           OP: ${{ github.event.client_payload.op }}

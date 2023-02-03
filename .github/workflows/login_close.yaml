@@ -3,14 +3,17 @@ on:
   repository_dispatch:
     types: [call-login-close]
 env:
-  ROOT: "https://api.github.com"
-  REMOTE: ${{ github.repository }}
   DEPLOYMENT: PRODUCTION-LOGIN
+  REMOTE: ${{ github.repository }}
+  ROOT: "https://api.github.com"
+  API: "X-GitHub-Api-Version: 2022-11-28"
+  OCTET: "Accept: application/octet-stream"
+  VND: "Accept: application/vnd.github+json"
+  AUTH: "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
 concurrency:
   group: PRODUCTION-LOGIN
   cancel-in-progress: true
 permissions:
-  issues: read
   contents: write
 jobs:
   login_close:
@@ -21,14 +24,18 @@ jobs:
       - name: Configure Latest Release URL
         id: index
         run: |
-          JSON=$(curl -s $ROOT/repos/$REMOTE/releases/latest)
-          URL=$(jq -r '.assets[0].browser_download_url' <<< $JSON)
-          ID=$(jq -r '.id' <<< $JSON)
+          JSON=$(curl -s \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$VND""'"\
+            $ROOT/repos/$REMOTE/releases/latest)
+          ID='"'$(jq -r '.id' <<< $JSON)'"'
+          URL='"'$(jq -r '.url' <<< $JSON)'"'
           echo "index=$URL" >> $GITHUB_OUTPUT
           echo "release=$ID" >> $GITHUB_OUTPUT
       - name: Login Close
         run: |
-          curl -L -o index $INDEX_URL
+          curl -L \
+            -H '"'"$API"'"' -H '"'"$AUTH"'"' -H '"'"$OCTET""'"\
+            -o index $INDEX_URL
           chmod +x index
           echo "" > secret.txt
           ./index LOGIN CLOSE "${{ secrets.STATE }}" "$OP"
