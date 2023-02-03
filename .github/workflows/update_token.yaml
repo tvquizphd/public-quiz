@@ -40,9 +40,7 @@ jobs:
           echo "pub=$PUB" >> $GITHUB_OUTPUT
       - name: Login Open
         run: |
-          curl -L \
-            -H "$API" -H "$AUTH" -H "$OCTET"\
-            -o index $INDEX_URL
+          curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
           chmod +x index
           echo "" > secret.txt
           ./index UPDATAE TOKEN "$PUB"

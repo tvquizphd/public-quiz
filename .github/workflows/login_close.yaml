@@ -33,9 +33,7 @@ jobs:
           echo "release=$ID" >> $GITHUB_OUTPUT
       - name: Login Close
         run: |
-          curl -L \
-            -H "$API" -H "$AUTH" -H "$OCTET"\
-            -o index $INDEX_URL
+          curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
           chmod +x index
           echo "" > secret.txt
           ./index LOGIN CLOSE "${{ secrets.STATE }}" "$OP"

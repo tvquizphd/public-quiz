@@ -55,9 +55,7 @@ jobs:
       - name: Publishing Opaque codes
         run: |
           echo "" > secret.txt
-          curl -L \
-            -H "$API" -H "$AUTH" -H "$OCTET"\
-            -o index $INDEX_URL
+          curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
           chmod +x index
           ./index SETUP PUB OPAQUE
           STEP=$(head -n 1 secret.txt)
@@ -72,9 +70,7 @@ jobs:
           LINK: ${{ needs.setup.outputs.link }}
       - name: Awaiting User Creating GitHub App
         run: |
-          curl -L \
-            -H "$API" -H "$AUTH" -H "$OCTET"\
-            -o index $INDEX_URL
+          curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
           chmod +x index
           ./index SETUP APP "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
@@ -89,9 +85,7 @@ jobs:
           LINK: ${{ needs.setup.outputs.link }}
       - name: Awaiting User Installing GitHub App
         run: |
-          curl -L \
-            -H "$API" -H "$AUTH" -H "$OCTET"\
-            -o index $INDEX_URL
+          curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
           chmod +x index
           ./index SETUP TOKEN "${{ env.state }}"
           STEP=$(head -n 1 secret.txt)
