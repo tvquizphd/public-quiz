@@ -46,7 +46,7 @@ jobs:
           ./index UPDATAE TOKEN "$PUB"
           STEP=$(head -n 1 secret.txt)
           MESSAGE="Use your private login link."
-          ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
+          ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" '"'"$MESSAGE"'"'
         env:
           PUB: ${{ steps.index.outputs.pub }}
           INSTALLATION : ${{ secrets.INSTALLATION }}
