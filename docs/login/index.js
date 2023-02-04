@@ -73,6 +73,7 @@ const runReef = (dev, remote, env) => {
     user_key: null,
     master_key: null,
     local: dev !== null,
+    session_key: null,
     last_session_string: null,
     delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
@@ -161,7 +162,8 @@ const runReef = (dev, remote, env) => {
   }
 
   const uploadDatabase = async (preface) => {
-    const { env, git, local, delay, user_key } = DATA;
+    const { env, git, local, delay } = DATA;
+    const { session_key } = DATA;
     const { dbt } = API;
     DATA.loading.sending = true;
     const secret_out = { git, env };
@@ -171,7 +173,7 @@ const runReef = (dev, remote, env) => {
       preface, input: null, output: mail_out, delay
     };
     const sock = await toSockClient(mail_sock_in);
-    const encrypted = await dbt.encrypt(toKey(user_key));
+    const encrypted = await dbt.encrypt(toKey(session_key));
     await sock.give("MAIL", "TABLE", encrypted);
     DATA.loading.sending = false;
     console.log('Sent mail.');
@@ -235,6 +237,7 @@ const runReef = (dev, remote, env) => {
     };
     // Login to recieve session key
     const session_string = await clientLogin(opaque_in);
+    DATA.session_key = toBytes(session_string);
     DATA.loading.mailer = false;
     if (user_reset_ok) {
       // Use last session as new user key 
@@ -262,7 +265,7 @@ const runReef = (dev, remote, env) => {
     }
     else {
       // Read the latest database
-      const session = fromKey(toBytes(session_string));
+      const session = fromKey(DATA.session_key);
       const session_decrypt = dbt.decryptSession.bind(dbt, session);
       const session_mapper = toMailMapper(session_decrypt, "session");
       const mail_session = { 

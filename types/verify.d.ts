@@ -45,6 +45,10 @@ declare type InputsUpdateUser = {
     installation: Installation;
 };
 declare type InputsMail = HasToken & {
+    git: Git;
+    table: string;
+    delay: number;
+    env: string;
     trio: Trio;
     mail_types: MailTypes;
     installation: Installation;

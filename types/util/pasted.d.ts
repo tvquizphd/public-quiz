@@ -39,7 +39,7 @@ export declare type UserApp = {
     S: ServerAuthData;
 };
 declare type InboxIn = {
-    inst: string;
+    ses: string;
     table: string;
 };
 declare type DevInboxIn = InboxIn & {
@@ -73,6 +73,10 @@ export declare type NameTree = {
 interface ToNameTree {
     (t: string): NameTree;
 }
+export declare type HasShared = {
+    shared: string;
+};
+declare function hasShared(u: TreeAny): u is HasShared;
 declare function hasSessionHash(u: TreeAny): u is HasSessionHash;
 declare function isEncrypted(d: TreeAny): d is Encrypted;
 export declare type LoginStart = {
@@ -94,4 +98,4 @@ declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
-export { readUserApp, readUserInstall, isEncrypted, isLoginStart, isLoginEnd, toNameTree, useGitInstalled, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox, readDevReset, hasSessionHash };
+export { readUserApp, readUserInstall, isEncrypted, hasShared, isLoginStart, isLoginEnd, toNameTree, useGitInstalled, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox, readDevReset, hasSessionHash };

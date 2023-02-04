@@ -1,5 +1,6 @@
 import { toB64urlQuery, fromB64urlQuery } from "sock-secret";
 import { toSockServer, fromCommandTreeList } from "sock-secret";
+import { useGitInstalled } from "./util/pasted.js";
 import { setSecret } from "./util/secrets.js";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
@@ -11,7 +12,8 @@ import type { SockServer } from "sock-secret";
 import type { QMI } from "./util/encrypt.js";
 import type { Git, Trio } from "./util/types.js";
 import type { Installation, HasToken } from "./create.js";
-import type { CommandTreeList, NodeAny, TreeAny } from "sock-secret";
+import type { NameTree, CommandTreeList } from "sock-secret";
+import type { NodeAny, TreeAny } from "sock-secret";
 import type { LoginStart, LoginEnd } from "./util/pasted.js";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
 import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
@@ -82,12 +84,20 @@ type InputsUpdateUser = {
   installation: Installation
 }
 type InputsMail = HasToken & {
+  git: Git,
+  table: string,
+  delay: number,
+  env: string,
   trio: Trio,
   mail_types: MailTypes,
   installation: Installation
 }
+type Enc = [QMI, string];
+interface EncryptLine {
+  (line: Enc): Promise<NameTree>;
+}
 interface EncryptLines {
-  (lines: [QMI, string][]): Promise<string>;
+  (lines: Enc[]): Promise<CommandTreeList>;
 }
 interface Start {
   (i: InputsFirst): Promise<SecretOut>
@@ -220,12 +230,14 @@ const vStart: Start = async (opts) => {
   return { for_next, for_pages }
 }
 
+const encryptLine: EncryptLine = async ([en, command]) => {
+  const tree = fromB64urlQuery(await encryptQueryMaster(en));
+  return { command, tree };
+}
+
 const encryptLines: EncryptLines = async (lines) => {
-  const ctli = lines.map(async ([en, command]) => {
-    const tree = fromB64urlQuery(await encryptQueryMaster(en));
-    return { command, tree };
-  })
-  return fromCommandTreeList(await Promise.all(ctli));
+  const ctli = lines.map(encryptLine);
+  return await Promise.all(ctli);
 }
 
 const vLogin: Login = async (opts) => {
@@ -267,9 +279,12 @@ const updateUser: UpdateUser = async (opts) => {
 }
 
 const vMail: Mail = async (opts) => {
+  const command = opts.table;
+  const { git, delay, env } = opts;
   const { mail_types, token } = opts;
   const { installation, trio } = opts;
   const { installed, shared } = installation;
+  const igit = useGitInstalled(git, installed);
   const ins_text = toB64urlQuery(installed);
   const text_rows = trio.join('\n');
   const session_key = toBytes(token);
@@ -282,10 +297,13 @@ const vMail: Mail = async (opts) => {
     plain_text: text_rows, 
     master_key: session_key
   };
-  const for_pages = await encryptLines([
+  const outbox = await encryptLines([
     [encrypt_user, mail_types.USER],
     [encrypt_session, mail_types.SESSION]
   ]);
+  const { tree } = await encryptLine([encrypt_session, command]);
+  await setSecret({ git: igit, delay, env, command, tree });
+  const for_pages = fromCommandTreeList(outbox);
   return { for_next: "", for_pages };
 }
 

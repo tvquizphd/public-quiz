@@ -48,7 +48,7 @@ export type UserApp = {
   S: ServerAuthData
 }
 type InboxIn = {
-  inst: string,
+  ses: string,
   table: string
 }
 type DevInboxIn = InboxIn & {
@@ -57,7 +57,7 @@ type DevInboxIn = InboxIn & {
 type ParseInboxIn = {
   table: string,
   text: string,
-  shared: string,
+  shared: string
 }
 interface ReadUserInstall {
   (u: InstallIn): Promise<UserInstall>;
@@ -93,6 +93,16 @@ export type NameTree = {
 } 
 interface ToNameTree {
   (t: string): NameTree;
+}
+export type HasShared = {
+  shared: string 
+}
+
+function hasShared(u: TreeAny): u is HasShared {
+  if (u.shared && typeof u.shared === "string") {
+    return u.shared.length > 0;
+  }
+  return false;
 }
 
 function hasSessionHash(u: TreeAny): u is HasSessionHash {
@@ -228,8 +238,14 @@ const parseInbox: ParseInbox = ({ text, shared, table }) => {
 }
 
 const readInbox: ReadInbox = async (inputs) => {
-  const { inst, table } = inputs;
-  const { shared } = toInstallation(inst);
+  const { table, ses } = inputs;
+  const ses_str = process.env[ses] || "";
+  const session = fromB64urlQuery(ses_str);
+  if (!hasShared(session)) {
+    console.log('No past session found.');
+    return ["", "", ""];
+  };
+  const { shared } = session;
   try {
     const text = process.env[table] || "";
     return parseInbox({text, shared, table});
@@ -243,15 +259,22 @@ const readInbox: ReadInbox = async (inputs) => {
 }
 
 const readDevInbox: ReadDevInbox = async (inputs) => {
-  const { user_in, table, inst } = inputs;
+  const { user_in, table, ses } = inputs;
   const { dev_config } = user_in
   if (user_in.prod) {
     throw new Error('This command is not available in production.');
   }
-  const { shared } = toInstallation(inst);
+  const ses_str = process.env[ses] || "";
+  const session = fromB64urlQuery(ses_str);
+  if (!hasShared(session)) {
+    console.log('No past session found.');
+    return;
+  };
+  const { shared } = session;
   try {
     const text = await toReader(dev_config)();
     parseInbox({text, shared, table});
+    process.env[table] = text;
   }
   catch {
     console.log('No passwords in dev inbox');
@@ -322,7 +345,7 @@ const toNameTree: ToNameTree = (s) => {
 }
 
 export { 
-  readUserApp, readUserInstall, isEncrypted,
+  readUserApp, readUserInstall, isEncrypted, hasShared,
   isLoginStart, isLoginEnd, toNameTree, useGitInstalled,
   readLoginStart, readLoginEnd, readDevInbox, toBytes,
   toInstallation, readInbox, readDevReset, hasSessionHash

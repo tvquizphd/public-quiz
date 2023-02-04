@@ -1,5 +1,5 @@
 import { isLoginStart, isLoginEnd, toInstallation } from "./util/pasted.js";
-import { readLoginStart, readLoginEnd } from "./util/pasted.js";
+import { hasShared, readLoginStart, readLoginEnd } from "./util/pasted.js";
 import { readUserApp, readUserInstall, isEncrypted } from "./util/pasted.js";
 import { readInbox, readDevReset, readDevInbox } from "./util/pasted.js";
 import { useGitInstalled, hasSessionHash } from "./util/pasted.js";
@@ -18,7 +18,7 @@ import argon2 from 'argon2';
 import fs from "fs";
 
 import type { Commands } from "./verify.js";
-import type { DevConfig, LoginEnd } from "./util/pasted.js";
+import type { HasShared, DevConfig, LoginEnd } from "./util/pasted.js";
 import type { AppOutput, Installation } from "./create.js";
 import type { NewClientOut } from "opaque-low-io";
 import type { TreeAny, NameTree, CommandTreeList } from "sock-secret"
@@ -52,22 +52,12 @@ type ClientState = {
 type ClientSecretOut = LoginEnd & {
   token: string
 };
-type HasShared = {
-  shared: string 
-}
 type TokenIn = HasShared & LoginEnd & {
   app: AppOutput
 };
 
 function isNumber(u: unknown): u is number {
   return typeof u === "number";
-}
-
-function hasShared(u: TreeAny): u is HasShared {
-  if (u.shared && typeof u.shared === "string") {
-    return u.shared.length > 0;
-  }
-  return false;
 }
 
 function isServerFinal(o: TreeAny): o is ServerFinal {
@@ -307,7 +297,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
         await readDevReset(user_in);
       }
       if (args[1] === "INBOX") {
-        await readDevInbox({ user_in, inst, table });
+        await readDevInbox({ user_in, ses, table });
       }
       if (args[1] === "OPEN") {
         await readLoginStart(user_in);
@@ -378,7 +368,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
         console.log('Began to verify user.\n');
       }
       else if (args[1] === "CLOSE") {
-        const trio = await readInbox({ inst, table });
+        const trio = await readInbox({  ses, table });
         const found = toCommandTreeList(args[3]).find((ct) => {
           return ct.command === commands.CLOSE_IN;
         });
@@ -412,6 +402,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
           console.log('Updated shared user key.');
         }
         const mail_in = { 
+          git, delay, env, table,
           installation, mail_types, token, trio
         }
         const payload = await vMail(mail_in);
