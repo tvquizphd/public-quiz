@@ -44,6 +44,7 @@ jobs:
           NEW__USER: ${{ secrets.NEW__USER }}
           MAIL__TABLE: ${{ secrets.MAIL__TABLE }}
           SERVER__FINAL: ${{ secrets.SERVER__FINAL }}
+          ROOT__SESSION : ${{ secrets.ROOT__SESSION }}
           ROOT__INSTALLATION : ${{ secrets.ROOT__INSTALLATION }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INDEX_URL: ${{ steps.index.outputs.index }}
