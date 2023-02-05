@@ -368,7 +368,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
         console.log('Began to verify user.\n');
       }
       else if (args[1] === "CLOSE") {
-        const trio = await readInbox({  ses, table });
+        const trio = await readInbox({ ses, table });
         const found = toCommandTreeList(args[3]).find((ct) => {
           return ct.command === commands.CLOSE_IN;
         });

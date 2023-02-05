@@ -253,7 +253,6 @@ const vLogin: Login = async (opts) => {
     const { git, env } = opts.log_in;
     const tree = { shared: final.token };
     await setSecret({ git, env, delay, tree, command });
-    throw new Error(`Saved inbox key ${tree.shared}`); //TODO
     console.log('Saved session to secrets.');
   }
   catch (e: any) {

@@ -1,7 +1,7 @@
 import { hasEncryptionKeys, tryDecryptSecret } from "./decrypt.js";
+import { toB64urlQuery, fromB64urlQuery } from "sock-secret";
 import { parseInstall, isInstallation } from "../create.js";
 import { toCommandTreeList } from "sock-secret";
-import { fromB64urlQuery } from "sock-secret";
 import { isObjAny, toSign } from "../create.js";
 import { toSockClient } from "sock-secret";
 import { isTrio } from "./types.js";
@@ -55,8 +55,7 @@ type DevInboxIn = InboxIn & {
   user_in: UserIn
 }
 type ParseInboxIn = {
-  table: string,
-  text: string,
+  tree: TreeAny,
   shared: string
 }
 interface ReadUserInstall {
@@ -218,19 +217,16 @@ const toInstallation = (inst: string) => {
   return ins_obj;
 }
 
-const parseInbox: ParseInbox = ({ text, shared, table }) => {
+const parseInbox: ParseInbox = ({ tree, shared }) => {
   const key = toBytes(shared);
-  const found = toCommandTreeList(text).find(ct => {
-    return ct.command === table;
-  });
-  if (!found || !found.tree.data) {
+  if (!tree.data) {
     throw new Error('Missing inbox');
   }
-  if (!hasEncryptionKeys(found.tree.data)) {
+  if (!hasEncryptionKeys(tree.data)) {
     throw new Error('Invalid inbox');
   }
-  const { data } = found.tree
-  const error = `Invalid inbox key ${shared}`;
+  const { data } = tree;
+  const error = "Invalid inbox or session key.";
   const out = tryDecryptSecret({ data, key, error });
   const plain_text = new TextDecoder().decode(out);
   const trio = plain_text.split("\n");
@@ -251,7 +247,8 @@ const readInbox: ReadInbox = async (inputs) => {
   const { shared } = session;
   try {
     const text = process.env[table] || "";
-    return parseInbox({text, shared, table});
+    const tree = fromB64urlQuery(text);
+    return parseInbox({ tree, shared });
   }
   catch(e: any) {
     if (e instanceof Error) {
@@ -274,14 +271,21 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
     return;
   }
   const { shared } = session;
+  const text = await toReader(dev_config)();
+  const found = toCommandTreeList(text).find(ct => {
+    return ct.command === table;
+  });
+  if (!found) {
+    throw new Error('Missing dev inbox');
+  }
+  const { tree } = found;
   try {
-    const text = await toReader(dev_config)();
-    parseInbox({text, shared, table});
-    process.env[table] = text;
+    parseInbox({ tree, shared });
   }
   catch {
     console.log('No passwords in dev inbox');
   }
+  process.env[table] = toB64urlQuery(tree);
 }
 
 const readDevReset: ReadReset = async (ins) => {
