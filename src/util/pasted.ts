@@ -1,4 +1,4 @@
-import { hasEncryptionKeys, decryptSecret } from "./decrypt.js";
+import { hasEncryptionKeys, tryDecryptSecret } from "./decrypt.js";
 import { parseInstall, isInstallation } from "../create.js";
 import { toCommandTreeList } from "sock-secret";
 import { fromB64urlQuery } from "sock-secret";
@@ -223,18 +223,21 @@ const parseInbox: ParseInbox = ({ text, shared, table }) => {
   const found = toCommandTreeList(text).find(ct => {
     return ct.command === table;
   });
-  if (found && found.tree.data) {
-    if (hasEncryptionKeys(found.tree.data)) {
-      const { data } = found.tree
-      const out = decryptSecret({ data, key });
-      const plain_text = new TextDecoder().decode(out);
-      const trio = plain_text.split("\n");
-      if (isTrio(trio)) {
-        return trio;
-      }
-    }
+  if (!found || !found.tree.data) {
+    throw new Error('Missing inbox');
   }
-  throw new Error('Missing dev inbox');
+  if (!hasEncryptionKeys(found.tree.data)) {
+    throw new Error('Invalid inbox');
+  }
+  const { data } = found.tree
+  const error = `Invalid inbox key ${shared}`;
+  const out = tryDecryptSecret({ data, key, error });
+  const plain_text = new TextDecoder().decode(out);
+  const trio = plain_text.split("\n");
+  if (isTrio(trio)) {
+    return trio;
+  }
+  throw new Error('Invalid inbox table');
 }
 
 const readInbox: ReadInbox = async (inputs) => {
@@ -244,7 +247,7 @@ const readInbox: ReadInbox = async (inputs) => {
   if (!hasShared(session)) {
     console.log('No past session found.');
     return ["", "", ""];
-  };
+  }
   const { shared } = session;
   try {
     const text = process.env[table] || "";
@@ -269,7 +272,7 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
   if (!hasShared(session)) {
     console.log('No past session found.');
     return;
-  };
+  }
   const { shared } = session;
   try {
     const text = await toReader(dev_config)();

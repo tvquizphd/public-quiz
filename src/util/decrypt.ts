@@ -13,6 +13,9 @@ type DKI = {
   hash: Uint8Array,
   key: Encrypted,
 }
+type HasError = {
+  error: string
+}
 export type QMI = {
   master_key: Uint8Array,
   search: string
@@ -53,6 +56,16 @@ const decrypt: Decrypt = (key, ev, iv, tag) => {
   ]);
 }
 
+const tryDecryptSecret = (opts: DSI & HasError) => {
+  try {
+    return decryptSecret(opts);
+  }
+  catch {
+    throw new Error(opts.error); //TODO
+  }
+
+}
+
 const decryptSecret = ({ key, data }: DSI) => {
   return decrypt(key, data.ev, data.iv, data.tag);
 }
@@ -86,5 +99,6 @@ const decryptQuery: DecryptQuery = async (search, pass) => {
 }
 
 export {
-  isBytes, decryptQueryMaster, decryptQuery, decryptSecret, hasEncryptionKeys
+  isBytes, decryptQueryMaster, decryptQuery, decryptSecret, hasEncryptionKeys,
+  tryDecryptSecret
 }
