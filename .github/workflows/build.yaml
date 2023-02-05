@@ -3,12 +3,21 @@ concurrency:
   group: build-and-release
   cancel-in-progress: true
 on:
-  release:
-    types:
-      - prereleased
+  workflow_call:
+    inputs:
+      tag:
+        description: "Tag of GitHub release to build"
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag of GitHub release to build"
+        required: true
+        type: string
 jobs:
-  environment:
-    uses: ./.github/workflows/environment.yaml
+  pages:
+    uses: ./.github/workflows/pages.yaml
     permissions:
       pages: write
       contents: read
@@ -16,20 +25,11 @@ jobs:
     with:
       remote: ${{ github.repository }}
       deployment: PRODUCTION-LOGIN
-    concurrency:
-      group: PRODUCTION-LOGIN
-      cancel-in-progress: true
   build:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
-    outputs:
-      tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - id: tag
-        run: |
-          echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
       - uses: actions/checkout@v3
       - name: Install Node.js
         uses: actions/setup-node@v3
@@ -63,23 +63,22 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: ${{ env.tag }}
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
           prerelease: true 
           draft: false
           files: index
   release:
-    needs: [environment, build]
+    needs: [pages, build]
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
     steps:
       - id: body 
         run: |
           echo "body=$URL" >> $GITHUB_OUTPUT
         env:
-          URL: ${{ needs.environment.outputs.url }}
+          URL: ${{ needs.pages.outputs.url }}
       - name: Add Readme to Final Release
         uses: softprops/action-gh-release@v1
         env:
@@ -89,18 +88,7 @@ jobs:
             noop#noop=noop
 
             ${{ steps.body.outputs.body }}
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: ${{ env.tag }}
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
           prerelease: false 
           draft: false
-  install:
-    uses: ./.github/workflows/install.yaml
-    needs: [build, release]
-    permissions:
-      issues: read
-      contents: write
-    with:
-      tag: ${{ needs.build.outputs.tag }}
-    concurrency:
-      group: PRODUCTION-LOGIN
-      cancel-in-progress: true
