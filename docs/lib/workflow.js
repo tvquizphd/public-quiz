@@ -139,12 +139,11 @@ class Workflow  {
   }
 
   async setDevHandle(root) {
-    const { pub_str, dev_file } = this.DATA;
-    const text = this.DATA.pub_str;
-    const fname = this.DATA.dev_file;
-    const write_in = { root, fname, text };
-    const f = await writeFile(write_in); 
-    this.DATA.dev_handle = f;
+    const { dev_init_file: f0 } = this.DATA;
+    const { pub_str, dev_file: f1 } = this.DATA;
+    await writeFile({ root, fname: f0, text: "INSTALL" });
+    await writeFile({ root, fname: f1, text: pub_str });
+    this.DATA.dev_dir = root;
   }
 }
 

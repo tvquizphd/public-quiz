@@ -1,6 +1,5 @@
 import { OPS, OP } from "opaque-low-io";
 import { toSockClient } from "sock-secret";
-import { fromCommandTreeList } from "sock-secret";
 
 async function toOpaqueSock(opts, workflow) {
   const { preface, delay, input, output } = opts;
@@ -67,6 +66,13 @@ const writeText = async (f, text) => {
   await w.close();
 }
 
+const readFile = async (opts) => {
+  const { root, fname } = opts;
+  const toF = root.getFileHandle.bind(root);
+  const f = await toF(fname, { create: true });
+  return await f.text();
+}
+
 const writeFile = async (opts) => {
   const { root, fname, text } = opts;
   const toF = root.getFileHandle.bind(root);
@@ -96,6 +102,6 @@ const fetchNoLocalCache = () => {
 }
 
 export { 
-  clientLogin, toSyncOp, writeText, writeFile,
+  clientLogin, toSyncOp, writeText, writeFile, readFile,
   toMailMapper, toGitHubDelay, fetchNoLocalCache
 };

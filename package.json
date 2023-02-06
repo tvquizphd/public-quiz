@@ -1,10 +1,11 @@
 {
   "name": "public-quiz-device",
-  "version": "6.11.0",
+  "version": "6.12.0",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
     "tsc": "tsc",
+    "dev": "node dev.js",
     "action": "./action/index",
     "build": "tsc && pnpm p",
     "lint": "eslint src docs",

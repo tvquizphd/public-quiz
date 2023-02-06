@@ -1,7 +1,7 @@
 import { isLoginStart, isLoginEnd, toInstallation } from "./util/pasted.js";
 import { hasShared, readLoginStart, readLoginEnd } from "./util/pasted.js";
 import { readUserApp, readUserInstall, isEncrypted } from "./util/pasted.js";
-import { readInbox, readDevReset, readDevInbox } from "./util/pasted.js";
+import { readInbox, readDevInbox } from "./util/pasted.js";
 import { useGitInstalled, hasSessionHash } from "./util/pasted.js";
 import { toB64urlQuery, fromB64urlQuery } from "sock-secret";
 import { toCommandTreeList, fromCommandTreeList } from "sock-secret";
@@ -293,9 +293,6 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
   }
   else if (dev) {
     try {
-      if (args[1] === "RESET") {
-        await readDevReset(user_in);
-      }
       if (args[1] === "INBOX") {
         await readDevInbox({ user_in, ses, table });
       }

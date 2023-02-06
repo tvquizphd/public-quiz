@@ -32,8 +32,8 @@ class Workflow  {
   }
 
   get firstAction () {
-    const { dev_handle } =  this.DATA;
-    if (this.DATA.local && !dev_handle) {
+    const { dev_dir } =  this.DATA;
+    if (this.DATA.local && !dev_dir) {
       const text = "Allow";
       const { dev_root } = this.DATA;
       const uuid = crypto.randomUUID();
@@ -48,8 +48,6 @@ class Workflow  {
     const { tables, newRows } = this.DATA;
     const { step, reset, modal } = this.DATA;
     const [ sites, users, passwords ] = tables;
-    const nav_write = "Create";
-    const nav_read = "Find";
     const view_idx_0 = parseInt(newRows[2][0]);
     const view_idx_1 = parseInt(newRows[2][1]);
     const view_site = sites[view_idx_0]?.[0] || "";
@@ -66,6 +64,13 @@ class Workflow  {
     const new_combo = (_, u_id) => {
       return !matches.includes(u_id);
     };
+    const resetter = (i) => {
+      if (i !== 1) return;
+      this.DATA.reset = true;
+      const { dev_dir: root } = this.DATA;
+      const { dev_init_file: fname } = this.DATA;
+      writeFile({ root, fname, text: "LOGIN" });
+    }
     const roots = [
       [{
         reset,
@@ -75,7 +80,7 @@ class Workflow  {
         loading: this.loading.length > 0,
       }],
       [{
-        view: "nav", labels: ["Home", "Reset Master?"]
+        resetter, view: "nav", labels: ["Welcome", "Reset Master?"]
       },{
         view: "display",
         items: [{
@@ -92,7 +97,7 @@ class Workflow  {
     ];
     const branch = [
       [{
-        view: "nav", labels: [nav_write]
+        view: "nav", labels: ["Home"]
       },{
         view: "display",
         items: [{
@@ -102,7 +107,7 @@ class Workflow  {
         view: "write", key: "sites", table: sites
       }],
       [{
-        view: "nav", labels: [nav_read]
+        view: "nav", labels: ["Home"]
       },{
         view: "display",
         items: [{
@@ -115,7 +120,7 @@ class Workflow  {
     ]
     const branch_0 = [
       [{
-        view: "nav", labels: [nav_write, view_site]
+        view: "nav", labels: ["Home", view_site]
       },{
         view: "display",
         items: [{
@@ -129,7 +134,7 @@ class Workflow  {
     ]
     const branch_1 = [
       [{
-        view: "nav", labels: [nav_read, view_site]
+        view: "nav", labels: ["Home", view_site]
       },{
         view: "display",
         items: [{
@@ -144,7 +149,7 @@ class Workflow  {
     ]
     const branch_0_0 = [
       [{
-        view: "nav", labels: [nav_write, view_site, view_user]
+        view: "nav", labels: ["Home", view_site, view_user]
       },{
         view: "display",
         items: [{
@@ -167,7 +172,7 @@ class Workflow  {
     const pass_now = passwords[pass_idx]?.[2];
     const branch_1_0 = [
       [{
-        view: "nav", labels: [nav_read, view_site, view_user]
+        view: "nav", labels: ["Home", view_site, view_user]
       },{
         view: "display",
         items: [{
@@ -248,12 +253,9 @@ class Workflow  {
     this.DATA.step = 2 * step + bool;
   }
   async setDevHandle(root) {
-    const { pub_str, dev_file } = this.DATA;
-    const text = this.DATA.pub_str;
-    const fname = this.DATA.dev_file;
-    const write_in = { root, fname, text };
-    const f = await writeFile(write_in); 
-    this.DATA.dev_handle = f;
+    const { dev_init_file: fname } = this.DATA;
+    await writeFile({ root, fname, text: "LOGIN" })
+    this.DATA.dev_dir = root;
   }
 }
 

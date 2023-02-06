@@ -64,10 +64,6 @@ interface ReadUserInstall {
 interface ReadUserApp {
   (u: UserIn): Promise<UserApp>;
 }
-interface ReadReset {
-  (u: UserIn): Promise<boolean>;
-}
-
 interface ParseInbox {
   (o: ParseInboxIn): Trio;
 }
@@ -288,17 +284,6 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
   process.env[table] = toB64urlQuery(tree);
 }
 
-const readDevReset: ReadReset = async (ins) => {
-  if (ins.prod) {
-    throw new Error('This command is not available in production.');
-  }
-  const input = { read: toReader(ins.dev_config) }; 
-  const sock = await toSockClient({ input, delay: ins.delay });
-  const tree = await sock.get("user", "reset");
-  sock.quit();
-  return hasSessionHash(tree || {});
-}
-
 const readLoginStart: ReadLoginStart = async (ins) => {
   if (ins.prod) {
     throw new Error('This command is not available in production.');
@@ -355,5 +340,5 @@ export {
   readUserApp, readUserInstall, isEncrypted, hasShared,
   isLoginStart, isLoginEnd, toNameTree, useGitInstalled,
   readLoginStart, readLoginEnd, readDevInbox, toBytes,
-  toInstallation, readInbox, readDevReset, hasSessionHash
+  toInstallation, readInbox, hasSessionHash
 }

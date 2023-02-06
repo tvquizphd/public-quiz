@@ -76,22 +76,12 @@ pnpm install -g node-gyp
 CXX=gcc pnpm install
 ```
 
-In a separate terminal, run:
+Run `pnpm dev`, then open `localhost:8000` in a browser.
 
-```properties
-cd public-quiz-device
-npx http-server docs -p 8000
-```
-
-Run `bash develop.bash` twice or more, following instructions.
-
-### On 1st run, it registers your master password
-  - You create and authorize a GitHub App to use GitHub's API.
-  - It writes authentication codes to `.env` and a new login link.
-
-### Afterwards, it allows revisiting your login link
-  - If logginng in normally, press `n` after running.
-  - If trying password reset, press `y` after running.
+To re-install the environment:
+  - Delete [your old development app](https://github.com/settings/apps)
+  - Run `rm .env` within `public-quiz-device`
+  - Exit (`ctrl-C`) and re-run `pnpm dev`
 
 [HELP_COLLAB]: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-access-to-your-personal-repositories/inviting-collaborators-to-a-personal-repository
 [HELP_SECURE]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure

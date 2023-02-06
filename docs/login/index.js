@@ -4,9 +4,9 @@ import { toEnv } from "environment";
 import { toB64urlQuery } from "sock-secret";
 import { toSockClient } from "sock-secret";
 import { toCommandTreeList } from "sock-secret";
-import { toGitHubDelay, writeText } from "io";
+import { toGitHubDelay, writeFile } from "io";
 import { toMailMapper, clientLogin } from "io";
-import { fetchNoLocalCache } from "io";
+import { fetchNoLocalCache, readFile } from "io";
 import { encryptSecrets } from "encrypt";
 import { Workflow } from "workflow";
 import { toHash, textToBytes } from "encrypt";
@@ -21,7 +21,8 @@ import { decryptQuery, toBytes } from "decrypt";
 const EMPTY_NEW = [ [""], [""], ["","",""] ];
 const EMPTY_TABLES = [ [], [], [] ];
 
-const outage = async () => {
+const outage = async (local) => {
+  if (local) return [];
   const fault = "GitHub internal outage";
   const matches = (update) => {
     return !!update?.body?.match(/actions/i);
@@ -78,10 +79,10 @@ const runReef = (dev, remote, env) => {
     last_session_string: null,
     delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
+    dev_init_file: "init.txt",
     dev_file: "dev.txt",
-    dev_handle: null,
+    dev_dir: null,
     user_id: "root",
-    pub_str: "",
     reset: false,
     modal: null,
     step: 0,
@@ -129,12 +130,18 @@ const runReef = (dev, remote, env) => {
     return [{ command, tree }];
   }
   const toLocalPreface = async () => {
-    const current = await (await DATA.dev_handle.getFile()).text();
-    return toCommandTreeList(current);
+    const text = await readFile({
+      root: DATA.dev_root,
+      fname: DATA.dev_init_file
+    });
+    return toCommandTreeList(text);
   }
-  const writeLocal = (text) => {
-    const f = DATA.dev_handle;
-    if (f) writeText(f, text);
+  const writeLocal = async (text) => {
+    const root = DATA.dev_dir;
+    const fname = DATA.dev_file;
+    if (root) {
+      await writeFile({ root, fname, text });
+    }
   }
   const cleanRefresh = () => {
     DATA.loading = {...NO_LOADING};
@@ -179,6 +186,11 @@ const runReef = (dev, remote, env) => {
     DATA.loading.sending = false;
     console.log('Sent mail.');
     sock.quit();
+    if (local) {
+      const { dev_dir: root } = DATA;
+      const { dev_init_file: fname } = DATA;
+      await writeFile({ root, fname, text: "MAIL" });
+    }
   }
 
   const props = { DATA, API, templates };
@@ -198,6 +210,7 @@ const runReef = (dev, remote, env) => {
 
   async function decryptWithPassword(inputs) {
     DATA.loading.socket = true;
+    await writeLocal("");
     const { hash: search } = window.location;
     const result = await decryptQuery(search, inputs.pass);
     const pass = inputs.newPass || inputs.pass;
@@ -285,7 +298,7 @@ const runReef = (dev, remote, env) => {
 
   function submitHandler (event) {
     event.preventDefault();
-    outage().then((outages) => {
+    outage(DATA.local).then((outages) => {
       if (outages.length < 1) {
         return;
       }

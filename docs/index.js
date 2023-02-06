@@ -3,7 +3,8 @@ import {
 } from "pub";
 import { toSockClient } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
-import { toSyncOp, clientLogin,  writeText, toGitHubDelay } from "io";
+import { toSyncOp, clientLogin } from "io";
+import { toGitHubDelay, writeFile } from "io";
 import { fetchNoLocalCache } from "io";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
@@ -17,7 +18,8 @@ import { Workflow } from "workflow";
  * reef 
  */
 
-const outage = async () => {
+const outage = async (local) => {
+  if (local) return [];
   const fault = "GitHub internal outage";
   const matches = (update) => {
     return !!update?.body?.match(/actions/i);
@@ -114,9 +116,10 @@ const runReef = (dev, remote, env) => {
     local: dev !== null,
     delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
+    dev_init_file: "init.txt",
     dev_file: "dev.txt",
     user_id: "root",
-    dev_handle: null,
+    dev_dir: null,
     unchecked: true,
     copied: false,
     reset: false,
@@ -143,9 +146,12 @@ const runReef = (dev, remote, env) => {
     const result = await fetch(pub, { headers });
     return await (result).text();
   }
-  const writeLocal = (text) => {
-    const f = DATA.dev_handle;
-    if (f) writeText(f, text);
+  const writeLocal = async (text) => {
+    const root = DATA.dev_dir;
+    const fname = DATA.dev_file;
+    if (root) {
+      await writeFile({ root, fname, text });
+    }
   }
   const readSearch = async () => {
     const search = parseSearch(toPub(), window.location);
@@ -235,7 +241,7 @@ const runReef = (dev, remote, env) => {
   }
 
   function outageCheck () {
-    outage().then((outages) => {
+    outage(DATA.local).then((outages) => {
       DATA.unchecked = false;
       if (outages.length < 1) {
         return;

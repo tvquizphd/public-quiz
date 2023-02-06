@@ -19,11 +19,14 @@ const saveTemplate = (inputs) => {
 }
 const navTemplate = (inputs) => {
   const { stepBack, stepHome } = inputs;
-  const { uuid, labels } = inputs.node;
+  const { resetter, uuid, labels } = inputs.node;
   const slash = '<div class="slash">/</div>'
   const handlers = labels.map((label, i, a) => {
     const range = [...new Array(a.length - i).keys()]; 
-    const action = () => range.map(stepBack);
+    const action = (i) => {
+      if (resetter) resetter(i);
+      range.map(stepBack);
+    }
     const fn = i > 0 ? action : stepHome;
     const id = `${uuid}-nav-${i}`;
     const data = { label };
