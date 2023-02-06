@@ -63,9 +63,6 @@ class Workflow  {
     }];
     const to_app = [{
       items, view: "list"
-    },{
-      view: "app",
-      title: "Create GitHub App"
     }];
     const to_install = [{
       items, view: "list"
