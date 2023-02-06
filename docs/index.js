@@ -4,6 +4,7 @@ import {
 import { toSockClient } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 import { toSyncOp, clientLogin,  writeText, toGitHubDelay } from "io";
+import { fetchNoLocalCache } from "io";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
 import { templates } from "templates";
@@ -303,4 +304,10 @@ export default () => {
     runReef(dev, remote, env);
     //runReef(null, remote, "PRODUCTION-LOGIN");
   });
+  /*
+   * Block browser cache
+   * We know "octokit/request.js" uses fetch
+   * But they overreact to normal cache-control
+   */
+  window.fetch = fetchNoLocalCache()
 };

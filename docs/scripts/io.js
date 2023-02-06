@@ -1,5 +1,6 @@
 import { OPS, OP } from "opaque-low-io";
 import { toSockClient } from "sock-secret";
+import { fromCommandTreeList } from "sock-secret";
 
 async function toOpaqueSock(opts, workflow) {
   const { preface, delay, input, output } = opts;
@@ -79,7 +80,22 @@ const toGitHubDelay = (local) => {
   return local ? 0.1 : 0.5;
 }
 
+const fetchNoLocalCache = () => {
+  const fetch_handler = {
+    apply: function(_fetch, _, [resource, opts]) {
+      const cache = 'cache-control';
+      const h = opts?.headers || {};
+      const found = Object.keys(h).find(k => {
+        return k.localeCompare(cache) === 1;
+      });
+      if (opts && !found) h[cache] = 'no-cache';
+      return _fetch(resource, opts);
+    }
+  }
+  return new Proxy(window.fetch, fetch_handler);
+}
+
 export { 
   clientLogin, toSyncOp, writeText, writeFile,
-  toMailMapper, toGitHubDelay 
+  toMailMapper, toGitHubDelay, fetchNoLocalCache
 };
