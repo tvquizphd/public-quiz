@@ -1,5 +1,3 @@
-import { writeFile } from "io";
-
 class Workflow  {
 
   constructor ({ DATA, templates }) {
@@ -139,10 +137,6 @@ class Workflow  {
   }
 
   async setDevHandle(root) {
-    const { dev_init_file: f0 } = this.DATA;
-    const { pub_str, dev_file: f1 } = this.DATA;
-    await writeFile({ root, fname: f0, text: "INSTALL" });
-    await writeFile({ root, fname: f1, text: pub_str });
     this.DATA.dev_dir = root;
   }
 }

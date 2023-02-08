@@ -1,4 +1,5 @@
 import { SEP, AsciiTables } from "ascii";
+import { decryptQueryMaster } from "decrypt";
 import { fromB64urlQuery } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 
@@ -73,4 +74,58 @@ class DBTrio {
   }
 }
 
-export { DBTrio };
+const readKey = (key) => {
+  return async (search) => {
+    if (search === "") return "";
+    const args = { search, master_key: key };
+    const out = await decryptQueryMaster(args);
+    return out.plain_text;
+  }
+}
+
+class Inbox {
+  constructor(data, api) {
+    const { dbt } = api;
+    this.data = data;
+    this.tags = {
+      'user': dbt.decryptUser.bind(dbt),
+      'session': dbt.decryptSession.bind(dbt),
+    };
+  }
+  get mapper () {
+    return this._mapper.bind(this);
+  }
+  fromKey (from_key) {
+    const { master_key } = this.data;
+    return { 
+      from_master: readKey(master_key),
+      from_session: readKey(from_key)
+    };
+  }
+  allow (tag, key) {
+    const fn = this.tags[tag];
+    if (typeof fn !== 'function') {
+      throw new Error(`No inbox tag: ${tag}`);
+    }
+    const k = this.fromKey(key);
+    const cmd = ['mail', tag].join('__');
+    this[cmd] = (ct) => fn(k, ct);
+  }
+  async _mapper(ctli) {
+    return await ctli.reduce(async (memo, cti) => {
+      const cmd = cti.command;
+      const out = await memo;
+      if (typeof this[cmd] === "function") {
+        try {
+          return [...out, await this[cmd](cti)]; 
+        }
+        catch {
+          throw new Error(`Error mapping ${cmd}`);
+        }
+      }
+      return out;
+    }, []);
+  }
+}
+
+export { DBTrio, Inbox };

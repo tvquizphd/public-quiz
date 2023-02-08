@@ -80,8 +80,7 @@ Run `pnpm dev`, then open `localhost:8000` in a browser.
 
 To re-install the environment:
   - Delete [your old development app](https://github.com/settings/apps)
-  - Run `rm .env` within `public-quiz-device`
-  - Exit (`ctrl-C`) and re-run `pnpm dev`
+  - Exit (`ctrl-C`) `pnpm dev` and run `pnpm dev clean`
 
 [HELP_COLLAB]: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-access-to-your-personal-repositories/inviting-collaborators-to-a-personal-repository
 [HELP_SECURE]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure

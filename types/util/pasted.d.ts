@@ -9,8 +9,9 @@ export declare type HasGit = {
     git: Git;
 };
 export declare type DevConfig = {
-    home: string;
-    tmp: string;
+    vars: string;
+    msg: string;
+    dir: string;
 };
 export declare type UserIn = HasGit & {
     delay: number;
@@ -51,9 +52,6 @@ interface ReadUserInstall {
 interface ReadUserApp {
     (u: UserIn): Promise<UserApp>;
 }
-interface ReadReset {
-    (u: UserIn): Promise<boolean>;
-}
 interface ReadInbox {
     (u: InboxIn): Promise<Trio>;
 }
@@ -93,9 +91,8 @@ declare const useGitInstalled: (git: Git, installed: Installed) => Git;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;
 declare const readInbox: ReadInbox;
 declare const readDevInbox: ReadDevInbox;
-declare const readDevReset: ReadReset;
 declare const readLoginStart: ReadLoginStart;
 declare const readLoginEnd: ReadLoginEnd;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
-export { readUserApp, readUserInstall, isEncrypted, hasShared, isLoginStart, isLoginEnd, toNameTree, useGitInstalled, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox, readDevReset, hasSessionHash };
+export { readUserApp, readUserInstall, isEncrypted, hasShared, isLoginStart, isLoginEnd, toNameTree, useGitInstalled, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox, hasSessionHash };

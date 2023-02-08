@@ -1,4 +1,4 @@
-/lockfileVersion: 5.4
+lockfileVersion: 5.4
 
 overrides:
   node-abi: 3.25.0
@@ -22,7 +22,7 @@ specifiers:
   octokit: ^2.0.7
   opaque-low-io: ^4.0.0
   pkg: ^5.8.0
-  sock-secret: 6.0.1
+  sock-secret: 6.2.0
   ts-node: ^10.9.1
   typescript: ^4.8.3
 
@@ -35,7 +35,7 @@ dependencies:
   libsodium-wrappers: 0.7.8
   octokit: 2.0.7
   opaque-low-io: 4.0.0
-  sock-secret: 6.0.1
+  sock-secret: 6.2.0
   ts-node: 10.9.1_u7tj3mdglidusk2sd73zi6kt7q
 
 devDependencies:
@@ -2333,8 +2333,8 @@ packages:
     engines: {node: '>=8'}
     dev: true
 
-  /sock-secret/6.0.1:
-    resolution: {integrity: sha512-w5PrgJWK7Ew323ZzH3FPTDJzZe8PRKyWveO5c87ts311yPWtBNlEOCHKB5Z0h8ugzu+C4+3iqqGBQljkdpVFpw==}
+  /sock-secret/6.2.0:
+    resolution: {integrity: sha512-n07A/TwPaX6LhmieF+4Mz5Qag41XlMoXEkQFgdeQJjKoebraFrB8Jswd5LJvcN+VOWbN6840ob5Bmd4/SdDNYw==}
     dependencies:
       '@octokit/request': 6.2.3
       '@octokit/request-error': 3.0.3

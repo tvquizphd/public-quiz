@@ -15,53 +15,39 @@ const toPub = () => {
   return private_state;
 }
 
-const toServerAuthCache = (server_auth_data) => {
-  const LOCAL_KEY = "server-auth-data";
-  if (server_auth_data) {
-    const server_auth_str = toB64urlQuery(server_auth_data);
-    sessionStorage.setItem(LOCAL_KEY, server_auth_str);
-    return server_auth_data;
-  }
-  const server_auth_str = sessionStorage.getItem(LOCAL_KEY);
-  return fromB64urlQuery(server_auth_str);
-}
-
 const toSharedCache = (shared) => {
   const LOCAL_KEY = "shared-secret";
   if (shared) {
-    sessionStorage.setItem(LOCAL_KEY, shared);
+    const out = toB64urlQuery(shared);
+    sessionStorage.setItem(LOCAL_KEY, out);
     return shared;
   }
-  return sessionStorage.getItem(LOCAL_KEY);
+  const out = sessionStorage.getItem(LOCAL_KEY);
+  return out ? fromB64urlQuery(out) : null;
 }
 
-const toAppCode = (code) => {
-  const LOCAL_KEY = "new-app-code";
-  if (code) {
-    sessionStorage.setItem(LOCAL_KEY, code);
-    return code;
-  }
-  return sessionStorage.getItem(LOCAL_KEY);
+const clearSharedCache = () => {
+  const LOCAL_KEY = "shared-secret";
+  return sessionStorage.removeItem(LOCAL_KEY);
 }
 
-const toAppPublic = async (code_in) => {
-  const password = toSharedCache();
-  const S = toServerAuthCache();
-  const code = toAppCode(code_in);
-  if (code && S && password) {
-    const C = await encryptSecrets({
-      password, secret_text: code
-    });
-    const U__C = { command: 'U__C', tree: C };
-    const U__S = { command: 'U__S', tree: S };
-    return fromCommandTreeList([ U__C, U__S ]);
-  }
-  return "";
+const toAppPublic = async (code) => {
+  const cache = toSharedCache();
+  if (!cache) return "";
+  const { token } = cache;
+  const { server_auth_data: S } = cache;
+  if (!code || !S || !token) return "";
+  const C = await encryptSecrets({
+    password: token, secret_text: code
+  });
+  const U__C = { command: 'U__C', tree: C };
+  const U__S = { command: 'U__S', tree: S };
+  return fromCommandTreeList([ U__C, U__S ]);
 }
 
 export { 
   toPub,
-  toSharedCache,
-  toServerAuthCache,
   toAppPublic,
+  toSharedCache,
+  clearSharedCache
 };

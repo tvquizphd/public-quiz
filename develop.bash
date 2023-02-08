@@ -7,17 +7,13 @@ REMOTE=$(sed -r "s@.*[:/](.+/.+)@\1@" <<< $GIT_URL)
 DEPLOYMENT="DEVELOPMENT-TEST"
 export DEPLOYMENT
 export REMOTE
-if [ "$1" == "MAIL" ]; then
-  pnpm develop DEV INBOX 
-  exit 0
-fi
 SERVER_URL="\"localhost:8000\""
 SERVER_CMD="\"npx http-server docs\""
 WIKI_IN="./tmp-dev"
 CSV="./docs/environment.csv"
 SECRET_TXT="./secret.txt"
 CLIENT_IN="./docs/pub.txt"
-CLIENT_OUT=$WIKI_IN/dev.txt
+CLIENT_OUT=$WIKI_IN/msg.txt
 mkdir -p $WIKI_IN
 echo "REMOTE,$REMOTE" > $CSV
 echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
@@ -34,6 +30,7 @@ waiter () {
 }
 
 enter () {
+  pnpm develop DEV INBOX 
   pnpm develop DEV OPEN
   WORK=$(head -n 1 $1)
   PUB_CTLI=$(head -n 1 $CLIENT_IN)
@@ -47,15 +44,15 @@ enter () {
   pnpm develop LOGIN CLOSE OUTBOX $WORK
   # Must send clients, servers, secrets
   echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN
+  echo "" > $1
 }
 
 if [ ! -z $SESSION ]; then
   enter $CLIENT_OUT
   exit 0
 fi
-echo "" > $CLIENT_IN
 echo "" > .env
-echo "" > $CLIENT_OUT
+echo "" > $CLIENT_IN
 
 pnpm develop SETUP PUB OPAQUE 
 echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN

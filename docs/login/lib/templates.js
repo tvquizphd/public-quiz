@@ -23,7 +23,7 @@ const navTemplate = (inputs) => {
   const slash = '<div class="slash">/</div>'
   const handlers = labels.map((label, i, a) => {
     const range = [...new Array(a.length - i).keys()]; 
-    const action = (i) => {
+    const action = () => {
       if (resetter) resetter(i);
       range.map(stepBack);
     }

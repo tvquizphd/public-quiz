@@ -61,9 +61,8 @@ const tryDecryptSecret = (opts: DSI & HasError) => {
     return decryptSecret(opts);
   }
   catch {
-    throw new Error(opts.error); //TODO
+    throw new Error(opts.error);
   }
-
 }
 
 const decryptSecret = ({ key, data }: DSI) => {

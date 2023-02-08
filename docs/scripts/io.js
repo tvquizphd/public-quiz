@@ -15,25 +15,6 @@ async function toOpaqueSock(opts, workflow) {
   return { Opaque, Sock };
 }
 
-const toMailMapper = (decrypt, tag) => {
-  const command = ["mail", tag].join("__");
-  return async (ctli) => {
-    return await ctli.reduce(async (memo, cti) => {
-      const out = await memo;
-      try {
-        const ct = await decrypt(cti);
-        return [...out, ct]; 
-      }
-      catch {
-        if (cti.command === command) {
-          throw new Error(`Error reading ${cti.command}`);
-        }
-      }
-      return out;
-    }, []);
-  }
-}
-
 const toSyncOp = async () => {
   return await OPS();
 }
@@ -70,7 +51,7 @@ const readFile = async (opts) => {
   const { root, fname } = opts;
   const toF = root.getFileHandle.bind(root);
   const f = await toF(fname, { create: true });
-  return await f.text();
+  return await (await f.getFile()).text();
 }
 
 const writeFile = async (opts) => {
@@ -86,22 +67,7 @@ const toGitHubDelay = (local) => {
   return local ? 0.1 : 0.5;
 }
 
-const fetchNoLocalCache = () => {
-  const fetch_handler = {
-    apply: function(_fetch, _, [resource, opts]) {
-      const cache = 'cache-control';
-      const h = opts?.headers || {};
-      const found = Object.keys(h).find(k => {
-        return k.localeCompare(cache) === 1;
-      });
-      if (opts && !found) h[cache] = 'no-cache';
-      return _fetch(resource, opts);
-    }
-  }
-  return new Proxy(window.fetch, fetch_handler);
-}
-
 export { 
   clientLogin, toSyncOp, writeText, writeFile, readFile,
-  toMailMapper, toGitHubDelay, fetchNoLocalCache
+  toGitHubDelay 
 };

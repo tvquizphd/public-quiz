@@ -218,8 +218,9 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
     owner_token: toGitToken(prod, inst),
   }
   const dev_config: DevConfig = {
-    home: "dev.txt",
-    tmp: "tmp-dev"
+    vars: "vars.txt",
+    msg: "msg.txt",
+    dir: "tmp-dev"
   }
   const delay = 0.2; // 200ms sec
   if (!prod) {

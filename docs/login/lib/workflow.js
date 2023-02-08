@@ -1,4 +1,3 @@
-import { writeFile } from "io";
 
 class Workflow  {
 
@@ -64,12 +63,9 @@ class Workflow  {
     const new_combo = (_, u_id) => {
       return !matches.includes(u_id);
     };
-    const resetter = (i) => {
+    const resetter = async (i) => {
       if (i !== 1) return;
       this.DATA.reset = true;
-      const { dev_dir: root } = this.DATA;
-      const { dev_init_file: fname } = this.DATA;
-      writeFile({ root, fname, text: "LOGIN" });
     }
     const roots = [
       [{
@@ -253,8 +249,6 @@ class Workflow  {
     this.DATA.step = 2 * step + bool;
   }
   async setDevHandle(root) {
-    const { dev_init_file: fname } = this.DATA;
-    await writeFile({ root, fname, text: "LOGIN" })
     this.DATA.dev_dir = root;
   }
 }

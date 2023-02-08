@@ -18,8 +18,9 @@ import type { Encrypted, Secrets } from "./encrypt.js";
 
 export type HasGit = { git: Git }
 export type DevConfig = {
-  home: string,
-  tmp: string
+  vars: string,
+  msg: string,
+  dir: string
 }
 export type UserIn = HasGit & {
   delay: number,
@@ -80,7 +81,7 @@ interface ReadLoginEnd {
   (u: UserIn): Promise<boolean>;
 }
 interface UseTempFile {
-  (i: DevConfig): string; 
+  (i: DevConfig, k: 'msg' | 'vars'): string; 
 }
 export type NameTree = {
   command: string,
@@ -148,23 +149,30 @@ function isLoginEnd(nt: TreeAny): nt is LoginEnd {
   return o.Au instanceof Uint8Array;
 }
 
-const useTempFile: UseTempFile = (dev_config) => {
-  const { tmp, home } = dev_config;
-  const tmp_dir = path.relative(process.cwd(), tmp);
-  return path.join(tmp_dir, home);
+const useTempFile: UseTempFile = (dev_config, k) => {
+  const dir = dev_config.dir;
+  const fname = dev_config[k];
+  const tmp_dir = path.relative(process.cwd(), dir);
+  return path.join(tmp_dir, fname);
 }
 
-const toReader = (dev_config: DevConfig) => {
-  const src = useTempFile(dev_config);
-  const encoding = 'utf-8';
+const toReadDevMsg = (dev_config: DevConfig) => {
+  const src = useTempFile(dev_config, 'msg' as const);
   return async () => {
-    return fs.readFileSync(src, { encoding });
+    return fs.readFileSync(src, { encoding: 'utf-8' });
+  }
+}
+
+const toReadDevVars = (dev_config: DevConfig) => {
+  const src = useTempFile(dev_config, 'vars' as const);
+  return async () => {
+    return fs.readFileSync(src, { encoding: 'utf-8' });
   }
 }
 
 const readUserApp: ReadUserApp = async (user_in) => {
   const { git, prod, delay, dev_config } = user_in;
-  const file_in = { read: toReader(dev_config) }; 
+  const file_in = { read: toReadDevMsg(dev_config) }; 
   const release_in = { git };
   const input = prod ? release_in : file_in;
   const sock = await toSockClient({ input, delay });
@@ -267,7 +275,7 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
     return;
   }
   const { shared } = session;
-  const text = await toReader(dev_config)();
+  const text = await toReadDevVars(dev_config)();
   const found = toCommandTreeList(text).find(ct => {
     return ct.command === table;
   });
@@ -277,18 +285,20 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
   const { tree } = found;
   try {
     parseInbox({ tree, shared });
+    process.env[table] = toB64urlQuery(tree);
   }
   catch {
-    console.log('No passwords in dev inbox');
+    console.log('Cannot read dev inbox');
   }
-  process.env[table] = toB64urlQuery(tree);
+  const v_src = useTempFile(dev_config, 'vars' as const);
+  fs.truncateSync(v_src, 0);
 }
 
 const readLoginStart: ReadLoginStart = async (ins) => {
   if (ins.prod) {
     throw new Error('This command is not available in production.');
   }
-  const input = { read: toReader(ins.dev_config) }; 
+  const input = { read: toReadDevMsg(ins.dev_config) }; 
   const sock = await toSockClient({ input, delay: ins.delay });
   const tree = await sock.get("op:pake", "client_auth_data");
   sock.quit();
@@ -299,7 +309,7 @@ const readLoginEnd: ReadLoginEnd = async (ins) => {
   if (ins.prod) {
     throw new Error('This command is not available in production.');
   }
-  const input = { read: toReader(ins.dev_config) }; 
+  const input = { read: toReadDevMsg(ins.dev_config) }; 
   const sock = await toSockClient({ input, delay: ins.delay });
   const tree = await sock.get("op:pake", "client_auth_result");
   sock.quit();

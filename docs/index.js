@@ -1,11 +1,12 @@
 import { 
-  toPub, toSharedCache, toServerAuthCache, toAppPublic
+  toPub, clearSharedCache, toSharedCache, toAppPublic
 } from "pub";
-import { toSockClient } from "sock-secret";
+import { OP } from "opaque-low-io";
+import { toSockServer, toSockClient } from "sock-secret";
+import { fromCommandTreeList } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 import { toSyncOp, clientLogin } from "io";
 import { toGitHubDelay, writeFile } from "io";
-import { fetchNoLocalCache } from "io";
 import { encryptSecrets } from "encrypt";
 import { decryptQuery } from "decrypt";
 import { templates } from "templates";
@@ -58,23 +59,34 @@ const parseSearch = (state, { search }) => {
   return { ...out, state };
 }
 
-const useSearch = async (search, app_manifest) => {
+const useSearch = () => {
+  const search = parseSearch(toPub(), window.location);
   const needs_1 = [
     typeof search?.state === "string",
     typeof search?.code === "string",
+    toSharedCache()
   ]
-  if (needs_1.every(v => v) && toSharedCache()) {
-    const pub_str = await toAppPublic(search.code);
-    return { first: 1, pub_str, app_str: "" };
+  const { state } = search;
+  if (needs_1.every(v => v)) {
+    const { code } = search;
+    return { first: 1, state, code };
   }
-  const app_val = JSON.stringify(app_manifest);
-  const app_root = `https://github.com/settings/apps/new?`;
-  const app_str = app_root + (new URLSearchParams({
-    state: search.state,
-    manifest: app_val,
-  })).toString();
-  toSharedCache("");
-  return { first: 0, app_str, pub_str: "" };
+  clearSharedCache();
+  return { first: 0, state, code: null };
+}
+
+const verifyServer = async (appo) => {
+  const tmp_cmd = "op:pake__client_auth_result";
+  const inputs = [{ command: tmp_cmd, tree: appo }];
+  const tmp_sock = await toSockServer({ inputs });
+  const tmp_op = await OP(tmp_sock);
+  const cached = toSharedCache();
+  try {
+    return (await tmp_op.serverStep(cached, 'op')).token;
+  }
+  catch {
+    throw new Error('Can\'t verify server!');
+  }
 }
 
 const runReef = (dev, remote, env) => {
@@ -112,12 +124,10 @@ const runReef = (dev, remote, env) => {
     app_name,
     pub_str: "",
     app_str: "",
-    Au: null, //TODO
     local: dev !== null,
     delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
-    dev_init_file: "init.txt",
-    dev_file: "dev.txt",
+    dev_file: "msg.txt",
     user_id: "root",
     dev_dir: null,
     unchecked: true,
@@ -146,6 +156,13 @@ const runReef = (dev, remote, env) => {
     const result = await fetch(pub, { headers });
     return await (result).text();
   }
+  const readDevDir = async () => {
+    const command = "dev__in";
+    const ok = DATA.dev_dir !== null;
+    const ct = { command, tree: { ok } }
+    const ctli = ok ? [ct] : [];
+    return fromCommandTreeList(ctli);
+  }
   const writeLocal = async (text) => {
     const root = DATA.dev_dir;
     const fname = DATA.dev_file;
@@ -154,13 +171,16 @@ const runReef = (dev, remote, env) => {
     }
   }
   const readSearch = async () => {
-    const search = parseSearch(toPub(), window.location);
-    const opts = await useSearch(search, MANIFEST);
-    const { first, app_str, pub_str } = opts;
-    DATA.app_str = app_str;
-    DATA.pub_str = pub_str;
+    const { first, state } = useSearch();
+    const manifest = JSON.stringify(MANIFEST);
+    const app_root = `https://github.com/settings/apps/new?`;
+    if (state) {
+      const q = new URLSearchParams({ state, manifest });
+      const app_str = app_root + q.toString();
+      DATA.app_str = app_str;
+    }
     DATA.step = first;
-    return first;
+    return { first };
   }
   const props = { DATA, templates };
   const workflow = new Workflow(props);
@@ -169,44 +189,50 @@ const runReef = (dev, remote, env) => {
     const local_in = { read: readLocal }; 
     const { user_id, git, local, delay } = DATA;
     const input = local ? local_in : { git };
-    const pub_sock = {
-      input, output: null, delay
-    }
-    const PubSock = await toSockClient(pub_sock);
+    const pub_sock = { input, output: null, delay };
+    const sock = await toSockClient(pub_sock);
     if (first_step === 0) {
       const Opaque = await toSyncOp();
       const { toServerPepper, toServerSecret } = Opaque;
-      const appi = await PubSock.get("app", "in");
+      const appi = await sock.get("app", "in");
       const { client_auth_data } = appi;
       const { pw } = client_auth_data;
       const pepper_in = { user_id, pw };
       const { pepper } = toServerPepper(pepper_in);
       const out = toServerSecret({ pepper, client_auth_data });
-      toServerAuthCache(out.server_auth_data);
-      toSharedCache(out.token);
-      await readSearch();
+      toSharedCache(out);
+      DATA.step = useSearch().first;
     }
-    const appo = await PubSock.get("app", "out");
-    const { client_auth_result } = appo;
-    DATA.Au = client_auth_result.Au;
-    const appa = await PubSock.get("app", "auth")
+    const { code } = useSearch();
+    DATA.pub_str = await toAppPublic(code);
+    if (DATA.local) {
+      const input = { read: readDevDir };
+      const d_in = { input, output: null, delay };
+      const d_sock = await toSockClient(d_in);
+      await d_sock.get("dev", "in");
+      await writeLocal(DATA.pub_str);
+      d_sock.quit();
+    }
+    const appo = await sock.get("app", "out");
+    const shared = await verifyServer(appo);
+    const appa = await sock.get("app", "auth")
     const enc_str = toB64urlQuery(appa);
-    const shared = toSharedCache();
-    PubSock.quit();
-    if (!shared) return cleanRefresh();
+    sock.quit();
     try {
       const token = await decryptQuery(enc_str, shared)
       DATA.git.owner_token = token.plain_text;
       DATA.step = final_step - 1;
     }
     catch (e) {
-      console.error(e.message);
+      throw new Error(e.message);
     }
   }
   const cleanRefresh = () => {
     DATA.loading = { ...NO_LOADING };
-    readSearch().then((first_step) => {
-      mailerStart(first_step);
+    readSearch().then(({ first }) => {
+      mailerStart(first);
+    }).catch(({ message }) => {
+      DATA.modal = { error: true, message };
     });
   }
   cleanRefresh();
@@ -232,10 +258,11 @@ const runReef = (dev, remote, env) => {
     const input = local ? local_in : { git };
     const op_out = local ? local_out : { git, key: "op" };
     await clientLogin({ input, output: op_out, user_id, pass, times, delay });
+    const { token: secret_text } = toSharedCache();
     DATA.loading.finish = false;
     const to_encrypt = {
       password: pass,
-      secret_text: toSharedCache(),
+      secret_text
     }
     return await encryptSecrets(to_encrypt);
   }
@@ -310,10 +337,4 @@ export default () => {
     runReef(dev, remote, env);
     //runReef(null, remote, "PRODUCTION-LOGIN");
   });
-  /*
-   * Block browser cache
-   * We know "octokit/request.js" uses fetch
-   * But they overreact to normal cache-control
-   */
-  window.fetch = fetchNoLocalCache()
 };
