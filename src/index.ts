@@ -228,22 +228,11 @@ const useSecrets = (stages: Stages, out: ClientSecretOut, app: AppOutput) => {
   }
 }
 
-const toEnvGit = (remote: Duo): Git => {
+const useGitFromEnv = (remote: Duo): Git => {
   return {
     repo: remote[1],
     owner: remote[0],
     owner_token: process.env.GITHUB_TOKEN || ''
-  }
-}
-
-const toGitToken = (prod: boolean, inst: string) => {
-  if (!prod) return "";
-  try {
-    const { installed } = toInstallation(inst);
-    return installed.token;
-  }
-  catch {
-    return process.env.GITHUB_TOKEN || '';
   }
 }
 
@@ -297,7 +286,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
     logs.push(toError(Log.error, message));
     return { logs };
   }
-  const egit = toEnvGit(remote);
+  const egit = useGitFromEnv(remote);
   const dev_config: DevConfig = {
     vars: "vars.txt",
     msg: "msg.txt",
