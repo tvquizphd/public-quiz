@@ -1,4 +1,4 @@
-import type { Git, Trio } from "./util/types.js";
+import type { Trio } from "./util/types.js";
 import type { Installation, HasToken } from "./create.js";
 import type { CommandTreeList } from "sock-secret";
 import type { LoginStart, LoginEnd } from "./util/pasted.js";
@@ -11,22 +11,16 @@ export declare type MailTypes = Record<MailKeys, string>;
 interface ToSyncOp {
     (): Promise<Ops>;
 }
-declare type SecretOut = {
+export declare type SecretOut = {
+    secrets: CommandTreeList;
     for_pages: string;
     for_next: string;
 };
-declare type ConfigIn = {
-    pep: string;
-    env: string;
-    git: Git;
-};
 declare type RegisterInputs = {
+    pep: string;
     tree: LoginStart;
-    delay: number;
 };
 declare type Inputs = {
-    delay: number;
-    log_in: ConfigIn;
     commands: Commands;
 };
 declare type InputsFirst = Inputs & RegisterInputs & {
@@ -37,7 +31,6 @@ declare type InputsFirst = Inputs & RegisterInputs & {
 declare type InputsFinal = Inputs & {
     final: ServerFinal;
     tree: LoginEnd;
-    ses: string;
 };
 declare type InputsUpdateUser = {
     mail_types: MailTypes;
@@ -45,10 +38,7 @@ declare type InputsUpdateUser = {
     installation: Installation;
 };
 declare type InputsMail = HasToken & {
-    git: Git;
     table: string;
-    delay: number;
-    env: string;
     trio: Trio;
     mail_types: MailTypes;
     installation: Installation;

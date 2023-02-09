@@ -21,7 +21,7 @@ export declare type UserIn = HasGit & {
 declare type HasSessionHash = {
     session_hash: Uint8Array;
 };
-declare type InstallIn = HasGit & {
+export declare type InstallIn = HasGit & {
     delay: number;
     app: AppOutput;
 };
@@ -44,7 +44,11 @@ declare type InboxIn = {
     table: string;
 };
 declare type DevInboxIn = InboxIn & {
-    user_in: UserIn;
+    dev_config: DevConfig;
+};
+declare type DevMessageIn = {
+    delay: number;
+    dev_config: DevConfig;
 };
 interface ReadUserInstall {
     (u: InstallIn): Promise<UserInstall>;
@@ -56,13 +60,10 @@ interface ReadInbox {
     (u: InboxIn): Promise<Trio>;
 }
 interface ReadDevInbox {
-    (u: DevInboxIn): Promise<void>;
+    (u: DevInboxIn): Promise<boolean>;
 }
-interface ReadLoginStart {
-    (u: UserIn): Promise<boolean>;
-}
-interface ReadLoginEnd {
-    (u: UserIn): Promise<boolean>;
+interface ReadDevMessage {
+    (u: DevMessageIn): Promise<boolean>;
 }
 export declare type NameTree = {
     command: string;
@@ -71,28 +72,33 @@ export declare type NameTree = {
 interface ToNameTree {
     (t: string): NameTree;
 }
+interface UseGitInstalled {
+    (git: Git, i: {
+        installed: Installed;
+    }): Git;
+}
 export declare type HasShared = {
     shared: string;
+};
+export declare type LoginStart = {
+    client_auth_data: NewClientOut["client_auth_data"];
+};
+export declare type LoginEnd = {
+    client_auth_result: ClientOut["client_auth_result"];
 };
 declare function hasShared(u: TreeAny): u is HasShared;
 declare function hasSessionHash(u: TreeAny): u is HasSessionHash;
 declare function isEncrypted(d: TreeAny): d is Encrypted;
-export declare type LoginStart = {
-    client_auth_data: NewClientOut["client_auth_data"];
-};
 declare function isLoginStart(nt: TreeAny): nt is LoginStart;
-export declare type LoginEnd = {
-    client_auth_result: ClientOut["client_auth_result"];
-};
 declare function isLoginEnd(nt: TreeAny): nt is LoginEnd;
 declare const readUserApp: ReadUserApp;
 declare const toBytes: (s: string) => Uint8Array;
-declare const useGitInstalled: (git: Git, installed: Installed) => Git;
+declare const useGitInstalled: UseGitInstalled;
 declare const toInstallation: (inst: string) => import("../create.js").Installation;
 declare const readInbox: ReadInbox;
 declare const readDevInbox: ReadDevInbox;
-declare const readLoginStart: ReadLoginStart;
-declare const readLoginEnd: ReadLoginEnd;
+declare const readLoginStart: ReadDevMessage;
+declare const readLoginEnd: ReadDevMessage;
 declare const readUserInstall: ReadUserInstall;
 declare const toNameTree: ToNameTree;
 export { readUserApp, readUserInstall, isEncrypted, hasShared, isLoginStart, isLoginEnd, toNameTree, useGitInstalled, readLoginStart, readLoginEnd, readDevInbox, toBytes, toInstallation, readInbox, hasSessionHash };

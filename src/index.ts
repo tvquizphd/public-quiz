@@ -17,32 +17,44 @@ import dotenv from "dotenv";
 import argon2 from 'argon2';
 import fs from "fs";
 
-import type { Commands } from "./verify.js";
-import type { HasShared, DevConfig, LoginEnd } from "./util/pasted.js";
+import type { Git, Duo } from "./util/types.js";
+import type { SetInputs } from "./util/secrets.js";
+import type { SecretOut, Commands } from "./verify.js";
+import type {
+  InstallIn, HasShared, DevConfig, LoginEnd, UserIn
+} from "./util/pasted.js";
 import type { AppOutput, Installation } from "./create.js";
 import type { NewClientOut } from "opaque-low-io";
 import type { TreeAny, NameTree, CommandTreeList } from "sock-secret"
 import type { ServerFinal } from "opaque-low-io";
 
-type Log = "log" | "error";
 type Result = {
-  success: boolean,
-  message: string
-}
-type SecretOutputs = {
-  for_pages: string,
-  for_next: string,
+  logs: LogItem[]
 }
 type StageKeys = (
   "PUB" | "STEP" | "APP" | "OUT"
 )
 type Stages = Record<StageKeys, string> 
 type Found = NameTree | undefined
+type NewAppIn = {
+  user_in: UserIn,
+  client_state: ClientState
+}
+type NewAppOut = {
+  code: string,
+  secret_out: ClientSecretOut
+}
+interface ToNewApp {
+  (i: NewAppIn): Promise<NewAppOut | number>;
+}
+interface ToNewInst {
+  (i: HasShared & InstallIn): Promise<Installation>;
+}
 interface CanResetUser {
   (o: { shared: string, ct: Found }): Promise<boolean>;
 }
-interface WriteSecretText {
-  (i: Partial<SecretOutputs>): void;
+interface WriteOut {
+  (i: Partial<SecretOut>): void;
 }
 type ClientState = {
   r: Uint8Array,
@@ -55,9 +67,45 @@ type ClientSecretOut = LoginEnd & {
 type TokenIn = HasShared & LoginEnd & {
   app: AppOutput
 };
+interface UseError {
+  (l: ErrorLevel, m: unknown): ErrorItem;
+}
+interface ToError {
+  (l: ErrorLevel, m: string): ErrorItem;
+}
+interface ToDebug {
+  (l: DebugLevel, m: string): DebugItem;
+}
+type ErrorLevel = Log.error | Log.fatal;
+type DebugLevel = Log.trace | Log.debug | Log.info;
+enum Log {
+  trace, debug, info, error, fatal
+}
+type ErrorItem = {
+  level: ErrorLevel,
+  obj: Error
+}
+type DebugItem = {
+  level: DebugLevel,
+  obj: { message: string, date: Date }
+}
+type LogItem = ErrorItem | DebugItem;
 
+function isErrorItem(u: LogItem): u is ErrorItem {
+  return (u as ErrorItem).obj instanceof Error;
+}
 function isNumber(u: unknown): u is number {
   return typeof u === "number";
+}
+const useError: UseError = (level, obj) => {
+  if (obj instanceof Error) return { level, obj };
+  return { level, obj: new Error("Unknown Error") };
+}
+const toError: ToError = (level, message) => {
+  return useError(level, new Error(message));
+}
+const toDebug: ToDebug = (level, message) => {
+  return { level, obj: { message, date: new Date() } };
 }
 
 function isServerFinal(o: TreeAny): o is ServerFinal {
@@ -98,6 +146,31 @@ function isTokenInputs (u: TreeAny): u is TokenIn {
   return needs.every(v => v);
 }
 
+const toNewApp: ToNewApp = async (opts) => {
+  const { user_in, client_state } = opts;
+  const user_out = await readUserApp(user_in);
+  const { C, S: server_auth_data } = user_out;
+  const { r, xu, mask } = client_state;
+  const times = 1000; //Must match client
+  const { toClientSecret } = await toSyncOp();
+  const client_in = { r, xu, mask, server_auth_data };
+  const secret_out = toClientSecret(client_in, times);
+  if (isNumber(secret_out)) {
+    return secret_out;
+  }
+  const shared = secret_out.token;
+  const c = decryptQuery(toB64urlQuery(C), shared);
+  const code = (await c).plain_text;
+  return { code, secret_out };
+}
+
+const toNewInst: ToNewInst = async (install_in) => {
+  const install = await readUserInstall(install_in);
+  const installed = await toInstall(install);
+  const { shared, app } = install_in;
+  return { installed, shared, app };
+}
+
 const canResetUser: CanResetUser = async ({ shared, ct }) => {
   if (!ct || !hasSessionHash(ct.tree)) {
     return false;
@@ -113,12 +186,11 @@ const toNewPassword = () => {
   return (Buffer.from(bytes)).toString('base64');
 }
 
-const writeSecretText: WriteSecretText = (inputs) => {
+const writeOut: WriteOut = (inputs) => {
   const out_file = "secret.txt";
   const a = inputs?.for_pages || "";
   const b = inputs?.for_next || "";
   fs.writeFileSync(out_file, `${a}\n${b}`);
-  console.log(`Wrote to ${out_file}.`);
 }
 
 const toNew = (stages: Stages, opts: NewClientOut) => {
@@ -156,6 +228,14 @@ const useSecrets = (stages: Stages, out: ClientSecretOut, app: AppOutput) => {
   }
 }
 
+const toEnvGit = (remote: Duo): Git => {
+  return {
+    repo: remote[1],
+    owner: remote[0],
+    owner_token: process.env.GITHUB_TOKEN || ''
+  }
+}
+
 const toGitToken = (prod: boolean, inst: string) => {
   if (!prod) return "";
   try {
@@ -175,10 +255,13 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
 }
 
 (async (): Promise<Result> => {
+  const logs: LogItem[] = [];
+  const out: [Git, CommandTreeList][] = [];
   const args = process.argv.slice(2);
   if (args.length < 1) {
-    const message = "Missing 1st arg: MY_TOKEN";
-    return { success: false, message };
+    const message = "Input is missing arguments.";
+    logs.push(toError(Log.error, message));
+    return { logs };
   }
   const commands: Commands = {
     OPEN_IN: "op:pake__client_auth_data",
@@ -196,27 +279,25 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
   const ses = "ROOT__SESSION";
   const pep = "ROOT__PEPPER";
   const inst = "ROOT__INSTALLATION";
-  const env_all = [ses, pep, table, inst, ...final_env];
   const remote = process.env.REMOTE?.split("/") || [];
   const env = process.env.DEPLOYMENT || "";
   const prod = isProduction(env);
   if (!isDuo(remote)) {
     const message = "Invalid env: REMOTE";
-    return { success: false, message };
+    logs.push(toError(Log.error, message));
+    return { logs };
   }
   if (env.length < 1) {
     const message = "Invalid env: DEPLOYMENT";
-    return { success: false, message };
+    logs.push(toError(Log.error, message));
+    return { logs };
   }
   if (![isFive, isQuad, isTrio, isDuo].some(fn => fn(args))) {
     const message = "2 to 5 arguments required";
-    return { success: false, message };
+    logs.push(toError(Log.error, message));
+    return { logs };
   }
-  const git = {
-    repo: remote[1],
-    owner: remote[0],
-    owner_token: toGitToken(prod, inst),
-  }
+  const egit = toEnvGit(remote);
   const dev_config: DevConfig = {
     vars: "vars.txt",
     msg: "msg.txt",
@@ -224,20 +305,17 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
   }
   const delay = 0.2; // 200ms sec
   if (!prod) {
-    console.log('DEVELOPMENT\n');
+    logs.push(toDebug(Log.debug, 'DEVELOPMENT'));
     dotenv.config();
   }
   else {
-    console.log('PRODUCTION\n');
+    logs.push(toDebug(Log.debug, 'PRODUCTION'));
   }
-  const v_in = { git, env };
   const share = isFive(args) && args[0] === "SHARE";
   const login = isQuad(args) && args[0] === "LOGIN";
   const setup = isTrio(args) && args[0] === "SETUP";
   const update = isTrio(args) && args[0] === "UPDATE";
   const dev = isDuo(args) && args[0] === "DEV";
-  const log_in = { ...v_in, pep, reset: false };
-  const user_in = { git, prod, delay, dev_config };
   const mail_types = {
     SESSION: "mail__session", USER: "mail__user"
   };
@@ -249,7 +327,8 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
         return [ SESSION, USER, NOOP ].includes(ct.command);
       });
       if (mail_ctli.length !== pub_ctli.length) {
-        console.warn("Unexpected public text.");
+        const message = 'Unexpected public text.';
+        logs.push(toError(Log.error, message));
       }
       const found = toCommandTreeList(args[2]).find((ct) => {
         return ct.command === SESSION;
@@ -257,167 +336,169 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
       const preface: CommandTreeList = [];
       if (found && isObjAny(found.tree.data)) {
         if (!isEncrypted(found.tree.data)) {
-          console.warn("Unusual mail in public text.");
+          const message = 'Unencrypted mail in public text.';
+          logs.push(toError(Log.error, message));
         }
         else {
           preface.push(found);
         }
       }
       else {
-        console.warn("No mail in public text.");
+        const message = 'No mail in public text.';
+        logs.push(toDebug(Log.info, message));
       }
       try {
         const old_installation = toInstallation(inst);
         const { app, shared } = old_installation;
-        const install_in = { git, app, delay };
-        const install = await readUserInstall(install_in);
-        const installed = await toInstall(install);
-        const igit = useGitInstalled(git, installed);
-        const installation: Installation = { 
-          installed, shared, app
-        };
-        await setSecret({
-          delay, git: igit, env, tree: installation, command: inst
-        });
+        const inst_in = { shared, app, git: egit, delay };
+        const installation = await toNewInst(inst_in);
+        const igit = useGitInstalled(egit, installation);
+        const secrets = [{ command: inst, tree: installation }];
+        out.push([igit, secrets]);
         const mail_in = { 
           installation, mail_types, preface 
         }
-        writeSecretText(await updateUser(mail_in));
-        console.log('Updated App installation.');
+        writeOut(await updateUser(mail_in));
+        const message = 'Updated App installation.';
+        logs.push(toDebug(Log.info, message));
       }
-      catch (e: any) {
-        console.error(e?.message);
-        const message = "Unable to update";
-        return { success: false, message };
+      catch (e) {
+        logs.push(useError(Log.error, e));
       }
     }
   }
-  else if (dev) {
+  else if (dev && !prod) {
     try {
       if (args[1] === "INBOX") {
-        await readDevInbox({ user_in, ses, table });
+        const dev_inbox_in = { dev_config, ses, table };
+        const copied = await readDevInbox(dev_inbox_in);
+        const message = 'Found no dev inbox to copy.';
+        if (!copied) logs.push(toDebug(Log.info, message));
+        else logs.push(toDebug(Log.debug, 'Copied dev inbox.'))
       }
       if (args[1] === "OPEN") {
-        await readLoginStart(user_in);
+        await readLoginStart({ dev_config, delay });
       }
       else if (args[1] === "CLOSE") {
-        await readLoginEnd(user_in);
+        await readLoginEnd({ dev_config, delay });
       }
     }
-    catch (e: any) {
-      console.error(e?.message);
-      const message = "Unable to verify";
-      return { success: false, message };
+    catch (e) {
+      logs.push(useError(Log.error, e));
     }
   }
   else if (share) {
-    const git_token = args[1];
     const release_id = parseInt(args[2]);
     const body = [args[3], args[4]].join('\n\n');
-    const basic_git = { 
-      repo: git.repo,
-      owner: git.owner,
-      owner_token: git_token
-    }
+    const git = { ...egit, owner_token: args[1] };
     try {
       if (isNaN(release_id)) {
         throw new Error('Invalid Release ID');
       }
-      await vShare({ git: basic_git, body, release_id });
+      await vShare({ git, body, release_id });
     }
-    catch (e: any) {
-      console.error(e?.message);
-      const message = "Unable to share";
-      return { success: false, message };
+    catch (e) {
+      logs.push(useError(Log.error, e));
     }
   }
   else if (login) {
-    try {
-      if (args[1] === "OPEN") {
-        const pub_ctli = toCommandTreeList(args[2]).filter((ct) => {
-          return [ mail_types.USER ].includes(ct.command);
-        });
-        const found_op = toCommandTreeList(args[3]).find((ct) => {
-          return ct.command === commands.OPEN_IN;
-        });
-        const found_reset = toCommandTreeList(args[3]).find((ct) => {
-          return ct.command === commands.RESET;
-        });
-        if (!found_op || !isLoginStart(found_op.tree)) {
-          throw new Error('No login open command.');
-        }
-        const ses_str = process.env[ses] || "";
-        const session = fromB64urlQuery(ses_str);
-        const shared = (() => {
-          if (!hasShared(session)) return "";
-          return session.shared;
-        })();
-        const reset = await (async () => {
-          const ct = found_reset;
-          if (!shared.length) return false;
-          return await canResetUser({ shared, ct });
-        })();
-        const { tree } = found_op;
-        const start_in = {
-          reset, shared, log_in, delay,
-          commands, tree, pub_ctli
-        };
-        writeSecretText(await vStart(start_in));
-        console.log('Began to verify user.\n');
+    if (args[1] === "OPEN") {
+      const pub_ctli = toCommandTreeList(args[2]).filter((ct) => {
+        return [ mail_types.USER ].includes(ct.command);
+      });
+      const found_op = toCommandTreeList(args[3]).find((ct) => {
+        return ct.command === commands.OPEN_IN;
+      });
+      const found_reset = toCommandTreeList(args[3]).find((ct) => {
+        return ct.command === commands.RESET;
+      });
+      if (!found_op || !isLoginStart(found_op.tree)) {
+        const message = 'No login open command.';
+        logs.push(toError(Log.error, message));
+        return { logs };
       }
-      else if (args[1] === "CLOSE") {
-        const trio = await readInbox({ ses, table });
-        const found = toCommandTreeList(args[3]).find((ct) => {
-          return ct.command === commands.CLOSE_IN;
-        });
-        const opened = toEnvCommands(final_env).find((ct) => {
-          return ct.command === commands.OPEN_NEXT;
-        });
-        const found_shared = toEnvCommands(final_env).find((ct) => {
-          return ct.command === commands.NEW_SHARED;
-        });
-        if (!found || !isLoginEnd(found.tree)) {
-          throw new Error('Invalid workflow inputs.');
-        }
-        if (!opened || !isServerFinal(opened.tree)) {
-          throw new Error('Invalid server inputs.');
-        }
-        const final = opened.tree;
-        const { tree } = found;
-        const end_in = { 
-          final, log_in, delay, commands, tree, ses,
-        };
-        const { token } = await vLogin(end_in);
-        const installation = toInstallation(inst);
-        // Update the shared key as instructed
-        if (found_shared && hasShared(found_shared.tree)) {
-          const { installed } = installation;
-          const igit = useGitInstalled(git, installed);
-          installation.shared = found_shared.tree.shared;
-          await setSecret({ 
-            delay, git: igit, env, tree: installation, command: inst
-          });
-          console.log('Updated shared user key.');
-        }
-        const mail_in = { 
-          git, delay, env, table,
-          installation, mail_types, token, trio
-        }
-        const payload = await vMail(mail_in);
-        writeSecretText(payload);
-        console.log('Verified user.\n');
+      const ses_str = process.env[ses] || "";
+      const session = fromB64urlQuery(ses_str);
+      const shared = (() => {
+        if (!hasShared(session)) return "";
+        return session.shared;
+      })();
+      const reset = await (async () => {
+        const ct = found_reset;
+        if (!shared.length) return false;
+        return await canResetUser({ shared, ct });
+      })();
+      const { tree } = found_op;
+      const start_in = {
+        reset, shared, pep, commands, tree, pub_ctli
+      };
+      try {
+        const payload = await vStart(start_in);
+        out.push([egit, payload.secrets]);
+        writeOut(payload);
+        const verb_level = reset ? Log.info : Log.debug;
+        const verb = reset ? 'Resetting' : 'Using';
+        const message = `${verb} user credentials`;
+        logs.push(toDebug(verb_level, message));
+      }
+      catch (e) {
+        logs.push(useError(Log.error, e));
       }
     }
-    catch (e: any) {
-      console.error(e?.message);
-      const message = "Unable to verify";
-      return { success: false, message };
+    else if (args[1] === "CLOSE") {
+      const found = toCommandTreeList(args[3]).find((ct) => {
+        return ct.command === commands.CLOSE_IN;
+      });
+      const opened = toEnvCommands(final_env).find((ct) => {
+        return ct.command === commands.OPEN_NEXT;
+      });
+      const found_shared = toEnvCommands(final_env).find((ct) => {
+        return ct.command === commands.NEW_SHARED;
+      });
+      if (!found || !isLoginEnd(found.tree)) {
+        const message = 'Invalid workflow inputs.';
+        logs.push(toError(Log.error, message));
+        return { logs };
+      }
+      if (!opened || !isServerFinal(opened.tree)) {
+        const message = 'Invalid server inputs.';
+        logs.push(toError(Log.error, message));
+        return { logs };
+      }
+      const final = opened.tree;
+      const { tree } = found;
+      const end_in = { final, commands, tree };
+      const { token } = await vLogin(end_in);
+      const secrets = [{ tree: { shared: token }, command: ses }];
+      out.push([egit, secrets]);
+      const installation = toInstallation(inst);
+      // Update the shared key as instructed
+      if (found_shared && hasShared(found_shared.tree)) {
+        const igit = useGitInstalled(egit, installation);
+        installation.shared = found_shared.tree.shared;
+        const secrets = [{ tree: installation, command: inst }];
+        out.push([igit, secrets]);
+        const message = 'Updated shared user key.';
+        logs.push(toDebug(Log.debug, message));
+      }
+      try {
+        const trio = await readInbox({ ses, table });
+        const mail_in = { 
+          table, installation, mail_types, token, trio
+        }
+        const igit = useGitInstalled(egit, installation);
+        const payload = await vMail(mail_in);
+        out.push([igit, payload.secrets]);
+        writeOut(payload);
+        logs.push(toDebug(Log.info, 'Login ok.'));
+      }
+      catch (e) {
+        logs.push(useError(Log.error, e));
+      }
     }
   }
   else if (setup) {
     const user_id = "root";
-    const Opaque = await toSyncOp();
-    const { toNewClientAuth, toClientSecret } = Opaque;
     const stages: Stages = {
       PUB: "app__in",
       STEP: "step__in",
@@ -427,49 +508,47 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
     if (args[1] === "PUB") {
       const password = toNewPassword();
       const client_in = { user_id, password };
-      console.log(`Creating new secure public channel.`);
+      const message = 'Creating new secure public channel.';
+      logs.push(toDebug(Log.debug, message));
+      const Opaque = await toSyncOp();
       try {
-        const new_client = toNewClientAuth(client_in);
-        console.log("Created secure public channel.\n");
-        writeSecretText(toNew(stages, new_client));
+        const new_client = Opaque.toNewClientAuth(client_in);
+        const message = 'Created secure public channel.';
+        logs.push(toDebug(Log.info, message));
+        writeOut(toNew(stages, new_client));
       }
-      catch (e: any) {
-        console.error(e?.message);
-        const message = "Error making secure public channel.";
-        return { success: false, message };
+      catch (e) {
+        logs.push(useError(Log.error, e));
       }
     }
-    const times = 1000;
     if (args[1] === "APP") {
       const found = toCommandTreeList(args[2]).find((ct) => {
         return ct.command === stages.STEP;
       });
       if (!found || !isClientState(found.tree)) {
         const message = "Can't create App.";
-        return { success: false, message };
+        logs.push(toError(Log.error, message));
+        return { logs };
       }
-      console.log(`Creating GitHub App.`);
-      const { r, xu, mask } = found.tree;
+      const message = 'Creating GitHub App.';
+      logs.push(toDebug(Log.debug, message));
+      const client_state = found.tree;
+      const user_in = { git: egit, prod, delay, dev_config };
+      const new_app = await toNewApp({ user_in, client_state })
+      if (isNumber(new_app)) {
+        const message = `App Opaque error: ${new_app}`;
+        logs.push(toError(Log.error, message));
+        return { logs };
+      }
       try {
-        const user_out = await readUserApp(user_in);
-        const { C, S: server_auth_data } = user_out;
-        const client_in = { r, xu, mask, server_auth_data };
-        const secret_out = toClientSecret(client_in, times);
-        if (isNumber(secret_out)) {
-          const msg = `Opaque error code: ${secret_out}`;
-          throw new Error(`Error Making App. ${msg}`);
-        }
-        const shared = secret_out.token;
-        const c = decryptQuery(toB64urlQuery(C), shared);
-        const code = (await c).plain_text;
+        const { secret_out, code } = new_app;
         const app_out = await toApp({ code });
-        console.log("Created GitHub App.\n");
-        writeSecretText(useSecrets(stages, secret_out, app_out));
+        const message = 'Created GitHub App.';
+        logs.push(toDebug(Log.info, message));
+        writeOut(useSecrets(stages, secret_out, app_out));
       }
-      catch (e: any) {
-        console.error(e?.message);
-        const message = "Unable to make GitHub App.";
-        return { success: false, message };
+      catch (e) {
+        logs.push(useError(Log.error, e));
       }
     }
     if (args[1] === "TOKEN") {
@@ -478,45 +557,50 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
       });
       if (!found || !isTokenInputs(found.tree)) {
         const message = "Can't create Token.";
-        return { success: false, message };
+        logs.push(toError(Log.error, message));
+         return { logs };
       }
-      console.log(`Creating GitHub Token.`);
+      const message = 'Creating GitHub Token.';
+      logs.push(toDebug(Log.debug, message));
       const { shared, app } = found.tree;
       try {
-        const install_in = { git, app, delay };
-        const install = await readUserInstall(install_in);
-        const installed = await toInstall(install);
-        const igit = useGitInstalled(git, installed);
-        const installation = { installed, shared, app };
-        await setSecret({ 
-          delay, git: igit, env, tree: installation, command: inst
-        });
+        const inst_in = { shared, app, git: egit, delay };
+        const installation = await toNewInst(inst_in);
+        const igit = useGitInstalled(egit, installation);
+        const secrets = [{ tree: installation, command: inst }];
+        out.push([igit, secrets]);
         const tree = await encryptSecrets({
           secret_text: igit.owner_token,
           password: shared
         });
         const command = stages.OUT;
-        console.log("Created GitHub Token.\n");
+        const message = 'Created GitHub Token.';
+        logs.push(toDebug(Log.info, message));
         const { client_auth_result } = found.tree;
         const prev = { client_auth_result };
         const for_pages = fromCommandTreeList([
           { command: stages.APP, tree: prev },
           { command, tree }
         ]);
-        writeSecretText({ for_pages, for_next: "" });
+        writeOut({ for_pages, for_next: "" });
       }
-      catch (e: any) {
-        console.error(e?.message);
-        const message = "Unable to make GitHub Token.";
-        return { success: false, message };
+      catch (e) {
+        logs.push(useError(Log.error, e));
       }
     }
   }
   else {
-    const message = "Unable to match action\n";
-    return { success: false, message };
+    const message = "Unable to match action";
+    logs.push(toError(Log.error, message));
   }
+  const unzipped = out.reduce((o, [ git, ctli ]) => {
+    return ctli.reduce((o, { tree, command }) => {
+      return [...o, { git, env, delay, tree, command }];
+    }, o);
+  }, [] as SetInputs[]);
+  await Promise.all(unzipped.map(setSecret));
   if (!prod) {
+    const env_all = [ses, pep, table, inst, ...final_env];
     const env_vars = env_all.filter((v) => {
       return process.env[v];
     });
@@ -525,19 +609,30 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
     }).join('\n');
     try {
       fs.writeFileSync('.env', new_env);
-      console.log('Wrote new .env file.');
-    } catch (e: any) {
-      console.error(e?.message);
+      const message = 'Wrote new .env file.';
+      logs.push(toDebug(Log.debug, message));
+    } catch (e) {
+      logs.push(useError(Log.error, e));
     }
   }
-  const message = "Action complete!\n";
-  return { success: true, message };
-})().then(({ success, message }: Result) => {
-  const fn: Log = success ? "log": "error";
-  process.exitCode = success ? 0 : 1;
-  console[fn](message);
+  return { logs };
+})().then(({ logs }: Result) => {
+  const fail_if = (x: LogItem) => x.level >= Log.error;
+  const log_if = (x: LogItem) => x.level >= Log.info;
+  const errs = logs.reduce((list, item) => {
+    if (isErrorItem(item) && fail_if(item)) {
+      return [...list, item.obj];
+    }
+    else if (log_if(item)) {
+      console.log('Action:', item.obj.message);
+    }
+    return list;
+  }, [] as Error[]);
+  if (errs.length > 0) {
+    throw new AggregateError(errs, 'ACTION: FAILURE.');
+  }
 }).catch((e: any) => {
-  if (e instanceof Error) console.error(e.message);
+  if (e instanceof AggregateError) console.error(e.message);
   else console.error("Unexpected Error Occured");
   process.exitCode = 1;
 });

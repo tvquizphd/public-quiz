@@ -5,12 +5,12 @@ import { isDuo } from "./types.js";
 import type { Git } from "./types.js";
 import type { NameTree } from "./pasted.js";
 
-type Inputs = {
+export type SecretInputs = {
   delay: number,
   env: string,
   git: Git
 }
-type SetInputs = Inputs & NameTree; 
+export type SetInputs = SecretInputs & NameTree; 
 
 const isProduction = (env: string) => {
   return env.slice(0, 4) === "PROD";

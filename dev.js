@@ -96,12 +96,13 @@ catch (e) {
       logger(0, pre, 'Waited ' + toTimeDelta(state.basis));
     }
     else {
+      const new_basis = Date.now();
       const bash_proc = child.spawn(...args);
       child_procs.add(bash_proc)
       await new Promise(r => bash_proc.on('close', r));
-      logger(0, pre, 'Done in ' + toTimeDelta(state.basis));
+      logger(0, pre, 'Done in ' + toTimeDelta(new_basis));
       await new Promise(r => setTimeout(r, dt));
-      state.basis = Date.now();
+      state.basis = new_basis;
       state.first = false;
     }
   }

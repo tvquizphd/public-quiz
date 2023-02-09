@@ -212,7 +212,6 @@ const toInstall: ToInstall = async (ins) => {
     data = out.data;
   }
   catch(e: any) {
-    console.error(e?.message);
     throw new Error("Error creating access token");
   }
   if(!hasTokenDate(data)) {

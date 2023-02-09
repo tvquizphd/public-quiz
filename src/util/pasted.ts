@@ -30,7 +30,7 @@ export type UserIn = HasGit & {
 type HasSessionHash = {
   session_hash: Uint8Array;
 }
-type InstallIn = HasGit & {
+export type InstallIn = HasGit & {
   delay: number,
   app: AppOutput
 }
@@ -53,7 +53,11 @@ type InboxIn = {
   table: string
 }
 type DevInboxIn = InboxIn & {
-  user_in: UserIn
+  dev_config: DevConfig
+}
+type DevMessageIn = {
+  delay: number,
+  dev_config: DevConfig
 }
 type ParseInboxIn = {
   tree: TreeAny,
@@ -72,13 +76,10 @@ interface ReadInbox {
   (u: InboxIn): Promise<Trio>;
 }
 interface ReadDevInbox {
-  (u: DevInboxIn): Promise<void>;
+  (u: DevInboxIn): Promise<boolean>;
 }
-interface ReadLoginStart {
-  (u: UserIn): Promise<boolean>;
-}
-interface ReadLoginEnd {
-  (u: UserIn): Promise<boolean>;
+interface ReadDevMessage {
+  (u: DevMessageIn): Promise<boolean>;
 }
 interface UseTempFile {
   (i: DevConfig, k: 'msg' | 'vars'): string; 
@@ -90,8 +91,18 @@ export type NameTree = {
 interface ToNameTree {
   (t: string): NameTree;
 }
+interface UseGitInstalled {
+  (git: Git, i: { installed: Installed }): Git
+}
 export type HasShared = {
   shared: string 
+}
+export type LoginStart = {
+  client_auth_data: NewClientOut["client_auth_data"]
+}
+
+export type LoginEnd = {
+  client_auth_result: ClientOut["client_auth_result"]
 }
 
 function hasShared(u: TreeAny): u is HasShared {
@@ -125,9 +136,6 @@ function hasEncrypted(d: TreeAny): d is Secrets {
   return needs.every(v => v);
 }
 
-export type LoginStart = {
-  client_auth_data: NewClientOut["client_auth_data"]
-}
 function isLoginStart (nt: TreeAny): nt is LoginStart {
   const o = (nt as LoginStart).client_auth_data || "";
   if (!isObjAny(o)) return false;
@@ -140,9 +148,6 @@ function isLoginStart (nt: TreeAny): nt is LoginStart {
   return needs.every(v => v);
 }
 
-export type LoginEnd = {
-  client_auth_result: ClientOut["client_auth_result"]
-}
 function isLoginEnd(nt: TreeAny): nt is LoginEnd {
   const o = (nt as LoginEnd).client_auth_result || "";
   if (!isObjAny(o)) return false;
@@ -206,9 +211,9 @@ const toBytes = (s: string) => {
   return new Uint8Array(bytes);
 }
 
-const useGitInstalled = (git: Git, installed: Installed): Git => {
+const useGitInstalled: UseGitInstalled = (git, i) => {
   const { owner, repo } = git;
-  const owner_token = installed.token;
+  const owner_token = i.installed.token;
   return { owner, repo, owner_token };
 }
 
@@ -245,34 +250,20 @@ const readInbox: ReadInbox = async (inputs) => {
   const ses_str = process.env[ses] || "";
   const session = fromB64urlQuery(ses_str);
   if (!hasShared(session)) {
-    console.log('No past session found.');
     return ["", "", ""];
   }
   const { shared } = session;
-  try {
-    const text = process.env[table] || "";
-    const tree = fromB64urlQuery(text);
-    return parseInbox({ tree, shared });
-  }
-  catch(e: any) {
-    if (e instanceof Error) {
-      console.error(e.message);
-    }
-  }
-  return ["", "", ""];
+  const text = process.env[table] || "";
+  const tree = fromB64urlQuery(text);
+  return parseInbox({ tree, shared });
 }
 
 const readDevInbox: ReadDevInbox = async (inputs) => {
-  const { user_in, table, ses } = inputs;
-  const { dev_config } = user_in
-  if (user_in.prod) {
-    throw new Error('This command is not available in production.');
-  }
+  const { dev_config, table, ses } = inputs;
   const ses_str = process.env[ses] || "";
   const session = fromB64urlQuery(ses_str);
   if (!hasShared(session)) {
-    console.log('No past session found.');
-    return;
+    return false;
   }
   const { shared } = session;
   const text = await toReadDevVars(dev_config)();
@@ -280,7 +271,7 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
     return ct.command === table;
   });
   if (!found) {
-    throw new Error('Missing dev inbox');
+    return false;
   }
   const { tree } = found;
   try {
@@ -288,16 +279,14 @@ const readDevInbox: ReadDevInbox = async (inputs) => {
     process.env[table] = toB64urlQuery(tree);
   }
   catch {
-    console.log('Cannot read dev inbox');
+    throw new Error('Cannot decrypt dev inbox');
   }
   const v_src = useTempFile(dev_config, 'vars' as const);
   fs.truncateSync(v_src, 0);
+  return true;
 }
 
-const readLoginStart: ReadLoginStart = async (ins) => {
-  if (ins.prod) {
-    throw new Error('This command is not available in production.');
-  }
+const readLoginStart: ReadDevMessage = async (ins) => {
   const input = { read: toReadDevMsg(ins.dev_config) }; 
   const sock = await toSockClient({ input, delay: ins.delay });
   const tree = await sock.get("op:pake", "client_auth_data");
@@ -305,10 +294,7 @@ const readLoginStart: ReadLoginStart = async (ins) => {
   return isLoginStart(tree || {});
 }
 
-const readLoginEnd: ReadLoginEnd = async (ins) => {
-  if (ins.prod) {
-    throw new Error('This command is not available in production.');
-  }
+const readLoginEnd: ReadDevMessage = async (ins) => {
   const input = { read: toReadDevMsg(ins.dev_config) }; 
   const sock = await toSockClient({ input, delay: ins.delay });
   const tree = await sock.get("op:pake", "client_auth_result");

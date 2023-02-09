@@ -20,6 +20,12 @@ echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
 echo "DEV_PATH_ROOT,$(pwd)" >> $CSV
 echo "" > $SECRET_TXT
 
+if [ "$1" == "UPDATE" ]; then
+  PUB_CTLI=$(head -n 1 $CLIENT_IN)
+  pnpm develop UPDATE TOKEN $PUB_CTLI
+  exit 0
+fi
+
 waiter () {
   echo "Awaiting empty $1..."
   until [ -s $1 ]; do
