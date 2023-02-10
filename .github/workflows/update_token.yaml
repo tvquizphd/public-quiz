@@ -1,10 +1,10 @@
 name: Update Token
 on:
   schedule:
-    - cron: '4 11-23/2 * * *'
-    - cron: '19 12-22/2 * * *'
-    - cron: '34 11-23/2 * * *'
+    - cron: '4 12-23/2 * * *'
     - cron: '49 12-22/2 * * *'
+    - cron: '34 11-23/2 * * *'
+    - cron: '19 11-22/2 * * *'
   workflow_dispatch:
 env:
   DEPLOYMENT: PRODUCTION-LOGIN
