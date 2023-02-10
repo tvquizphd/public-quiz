@@ -423,7 +423,9 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
       };
       try {
         const payload = await vStart(start_in);
-        out.push([egit, payload.secrets]);
+        const installation = toInstallation(inst);
+        const igit = useGitInstalled(egit, installation);
+        out.push([igit, payload.secrets]);
         writeOut(payload);
         const verb_level = reset ? Log.info : Log.debug;
         const verb = reset ? 'Resetting' : 'Using';
@@ -459,11 +461,11 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
       const end_in = { final, commands, tree };
       const { token } = await vLogin(end_in);
       const secrets = [{ tree: { shared: token }, command: ses }];
-      out.push([egit, secrets]);
       const installation = toInstallation(inst);
+      const igit = useGitInstalled(egit, installation);
+      out.push([igit, secrets]);
       // Update the shared key as instructed
       if (found_shared && hasShared(found_shared.tree)) {
-        const igit = useGitInstalled(egit, installation);
         installation.shared = found_shared.tree.shared;
         const secrets = [{ tree: installation, command: inst }];
         out.push([igit, secrets]);
@@ -587,7 +589,13 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
       return [...o, { git, env, delay, tree, command }];
     }, o);
   }, [] as SetInputs[]);
-  await Promise.all(unzipped.map(setSecret));
+  try {
+    await Promise.all(unzipped.map(setSecret));
+  }
+  catch {
+    const message = "Unable to set secrets";
+    logs.push(toError(Log.error, message));
+  }
   if (!prod) {
     const env_all = [ses, pep, table, inst, ...final_env];
     const env_vars = env_all.filter((v) => {
