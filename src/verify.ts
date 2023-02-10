@@ -191,13 +191,14 @@ const vStart: Start = async (opts) => {
     throw new Error('Unable to initialize opaque');
   }
   const reset_out = toResetOut(NEW_SHARED, reset, opts.shared);
-  const ctli = [ pep_out, next_out, ...reset_out ];
+  const ctli = [ next_out, ...reset_out ];
+  const secrets = [ pep_out, ...ctli ];
   const for_next = fromCommandTreeList(ctli);
   const old_out = pub_ctli.filter((ct) => {
     return ct.command !== pages_out.command;
   });
   const for_pages = fromCommandTreeList([ ...old_out, pages_out ]);
-  return { for_next, for_pages, secrets: ctli }
+  return { for_next, for_pages, secrets }
 }
 
 const encryptLine: EncryptLine = async ([en, command]) => {
