@@ -82,6 +82,9 @@ To re-install the environment:
   - Delete [your old development app](https://github.com/settings/apps)
   - Exit (`ctrl-C`) `pnpm dev` and run `pnpm dev clean`
 
+To update expired installation tokens:
+  - `bash develop.bash UPDATE`
+
 [HELP_COLLAB]: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-access-to-your-personal-repositories/inviting-collaborators-to-a-personal-repository
 [HELP_SECURE]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure
 [HELP_PROJECTS]: https://docs.github.com/en/issues/planning-and-tracking-with-projects
