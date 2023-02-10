@@ -622,6 +622,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
   }
 }).catch((e: any) => {
   if (e instanceof AggregateError) console.error(e.message);
-  else console.error("Unexpected Error Occured");
+  else if (e instanceof Error) console.error(e);
+  else console.error("Unknown Error Occured");
   process.exitCode = 1;
 });
