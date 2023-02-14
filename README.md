@@ -11,24 +11,16 @@ Read this on [your new fork][FORK_THIS], set up [GitHub Pages](../../settings/pa
 
 ### Register
 
-Refresh the [release](../../releases/latest) page, and follow the link when posted.
-
-- Create GitHub App. and copy a key to the latest [release](../../releases/latest).
-- Install the GitHub App on your fork. Then, choose your master password.
-
-Keep your new "login link" and master password privately on each device.
+Refresh the [latest release](../../releases/latest) until you see a link. In 8 clicks, you'll have a GitHub App on your fork and an updated [release](../../releases/latest). Choose a master password, and you'd have a new login link. Keep your login link and master password privately on each device.
 
 ## Security claims
 
-During installation, your workflow makes public an [OPRF-derived][OPRF] key. You also reveal your own installation key. Afterwards, you and your workflows share encrypted messages using [a shared secret][PAKE]. Each login attempts a password-authenticated [key exchange][PAKE] by:
-
-- Authenticating your password against [OPRF key][OPRF] known only to your workflow.
-- Returning a temporary session [AES-GCM][GCM] key for authenticated encryption.
+During installation, you and your workflow exchange [OPRF][OPRF] keys. Then, you and your workflows share encrypted messages using [a shared secret][PAKE]. To yield that secret, a login workflow runs a [key exchange][PAKE] with its own [pepper][OPRF] and the salt in your login link. Then, you have a one-off session key for [authenticated][GCM] encryption.
 
 Afterwards, your passwords are always encrypted twice:
 
-- With an [Argon2][Argon2] hash unkwnown to your workflows.
-- With a single-session [shared secret][PAKE] with your workflows.
+- With an [Argon2][Argon2] hash unknown to your workflows.
+- With your [shared secret][PAKE] for each login session.
 
 ### Security limitations
 
@@ -36,11 +28,7 @@ To **update or delete** you passwords,
 - You need your master password
 - **AND** your personal login link
 
-**Immediately** reset your master password if you reveal your password AND your login link. 
-**Don't give others write access to your fork**:
-
-- ⚠️ Don't add [collaborators][HELP_COLLAB] to your fork
-- ☠️ Don't let your GitHub account [be compromised][HELP_SECURE]
+Reset your master password if you reveal it as well as your login link. Don't give others write access to your fork: ⚠️ Don't add [collaborators][HELP_COLLAB] to your fork; ☠️ Don't let your GitHub account [be compromised][HELP_SECURE].
 
 If they have write access to your fork, they can **erase** your data.
 
