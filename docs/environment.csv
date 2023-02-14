@@ -1,3 +1,3 @@
-REMOTE,tvquizphd/public-quiz-device
+REMOTE,tvquizphd/public-quiz
 DEPLOYMENT,DEVELOPMENT-TEST
-DEV_PATH_ROOT,public-quiz-device
+DEV_PATH_ROOT,public-quiz
