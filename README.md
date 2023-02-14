@@ -44,6 +44,7 @@ When re-running installation workflow, first:
 
 - Delete [your old app](https://github.com/settings/apps)
 - Create a new [pre-release](../../releases/new)
+- Delete the "MAIL__TABLE" [environment secret](../../settings/environments)
 - Then navigate to your Pages site
 
 ### Locally
