@@ -8,7 +8,7 @@ Developers can [test locally or remotely](#testing) and should evaluate [securit
 
 ## Setup
 
-Read this on [your new fork][FORK_THIS], set up [GitHub Pages](../../settings/pages) from "actions", and publish a [pre-release](../../releases/new).
+Read this on [your new fork][FORK_THIS], set up [GitHub Pages](../../settings/pages) from "actions", and publish a [pre-release](../../releases/new). By default, the service runs from UTC 12:03 until UTC 2:13. To expand or change your hours, clone your fork and run `pnpm timer`.
 
 <img width="700" alt="Set GitHub Pages from Actions and Publish Prerelease" src="https://user-images.githubusercontent.com/75504552/216326060-d31c0dab-0b16-4c4a-a8f6-9b21b4adcea3.png">
 

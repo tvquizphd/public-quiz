@@ -1,11 +1,12 @@
 {
   "name": "public-quiz-device",
-  "version": "6.13.4",
+  "version": "6.13.5",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
     "tsc": "tsc",
     "dev": "node dev.js",
+    "timer": "bash timer.bash",
     "action": "./action/index",
     "build": "tsc && pnpm p",
     "lint": "eslint src docs",

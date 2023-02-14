@@ -1,19 +1,23 @@
 name: Update Token
 on:
   schedule:
-    - cron: '4 12-23/2 * * *'
-    - cron: '49 12-22/2 * * *'
-    - cron: '34 11-23/2 * * *'
-    - cron: '19 11-22/2 * * *'
-  workflow_dispatch:
+    - cron: 3 12-22/5 * * *
+    - cron: 53 12-22/5 * * *
+    - cron: 43 13-23/5 * * *
+    - cron: 33 14-19/5 * * *
+    - cron: 23 15-20/5 * * *
+    - cron: 13 16-21/5 * * *
+    - cron: 33 0 * * *
+    - cron: 23 1 * * *
+  workflow_dispatch: null
 env:
   DEPLOYMENT: PRODUCTION-LOGIN
-  REMOTE: ${{ github.repository }}
-  ROOT: "https://api.github.com"
-  API: "X-GitHub-Api-Version: 2022-11-28"
-  OCTET: "Accept: application/octet-stream"
-  VND: "Accept: application/vnd.github+json"
-  AUTH: "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}"
+  REMOTE: '${{ github.repository }}'
+  ROOT: 'https://api.github.com'
+  API: 'X-GitHub-Api-Version: 2022-11-28'
+  OCTET: 'Accept: application/octet-stream'
+  VND: 'Accept: application/vnd.github+json'
+  AUTH: 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}'
 concurrency:
   group: PRODUCTION-LOGIN
   cancel-in-progress: false
@@ -40,7 +44,9 @@ jobs:
           echo "pub=$PUB" >> $GITHUB_OUTPUT
       - name: Login Open
         run: |
-          curl --location-trusted -H "$API" -H "$AUTH" -H "$OCTET" -o index "$INDEX_URL"
+          curl --location-trusted \
+            -H "$API" -H "$AUTH" -H "$OCTET"\
+            -o index "$INDEX_URL"
           chmod +x index
           echo "" > secret.txt
           ./index UPDATE TOKEN "$PUB"
@@ -48,8 +54,8 @@ jobs:
           MESSAGE="Use your private login link."
           ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
         env:
-          PUB: ${{ steps.index.outputs.pub }}
-          ROOT__INSTALLATION : ${{ secrets.ROOT__INSTALLATION }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          INDEX_URL: ${{ steps.index.outputs.index }}
-          RELEASE: ${{ steps.index.outputs.release }}
+          PUB: '${{ steps.index.outputs.pub }}'
+          ROOT__INSTALLATION: '${{ secrets.ROOT__INSTALLATION }}'
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          INDEX_URL: '${{ steps.index.outputs.index }}'
+          RELEASE: '${{ steps.index.outputs.release }}'
