@@ -142,11 +142,11 @@ const buttonsTemplate = (inputs) => {
   const { keys, uuid } = inputs.node;
   const api = inputs.api;
   const labels = {
-    "NEW": "alter ✨",
+    "NEW": "edit ✨",
     "NEW-NEXT": "new ✨",
-    "PASTE": "alter ✂️",
+    "PASTE": "edit ✂️",
     "PASTE-NEXT": "use ✂️",
-    "PASTE-DONE": "alter ✂️",
+    "PASTE-DONE": "edit ✂️",
     "READ-NEXT": "view 🔑",
     "WRITE-DONE": "ok 💯",
     "ERASE-DONE": "lose ☠️",

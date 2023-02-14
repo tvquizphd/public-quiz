@@ -80,7 +80,7 @@ class Workflow  {
       },{
         view: "display",
         items: [{
-          text: `Add random or pasted password, or view passwords.`
+          text: `Add, update or view passwords.`
         }]
       },{
         view: "buttons",
@@ -172,7 +172,7 @@ class Workflow  {
       },{
         view: "display",
         items: [{
-          text: `What to do for ${view_user} at ${view_site}?`
+          text: `"${view_user}" has password at "${view_site}"`
         },{
           strength: 1,
           text: `Current password is "${pass_now}"`
