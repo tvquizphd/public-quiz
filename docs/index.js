@@ -89,7 +89,7 @@ const verifyServer = async (appo) => {
   }
 }
 
-const runReef = (dev, remote, env) => {
+const runReef = (dev, version, remote, env) => {
 
   const passFormId = "pass-form";
   const href = window.location.href;
@@ -125,6 +125,7 @@ const runReef = (dev, remote, env) => {
     pub_str: "",
     app_str: "",
     local: dev !== null,
+    version: version || null,
     delay: toGitHubDelay(dev !== null),
     dev_root: dev?.dev_root,
     dev_file: "msg.txt",
@@ -332,9 +333,9 @@ export default () => {
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
   toEnv().then((config) => {
-    const { remote, env, dev_root } = config;
+    const { version, remote, env, dev_root } = config;
     const dev = [null, { dev_root }][+hasLocal];
-    runReef(dev, remote, env);
-    //runReef(null, remote, "PRODUCTION-LOGIN");
+    runReef(dev, version, remote, env);
+    //runReef(null, null, remote, "PRODUCTION-LOGIN");
   });
 };

@@ -34,8 +34,12 @@ class Workflow  {
       return { act, text: dev_root || "/" }
     }
     const root = "https://github.com";
-    const { copied, remote, pub_str: target } = this.DATA;
-    const latest = `${root}/${remote}/releases/latest/`;
+    const { copied, pub_str: target } = this.DATA;
+    const latest = (({ remote, version }) => {
+      const release = `${root}/${remote}/releases`;
+      if (!version) return `${release}/latest/`;
+      return `${release}/edit/${version}/`;
+    })(this.DATA);
     const act = { copied, act: "copy", text: "Copy", target };
     const link = { text: "Release", href: latest };
     return { act, text: `app code to `, link };

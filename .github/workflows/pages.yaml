@@ -5,6 +5,9 @@ on:
       remote:
         required: true
         type: string
+      version:
+        required: true
+        type: string
       deployment:
         required: true
         type: string
@@ -26,10 +29,12 @@ jobs:
       - run: |
           echo "" > $CSV
           echo "REMOTE,$REMOTE" >> $CSV
+          echo "VERSION,$VERSION" >> $CSV
           echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
         env:
           CSV: "docs/environment.csv"
           REMOTE: ${{ inputs.remote }}
+          VERSION: ${{ inputs.version }}
           DEPLOYMENT: ${{ inputs.deployment }}
       - uses: actions/upload-pages-artifact@v1
         with: { path : 'docs' }

@@ -24,6 +24,7 @@ jobs:
       id-token: write
     with:
       remote: ${{ github.repository }}
+      version: ${{ inputs.tag }}
       deployment: PRODUCTION-LOGIN
   build:
     runs-on: ubuntu-latest

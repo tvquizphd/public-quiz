@@ -5,6 +5,7 @@ const toRows = (s) => {
 const toEnv = async () => {
   const valid = {
     REMOTE: "remote",
+    VERSION: "version",
     DEPLOYMENT: "env",
     DEV_PATH_ROOT: "dev_root"
   };
