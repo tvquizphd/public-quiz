@@ -20,10 +20,7 @@ Refresh the [latest release](../../releases/latest) until you see a link. In 8 c
 
 During installation, you and your workflow exchange [OPRF][OPRF] keys. Then, you and your workflows share encrypted messages using [a shared secret][PAKE]. To yield that secret, a login workflow runs a [key exchange][PAKE] with its own [pepper][OPRF] and the salt in your login link. Then, you have a one-off session key for [authenticated][GCM] encryption.
 
-Afterwards, your passwords are always encrypted twice:
-
-- With an [Argon2][Argon2] hash unknown to your workflows.
-- With your [shared secret][PAKE] for each login session.
+Afterwards, your passwords are always encrypted both with an [Argon2][Argon2] hash unknown to your workflows and with your [shared secret][PAKE] for each login session.
 
 ### Security limitations
 
