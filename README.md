@@ -1,7 +1,9 @@
 # Public Quiz Device
 
-- For users: [Setup and usage](#setup) and 🔑 [Security claims](#security-claims).
-- Developers should read about [testing](#testing).
+Your own password service, run for free, by you, on GitHub.
+
+- [Setup and usage ⏩](#setup).
+- Developers should read about [testing](#testing) and 🔑 [Security claims](#security-claims).
 
 ## Setup
 
