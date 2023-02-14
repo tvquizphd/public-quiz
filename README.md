@@ -1,4 +1,4 @@
-# Public Quiz Device
+# Public Quiz
 
 Your own password service, run for free, by you, on GitHub.
 
@@ -49,14 +49,14 @@ When re-running installation workflow, first:
 
 ### Locally
 
-- In [environment.csv](./docs/environment.csv), set `REMOTE` to `your_username/public-quiz-device`.
+- In [environment.csv](./docs/environment.csv), set `REMOTE` to `your_username/public-quiz`.
 - Open a terminal, and clone your forked repository:
 
 ```properties
 YOU=your_username
-REPO_URL=$YOU/public-quiz-device
+REPO_URL=$YOU/public-quiz
 git clone git@github.com:$REPO_URL.git
-cd public-quiz-device
+cd public-quiz
 ```
 
 Install `pnpm`, `node 18`, and dependencies:
@@ -82,7 +82,7 @@ To update expired installation tokens:
 [HELP_PROJECTS]: https://docs.github.com/en/issues/planning-and-tracking-with-projects
 [HELP_PAGES]: https://pages.github.com/
 
-[FORK_THIS]: https://github.com/tvquizphd/public-quiz-device/fork
+[FORK_THIS]: https://github.com/tvquizphd/public-quiz/fork
 [PAKE]: https://blog.cloudflare.com/opaque-oblivious-passwords/
 [OPRF]: https://www.npmjs.com/package/oprf#security-guarantees
 [Argon2]: https://github.com/p-h-c/phc-winner-argon2
