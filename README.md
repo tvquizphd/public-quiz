@@ -2,8 +2,9 @@
 
 Your own password service, run for free, by you, on GitHub.
 
-- [Setup and usage ⏩](#setup).
-- Developers should read about [testing](#testing) and 🔑 [Security claims](#security-claims).
+### [Setup and usage ⏩](#setup)
+
+Developers can [test locally](#testing) and should evaluate [security claims](#security-claims).
 
 ## Setup
 
