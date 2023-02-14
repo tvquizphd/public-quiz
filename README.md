@@ -43,7 +43,6 @@ If they have write access to your fork, they can **erase** your data.
 When re-running installation workflow, first:
 
 - Delete [your old app](https://github.com/settings/apps)
-- Delete [the old environment](../../settings/environments)
 - Create a new [pre-release](../../releases/new)
 - Then navigate to your Pages site
 
