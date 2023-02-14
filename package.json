@@ -1,6 +1,6 @@
 {
-  "name": "public-quiz-device",
-  "version": "6.14.0",
+  "name": "public-quiz",
+  "version": "6.15.0",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
@@ -17,14 +17,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tvquizphd/public-quiz-device.git"
+    "url": "git+https://github.com/tvquizphd/public-quiz.git"
   },
   "author": "tvquizphd",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/tvquizphd/public-quiz-device/issues"
+    "url": "https://github.com/tvquizphd/public-quiz/issues"
   },
-  "homepage": "https://github.com/tvquizphd/public-quiz-device#readme",
+  "homepage": "https://github.com/tvquizphd/public-quiz#readme",
   "dependencies": {
     "@octokit/app": "^13.0.11",
     "@octokit/request": "^6.2.2",
