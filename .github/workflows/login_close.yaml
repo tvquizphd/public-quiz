@@ -41,7 +41,6 @@ jobs:
           MESSAGE="Use your private login link."
           ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
         env:
-          NEW__USER: ${{ secrets.NEW__USER }}
           MAIL__TABLE: ${{ secrets.MAIL__TABLE }}
           SERVER__FINAL: ${{ secrets.SERVER__FINAL }}
           ROOT__SESSION : ${{ secrets.ROOT__SESSION }}
