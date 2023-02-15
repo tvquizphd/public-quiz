@@ -1,11 +1,18 @@
 import type { Trio } from "./util/types.js";
 import type { Installation, HasToken } from "./create.js";
 import type { CommandTreeList } from "sock-secret";
-import type { LoginStart, LoginEnd } from "./util/pasted.js";
+import type { TreeAny } from "sock-secret";
+import type { LoginStart, LoginEnd, HasShared } from "./util/pasted.js";
 import type { ServerFinal } from "opaque-low-io";
 import type { Ops } from 'opaque-low-io';
-declare type CommandKeys = ("RESET" | "OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" | "CLOSE_IN" | "NEW_SHARED");
+declare type CommandKeys = ("RESET" | "OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" | "CLOSE_IN");
 declare type MailKeys = ("USER" | "SESSION");
+declare type HasNewUser = {
+    user: HasShared;
+};
+declare type HasServerFinal = {
+    final: ServerFinal;
+};
 export declare type Commands = Record<CommandKeys, string>;
 export declare type MailTypes = Record<MailKeys, string>;
 interface ToSyncOp {
@@ -55,9 +62,11 @@ interface Mail {
 interface UpdateUser {
     (i: InputsUpdateUser): Promise<SecretOut>;
 }
+declare function hasNewUser(o: TreeAny): o is HasNewUser;
+declare function hasServerFinal(o: TreeAny): o is HasServerFinal;
 declare const toSyncOp: ToSyncOp;
 declare const vStart: Start;
 declare const vLogin: Login;
 declare const updateUser: UpdateUser;
 declare const vMail: Mail;
-export { toSyncOp, vStart, vLogin, vMail, updateUser };
+export { toSyncOp, vStart, vLogin, vMail, updateUser, hasNewUser, hasServerFinal };

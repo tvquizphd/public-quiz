@@ -2,7 +2,7 @@ import { toB64urlQuery, fromB64urlQuery } from "sock-secret";
 import { toSockServer, fromCommandTreeList } from "sock-secret";
 import { needKeys } from "./util/keys.js";
 import { OP, OPS } from "opaque-low-io";
-import { toBytes } from "./util/pasted.js";
+import { hasShared, toBytes } from "./util/pasted.js";
 import { encryptQueryMaster } from "./util/encrypt.js";
 import { isObjAny } from "./create.js";
 
@@ -12,16 +12,25 @@ import type { Trio } from "./util/types.js";
 import type { Installation, HasToken } from "./create.js";
 import type { NameTree, CommandTreeList } from "sock-secret";
 import type { NodeAny, TreeAny } from "sock-secret";
-import type { LoginStart, LoginEnd } from "./util/pasted.js";
+import type { LoginStart, LoginEnd, HasShared } from "./util/pasted.js";
 import type { ServerFinal, ServerOut } from "opaque-low-io";
 import type { Io, Op, Ops, Pepper } from 'opaque-low-io';
 
 type CommandKeys = (
   "RESET" | "OPEN_IN" | "OPEN_NEXT" | "OPEN_OUT" |
-  "CLOSE_IN" | "NEW_SHARED"
+  "CLOSE_IN"
 )
 type MailKeys = (
   "USER" | "SESSION" 
+)
+type HasNewUser = {
+  user: HasShared
+}
+type HasServerFinal = {
+  final: ServerFinal;
+}
+type LastStep =  (
+  Partial<HasNewUser> & HasServerFinal
 )
 export type Commands = Record<CommandKeys, string> 
 export type MailTypes = Record<MailKeys, string> 
@@ -99,6 +108,24 @@ interface UpdateUser {
   (i: InputsUpdateUser): Promise<SecretOut>
 }
 
+function hasNewUser(o: TreeAny): o is HasNewUser {
+  if (!isObjAny(o.user)) return false;
+  return hasShared(o.user);
+}
+
+function isServerFinal(o: TreeAny): o is ServerFinal {
+  const needs = [
+    o.Au instanceof Uint8Array,
+    typeof o.token === "string"
+  ];
+  return needs.every(v => v);
+}
+
+function hasServerFinal(o: TreeAny): o is HasServerFinal {
+  if (!isObjAny(o.final)) return false;
+  return isServerFinal(o.final);
+}
+
 const isServerOut = (o: NodeAny): o is ServerOut => {
   const t = (o as ServerOut).server_auth_data;
   if (!t || !isObjAny(t)) {
@@ -158,22 +185,11 @@ const toSyncOp: ToSyncOp = async () => {
   return await OPS();
 }
 
-interface ToResetOut {
-  (a: string, b: boolean, c: string): CommandTreeList;
-}
-
-const toResetOut: ToResetOut = (command, reset, shared) => {
-  if (reset && shared.length) {
-    return [{ command, tree: { shared } }];
-  }
-  return [] as CommandTreeList;
-}
-
 const vStart: Start = async (opts) => {
   const { reset, tree, pep } = opts;
   const { commands, pub_ctli } = opts;
   const { OPEN_IN, OPEN_OUT } = commands;
-  const { OPEN_NEXT, NEW_SHARED } = commands;
+  const { OPEN_NEXT } = commands;
   const inputs = [{ command: OPEN_IN, tree }];
   const { Opaque, Sock } = await toUserSock({ inputs });
   const times = 1000;
@@ -182,18 +198,21 @@ const vStart: Start = async (opts) => {
   };
   const reg = await toPepper(pepper_in);
   const pep_out = { command: pep, tree: reg.pepper };
-  const next_tree = await Opaque.serverStep(reg, "op");
-  const next_out = { command: OPEN_NEXT, tree: next_tree };
+  const final = await Opaque.serverStep(reg, "op");
   const pages_out = Sock.quit().find(nt => {
     return nt.command === OPEN_OUT;
   });
   if (!pages_out || !isServerOut(pages_out.tree)) {
     throw new Error('Unable to initialize opaque');
   }
-  const reset_out = toResetOut(NEW_SHARED, reset, opts.shared);
-  const ctli = [ next_out, ...reset_out ];
-  const secrets = [ pep_out, ...ctli ];
-  const for_next = fromCommandTreeList(ctli);
+  const next_tree: LastStep = { final };
+  if (reset && opts.shared.length) {
+    const { shared } = opts;
+    next_tree.user = { shared };
+  }
+  const next_out = { command: OPEN_NEXT, tree: next_tree };
+  const for_next = fromCommandTreeList([ next_out ]);
+  const secrets = [ pep_out, next_out ];
   const old_out = pub_ctli.filter((ct) => {
     return ct.command !== pages_out.command;
   });
@@ -266,4 +285,7 @@ const vMail: Mail = async (opts) => {
 }
 
 
-export { toSyncOp, vStart, vLogin, vMail, updateUser };
+export { 
+  toSyncOp, vStart, vLogin, vMail, updateUser,
+  hasNewUser, hasServerFinal
+};
