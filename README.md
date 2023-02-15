@@ -8,7 +8,12 @@ Developers can [test locally or remotely](#testing) and should evaluate [securit
 
 ## Setup
 
-Read this on [your new fork][FORK_THIS], set up [GitHub Pages](../../settings/pages) from "actions", and publish a [pre-release](../../releases/new).
+Read this on [your new fork][FORK_THIS], and [enable GitHub Actions](../../actions).
+
+![enable actions](https://user-images.githubusercontent.com/75504552/219168117-532b555a-c1ea-4745-92fc-a4ffbf4ada8a.png)
+
+
+Then, set up [GitHub Pages](../../settings/pages) from "actions", and publish a [pre-release](../../releases/new).
 
 <img width="700" alt="Set GitHub Pages from Actions and Publish Prerelease" src="https://user-images.githubusercontent.com/75504552/216326060-d31c0dab-0b16-4c4a-a8f6-9b21b4adcea3.png">
 
