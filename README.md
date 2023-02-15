@@ -12,6 +12,9 @@ Read this on [your new fork][FORK_THIS], and [enable GitHub Actions](../../actio
 
 ![enable actions](https://user-images.githubusercontent.com/75504552/219168117-532b555a-c1ea-4745-92fc-a4ffbf4ada8a.png)
 
+Set your ["github-pages" environment](../../settings/environments) to run on any branch or tag.
+
+![branch protection](https://user-images.githubusercontent.com/75504552/219171417-6f8b7819-160b-45ed-8da8-0726fb87836a.png)
 
 Then, set up [GitHub Pages](../../settings/pages) from "actions", and publish a [pre-release](../../releases/new).
 
