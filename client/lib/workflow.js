@@ -26,7 +26,7 @@ class Workflow  {
   }
 
   get firstAction () {
-    if (this.DATA.local && false) {
+    if (this.DATA.local) {
       const text = "Open";
       const { dev_root } = this.DATA;
       const target = "filesystem access";
