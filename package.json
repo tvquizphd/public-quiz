@@ -9,9 +9,9 @@
     "timer": "bash timer.bash",
     "action": "./action/index",
     "build": "tsc && pnpm p",
-    "lint": "eslint src docs",
+    "lint": "eslint src client",
     "lint:src": "eslint src",
-    "lint:docs": "eslint docs",
+    "lint:client": "eslint client",
     "develop": "ts-node-esm src/index.ts",
     "p": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir . dist/index.js"
   },

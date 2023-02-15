@@ -32,11 +32,11 @@ jobs:
           echo "VERSION,$VERSION" >> $CSV
           echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
         env:
-          CSV: "docs/environment.csv"
+          CSV: "client/environment.csv"
           REMOTE: ${{ inputs.remote }}
           VERSION: ${{ inputs.version }}
           DEPLOYMENT: ${{ inputs.deployment }}
       - uses: actions/upload-pages-artifact@v1
-        with: { path : 'docs' }
+        with: { path : 'client' }
       - id: deployment
         uses: actions/deploy-pages@v1

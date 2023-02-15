@@ -49,7 +49,7 @@ When re-running installation workflow, first:
 
 ### Locally
 
-- In [environment.csv](./docs/environment.csv), set `REMOTE` to `your_username/public-quiz`.
+- In [environment.csv](./client/environment.csv), set `REMOTE` to `your_username/public-quiz`.
 - Open a terminal, and clone your forked repository:
 
 ```properties

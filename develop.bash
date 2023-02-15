@@ -8,11 +8,11 @@ DEPLOYMENT="DEVELOPMENT-TEST"
 export DEPLOYMENT
 export REMOTE
 SERVER_URL="\"localhost:8000\""
-SERVER_CMD="\"npx http-server docs\""
+SERVER_CMD="\"npx http-server client\""
 WIKI_IN="./tmp-dev"
-CSV="./docs/environment.csv"
+CSV="./client/environment.csv"
 SECRET_TXT="./secret.txt"
-CLIENT_IN="./docs/pub.txt"
+CLIENT_IN="./client/pub.txt"
 CLIENT_OUT=$WIKI_IN/msg.txt
 mkdir -p $WIKI_IN
 echo "REMOTE,$REMOTE" > $CSV

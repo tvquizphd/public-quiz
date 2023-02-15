@@ -12,7 +12,7 @@ const logger = (err, prefix, input) => {
 }
 
 const startServer = async (port) => {
-  const dir = 'docs';
+  const dir = 'client';
   const run = 'http-server';
   const serve_opts = { stdio: "pipe" };
   const web_server = [run, dir, `-p ${port}`];
