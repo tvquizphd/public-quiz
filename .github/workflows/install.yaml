@@ -5,6 +5,9 @@ on:
       tag:
         required: true
         type: string
+      url:
+        required: true
+        type: string
 env:
   DEPLOYMENT: PRODUCTION-LOGIN
   REMOTE: ${{ github.repository }}
@@ -27,6 +30,24 @@ jobs:
       index: ${{ steps.index.outputs.index }}
       release: ${{ steps.index.outputs.release }}
     steps:
+      - id: body
+        run: |
+          echo "body=$URL" >> $GITHUB_OUTPUT
+        env:
+          URL: ${{ inputs.url }}
+      - name: Release with pages URL
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          body: |
+            noop#noop=noop
+
+            ${{ steps.body.outputs.body }}
+          tag_name: ${{ inputs.tag }}
+          name: ${{ inputs.tag }}
+          prerelease: false
+          draft: false
       - name: Fetching executable
         id: index
         run: |

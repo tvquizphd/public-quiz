@@ -1,0 +1,29 @@
+name: Rebuild pull request
+on:
+  pull_request:
+    types:
+      - closed
+jobs:
+  tag:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - name: Configure Latest Release Tag
+        id: tag
+        run: |
+          JSON=$(curl -s \
+            -H "$API" -H "$AUTH" -H "$VND"\
+            $ROOT/repos/$REMOTE/releases/latest)
+          TAG=$(jq -r '.tag_name' <<< $JSON)
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+  build:
+    uses: ./.github/workflows/build.yaml
+    needs: [tag]
+    permissions:
+      pages: write
+      contents: write
+      id-token: write
+    with:
+      tag: ${{ needs.tag.outputs.tag }}

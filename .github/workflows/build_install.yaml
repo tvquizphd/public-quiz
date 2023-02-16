@@ -28,6 +28,7 @@ jobs:
       contents: write
     with:
       tag: ${{ needs.tag.outputs.tag }}
+      url: ${{ needs.build.outputs.url }}
     concurrency:
       group: PRODUCTION-LOGIN
       cancel-in-progress: true
