@@ -29,9 +29,11 @@ async function clientRegister(opts) {
 }
 
 async function clientVerify(opts) {
-  const { reg_out, times } = opts;
+  const { reg_out, times, register } = opts;
   const { Sock, Opaque } = await toOpaqueSock(opts, "call-login-close");
   const c_out = await Opaque.clientStep(reg_out, times, "op");
+  // Await for login-close to finish by checking mail
+  if ( register === true ) await Sock.get("mail", "session");
   Sock.quit();
   return c_out.token;
 }

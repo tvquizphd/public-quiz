@@ -29,8 +29,6 @@ import type {
 import type { AppOutput, Installation } from "./create.js";
 import type { NewClientOut } from "opaque-low-io";
 import type { TreeAny, NameTree, CommandTreeList } from "sock-secret"
-import type { ServerFinal } from "opaque-low-io";
-
 
 type Result = {
   logs: LogItem[]
@@ -607,6 +605,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
   return { logs };
 })().then(({ logs }: Result) => {
   const fail_if = (x: LogItem) => x.level >= Log.error;
+  //const log_if = (x: LogItem) => x.level >= Log.trace;
   const log_if = (x: LogItem) => x.level >= Log.info;
   const errs = logs.reduce((list, item) => {
     if (isErrorItem(item) && fail_if(item)) {
@@ -621,7 +620,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
     throw new AggregateError(errs, 'ACTION: FAILURE.');
   }
 }).catch((e: any) => {
-  if (e instanceof AggregateError) console.error(e.message);
+  if (e instanceof AggregateError) console.error(e);
   else if (e instanceof Error) console.error(e);
   else console.error("Unknown Error Occured");
   process.exitCode = 1;

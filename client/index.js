@@ -258,7 +258,9 @@ const runReef = (dev, version, remote, env) => {
     const local_out = { write: writeLocal };
     const input = local ? local_in : { git };
     const op_out = local ? local_out : { git, key: "op" };
-    await clientLogin({ input, output: op_out, user_id, pass, times, delay });
+    await clientLogin({
+      register: true, input, output: op_out, user_id, pass, times, delay
+    });
     const { token: secret_text } = toSharedCache();
     DATA.loading.finish = false;
     const to_encrypt = {

@@ -3,10 +3,8 @@ import { templates } from "templates";
 import { toEnv } from "environment";
 import { toB64urlQuery } from "sock-secret";
 import { toSockClient } from "sock-secret";
-import { toCommandTreeList } from "sock-secret";
 import { toGitHubDelay, writeFile } from "io";
 import { clientLogin } from "io";
-import { readFile } from "io";
 import { encryptSecrets } from "encrypt";
 import { Workflow } from "workflow";
 import { toHash, textToBytes } from "encrypt";
@@ -124,14 +122,6 @@ const runReef = (dev, remote, env) => {
     }
     return [];
   }
-  const toUploadPreface = async ({ local }) => {
-    if (!local) return [];
-    const text = await readFile({
-      root: DATA.dev_dir,
-      fname: DATA.dev_file
-    });
-    return toCommandTreeList(text);
-  }
   const writeLocal = async (text) => {
     const root = DATA.dev_dir;
     const fname = DATA.dev_file;
@@ -163,11 +153,11 @@ const runReef = (dev, remote, env) => {
     }
   }
 
-  const toOutboxSockIn = ({ local, git, delay, env, preface }) => {
+  const toOutboxSockIn = ({ local, git, delay, env }) => {
     const secret_out = { git, env };
     const local_out = { write: writeLocalVars };
     const output = local ? local_out : secret_out;
-    return { preface, input: null, output, delay };
+    return { input: null, output, delay };
   }
 
   const toInboxSockIn = ({ local, inbox, git, delay }) => {
@@ -189,9 +179,8 @@ const runReef = (dev, remote, env) => {
   const uploadDatabase = async () => {
     DATA.loading.sending = true;
     const { local, git, delay, env } = DATA;
-    const preface = await toUploadPreface({ local });
     const sock = await toSockClient(toOutboxSockIn({
-      local, git, delay, env, preface
+      local, git, delay, env
     }));
     const out_key = toKey(DATA.session_key);
     const encrypted = await API.dbt.encrypt(out_key);
@@ -240,7 +229,6 @@ const runReef = (dev, remote, env) => {
     const session_string = await clientLogin(toOpaqueSockIn({
       local, git, delay, preface, pass, user_id
     }));
-    DATA.loading.mailer = false;
     DATA.session_key = toBytes(session_string);
     if (preface.length > 0) {
       // Use last session as new user key 
@@ -252,6 +240,9 @@ const runReef = (dev, remote, env) => {
       const query = toB64urlQuery(encrypted);
       const roundtrip = await decryptQuery(query, pass);
       DATA.master_key = roundtrip.master_key;
+      // Await for login-close to finish by checking mail
+      inbox.ignore('user');
+      await sock.get("mail", "session");
       const url = `${DATA.href}${query}`;
       history.pushState(null, '', url);
       // Save DB after password reset
@@ -260,12 +251,14 @@ const runReef = (dev, remote, env) => {
         "Updated the master password.",
         "Copy and save new login link."
       ].join(' ');
-      DATA.reset = false;
       DATA.modal = { message, copy: url, simple: true };
+      DATA.loading.mailer = false;
+      DATA.reset = false;
       return ["Updated Master Password"];
     }
     else {
       // Read the latest database
+      DATA.loading.mailer = false;
       DATA.loading.database = true;
       inbox.allow('session', DATA.session_key);
       await sock.get("mail", "session");

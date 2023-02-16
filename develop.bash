@@ -26,15 +26,6 @@ if [ "$1" == "UPDATE" ]; then
   exit 0
 fi
 
-waiter () {
-  echo "Awaiting empty $1..."
-  until [ -s $1 ]; do
-    echo "..."
-    sleep 1
-  done
-  echo $'... ready!\n'
-}
-
 enter () {
   pnpm develop DEV INBOX 
   pnpm develop DEV OPEN
@@ -59,11 +50,10 @@ if [ ! -z $SESSION ]; then
 fi
 echo "" > .env
 echo "" > $CLIENT_IN
+echo "" > $CLIENT_OUT
 
 pnpm develop SETUP PUB OPAQUE 
 echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN
-
-waiter $CLIENT_OUT
 
 pnpm develop SETUP APP $(tail -n 1 $SECRET_TXT)
 echo $(head -n 1 $SECRET_TXT) > $CLIENT_IN

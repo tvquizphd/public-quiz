@@ -102,6 +102,10 @@ class Inbox {
       from_session: readKey(from_key)
     };
   }
+  ignore (tag) {
+    const cmd = ['mail', tag].join('__');
+    delete this[cmd];
+  }
   allow (tag, key) {
     const fn = this.tags[tag];
     if (typeof fn !== 'function') {
@@ -123,7 +127,8 @@ class Inbox {
           throw new Error(`Error mapping ${cmd}`);
         }
       }
-      return out;
+      const tree = { 'noop': 'noop' };
+      return [...out, { ...cti, tree }];
     }, []);
   }
 }
