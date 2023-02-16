@@ -9,6 +9,10 @@ on:
         description: "Tag of GitHub release to build"
         required: true
         type: string
+      prerelease:
+        description: "True if set as pre-release"
+        required: true
+        type: boolean
     outputs:
       url:
         description: "URL of GitHub Pages to link to"
@@ -62,8 +66,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
         with:
+          prerelease: ${{ inputs.prerelease }}
           tag_name: ${{ inputs.tag }}
           name: ${{ inputs.tag }}
-          prerelease: true
           draft: false
           files: index
