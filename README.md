@@ -17,7 +17,7 @@ Then, set up [GitHub Pages](../../settings/pages) from "actions" and set your ["
 ![ok2](https://user-images.githubusercontent.com/75504552/219478867-95cbae17-8888-4348-9fbe-dec7a85e6726.png)
 
 
-Finally, publish a [pre-release](../../releases/new) (any tag name you choose is fine).
+Finally, publish a [pre-release](../../releases/new) (any tag name you create is fine).
 
 ![ok1](https://user-images.githubusercontent.com/75504552/219478759-32a4a252-ab3b-4530-bc6a-e561bf933d64.png)
 
