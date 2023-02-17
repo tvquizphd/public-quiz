@@ -1,5 +1,9 @@
 import fs from 'fs';
+import url from 'url';
+import path from 'path';
+import http from 'http';
 import child from 'child_process';
+const PORT = 8000 // match tests
 
 const logger = (err, prefix, input) => {
   const mode = err ? 'error' : 'log';
@@ -11,27 +15,62 @@ const logger = (err, prefix, input) => {
   ].join(one ? '' : '\n'));
 }
 
+const normalize = (root, url_in) => {
+  const { pathname } = url.parse(url_in);
+  const p = path.parse(`.${pathname || ''}`);
+  const suffix = p.ext ? '' : 'index.html';
+  return path.join(root, path.format(p), suffix);
+}
+
 const startServer = async (port) => {
-  const dir = 'client';
-  const run = 'http-server';
-  const serve_opts = { stdio: "pipe" };
-  const web_server = [run, dir, `-p ${port}`];
-  const serve_in = ['npx', web_server, serve_opts];
-  const p_serve = child.spawn(...serve_in);
-  await new Promise(resolve => {
-    p_serve.stdout.once('data', () => {
-      p_serve.stdout.once('data', d => {
-        const lines = d.toString().split('\n').filter(l => l);
-        logger(0, run, lines.slice(Math.max(lines.length - 2, 0)));
-        resolve();
+  return http.createServer((req, res)  => {
+    const root = {
+      GET: 'client',
+      POST: 'tmp-dev'
+    }
+    if (req.method === 'POST') {
+      const { pathname } = url.parse(req.url);
+      const valid = ['/msg.txt', '/vars.txt'];
+      const empty = { "Content-Length": 0 };
+      if (!valid.includes(pathname)) {
+        res.statusCode = 403;
+        res.end(`Error: Forbidden.`);
+        return;
+      }
+      let body = "";
+      req.on("data", str => body += str);
+      req.on("end", () => {
+        writeEvent(path.join(root.POST, pathname), body)
+        res.writeHead(201, empty).end();
       });
-    });
-  });
-  p_serve.stderr.on('data', d => {
-    const lines = d.toString().split('\n').filter(l => l);
-    logger(1, run, lines);
-  });
-  return p_serve;
+    }
+    const full_path = normalize(root.GET, req.url);
+    const ext = path.extname(full_path);
+    // Get mimetype from extension
+    const mime = {
+      '.css': 'text/css',
+      '.csv': 'text/csv',
+      '.html': 'text/html',
+      '.svg': 'image/svg+xml',
+      '.js': 'text/javascript'
+    }[ext] || 'text/plain';
+
+    const exist = fs.existsSync(full_path);
+    if(!exist) {
+      res.statusCode = 404;
+      res.end(`Not found: ${full_path}`);
+      return;
+    }
+    try {
+      const data = fs.readFileSync(full_path);
+      res.setHeader('Content-type', mime);
+      res.end(data);
+    }
+    catch (e) {
+      res.statusCode = 500;
+      res.end(`Error: ${e.message}.`);
+    }
+  }).listen(PORT);
 };
 
 const toTimeDelta = (basis) => {
@@ -40,10 +79,20 @@ const toTimeDelta = (basis) => {
   return 'Δ'+date.toISOString().substring(10, 19);
 }
 
+const isEmpty = (fname) => {
+  if (!fs.existsSync(fname)) return true;
+  return fs.readSync(fname).length === 0;
+}
+
 const CLEAN = () => {
   if (process.argv.length < 3) return false;
   return process.argv[2] === 'clean';
 };
+
+const writeEvent = (msg_file, data) => {
+  const encoding = 'utf8';
+  fs.writeFileSync(msg_file, data, { encoding });
+}
 
 const readEvent = (msg_file) => {
   const encoding = 'utf8';
@@ -51,13 +100,13 @@ const readEvent = (msg_file) => {
   return data.toString();
 }
 
-try {
-  if (CLEAN()) fs.unlinkSync('.env');
-}
-catch (e) {
-  console.log(e.message);
-}
-(async () => {
+const dev = async (env) => {
+  try {
+    if (CLEAN()) fs.unlinkSync(env);
+  }
+  catch (e) {
+    console.log(e.message);
+  }
   const delay = 5;
   const pre = 'LOG';
   const stdio = 'inherit';
@@ -66,7 +115,7 @@ catch (e) {
   const msg_file = "./tmp-dev/msg.txt";
   const args = ['bash', ['develop.bash'], { stdio }];
   logger(0, pre, `Polling ${msg_file} each ${delay} secs`)
-  child_procs.add(await startServer(8000));
+  const server = await startServer(PORT);
   const dt = delay * 1000;
   const state = {
     first: CLEAN(),
@@ -75,7 +124,7 @@ catch (e) {
   // Handle process closure
   process.on('SIGINT', () => {
     [...child_procs].map(p => p.kill('SIGINT'));
-    process.exit(0);
+    server.close(() => process.exit(0));
   });
   // Await client inputs
   while (true) {
@@ -91,7 +140,7 @@ catch (e) {
         else reject(e);
       }
     });
-    if (!state.first && !msg) {
+    if (!state.first && !isEmpty(env) && !msg) {
       await new Promise(r => setTimeout(r, dt));
       logger(0, pre, 'Waited ' + toTimeDelta(state.basis));
     }
@@ -106,4 +155,9 @@ catch (e) {
       state.first = false;
     }
   }
-})()
+}
+
+const main_file = `file://${process.argv[1]}`;
+if (import.meta.url === main_file) dev('.env');
+
+export default dev;

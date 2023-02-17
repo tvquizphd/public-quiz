@@ -30,15 +30,7 @@ const formTemplate = (inputs) => {
   return { html, handlers: [] };
 }
 
-const isValid = async (dir) => {
-  for await (const [k0, v0] of dir.entries()) {
-    if (k0 !== "tmp-dev") continue;
-    return v0;
-  }
-  return null
-} 
-
-const actionTemplate = (open, copy, is_idx, act) => {
+const actionTemplate = (copy, is_idx, act) => {
   if (is_idx && act?.act === "copy") {
     const cls = "copier";
     const action = `
@@ -58,24 +50,6 @@ const actionTemplate = (open, copy, is_idx, act) => {
     const cls = "redirection";
     return { cls, action, handlers: [] };
   }
-  else if (is_idx && act?.act === "open") {
-    const cls = "opener";
-    const action = `
-      <button class="button true-tan">${act.text}</button>
-      <span>${act.target}</span>
-    `;
-    const fn = async () => {
-      const dir_opts = { mode: "readwrite" };
-      let dev_root = null;
-      while (!dev_root) {
-        const dir = await window.showDirectoryPicker(dir_opts);
-        dev_root = await isValid(dir);
-      }
-      open(dev_root);
-    };
-    const handlers = [{ query: `.${cls}`, fn }];
-    return { cls, action, handlers };
-  }
   const action = `
     <span>${act?.text || ""}</span>
   `;
@@ -83,7 +57,7 @@ const actionTemplate = (open, copy, is_idx, act) => {
 }
 
 const listTemplate = (inputs) => {
-  const { stepNext, setDevHandle, setCopied } = inputs;
+  const { stepNext, setCopied } = inputs;
   const { index, items } = inputs.node;
   const colors = [ "", "dark-blue" ];
   let handlers = []
@@ -91,10 +65,6 @@ const listTemplate = (inputs) => {
     const { text, link, act } = item;
     const is_idx = (idx === index);
     const cls = [colors[+is_idx]];
-    const open = async (dev_root) => {
-      await setDevHandle(dev_root);
-      stepNext(idx + 1);
-    }
     const copy = async (text, copied) => {
       navigator.clipboard.writeText(text);
       if (copied) {
@@ -104,7 +74,7 @@ const listTemplate = (inputs) => {
         setCopied(true);
       }
     }
-    const out = actionTemplate(open, copy, is_idx, act);
+    const out = actionTemplate(copy, is_idx, act);
     handlers = handlers.concat(out.handlers);
     cls.push(out.cls);
     let core_content = text;

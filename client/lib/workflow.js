@@ -27,11 +27,10 @@ class Workflow  {
 
   get firstAction () {
     if (this.DATA.local) {
-      const text = "Open";
-      const { dev_root } = this.DATA;
-      const target = "filesystem access";
-      const act = { act: "open", text, target };
-      return { act, text: dev_root || "/" }
+      const { env } = this.DATA;
+      const text = "Skipping step in";
+      const act = { act: "noop", text };
+      return { act, text: env }
     }
     const root = "https://github.com";
     const { copied, pub_str: target } = this.DATA;
@@ -113,11 +112,10 @@ class Workflow  {
   get render() {
     const { nodes, templates } = this;
     const filter = ({ view }) => view in templates;
-    const setDevHandle = this.setDevHandle.bind(this);
     const setCopied = this.setCopied.bind(this);
     const hideModal = this.hideModal.bind(this);
     const stepNext = this.stepNext.bind(this);
-    const shared = { stepNext, hideModal, setDevHandle, setCopied };
+    const shared = { stepNext, hideModal, setCopied };
     return nodes.filter(filter).reduce((out, node) => {
       const template = templates[node.view];
       const o = template({ ...shared, node });
@@ -138,10 +136,6 @@ class Workflow  {
 
   setCopied(bool) {
     this.DATA.copied = bool;
-  }
-
-  async setDevHandle(root) {
-    this.DATA.dev_dir = root;
   }
 }
 

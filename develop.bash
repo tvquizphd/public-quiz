@@ -3,8 +3,10 @@ trap "exit" INT
 SET_SESSION=$(cat .env | egrep "^ROOT__SESSION")
 SESSION=$(sed -r "s@.*=.(.+).@\1@" <<< $SET_SESSION)
 GIT_URL=$(git config --get remote.origin.url)
+#GIT_URL=$(git config --get remote.john.url) # TODO
 REMOTE=$(sed -r "s@.*[:/](.+/.+)@\1@" <<< $GIT_URL)
-DEPLOYMENT="DEVELOPMENT-TEST"
+RANDO=$(openssl rand -hex 3)
+DEPLOYMENT="INT-TEST-$RANDO"
 export DEPLOYMENT
 export REMOTE
 SERVER_URL="\"localhost:8000\""
@@ -17,7 +19,6 @@ CLIENT_OUT=$WIKI_IN/msg.txt
 mkdir -p $WIKI_IN
 echo "REMOTE,$REMOTE" > $CSV
 echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
-echo "DEV_PATH_ROOT,$(pwd)" >> $CSV
 echo "" > $SECRET_TXT
 
 if [ "$1" == "UPDATE" ]; then

@@ -11,7 +11,6 @@ async function toOpaqueSock(opts, workflow) {
   const since = sessionStorage.getItem(SINCE);
   const sock_in = { preface, delay, input, output };
   if (since) sock_in.persist = { [SINCE]: since };
-  console.log(sock_in.persist);
   const Sock = await toSockClient(sock_in);
   if (Sock === null) {
     throw new Error('Unable to make socket.');
@@ -65,11 +64,9 @@ const readFile = async (opts) => {
 }
 
 const writeFile = async (opts) => {
-  const { root, fname, text } = opts;
-  const toF = root.getFileHandle.bind(root);
-  const f = await toF(fname, { create: true });
-  await writeText(f, text);
-  return f;
+  const method = 'POST';
+  const { fname, text: body } = opts;
+  await fetch('/'+fname, { body, method });
 }
 
 const toGitHubDelay = (local) => {

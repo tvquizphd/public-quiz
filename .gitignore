@@ -113,3 +113,7 @@ tmp-dev
 secret.txt
 client/pub.txt
 .DS_Store
+/test-results/
+/playwright-report/
+/playwright/.cache/
+tests/storageState.json
