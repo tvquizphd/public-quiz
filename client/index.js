@@ -3,7 +3,6 @@ import {
 } from "pub";
 import { OP } from "opaque-low-io";
 import { toSockServer, toSockClient } from "sock-secret";
-import { fromCommandTreeList } from "sock-secret";
 import { toB64urlQuery } from "sock-secret";
 import { toSyncOp, clientLogin } from "io";
 import { toGitHubDelay, writeFile } from "io";
@@ -59,7 +58,7 @@ const parseSearch = (state, { search }) => {
   return { ...out, state };
 }
 
-const useSearch = () => {
+const useSearch = (local) => {
   const search = parseSearch(toPub(), window.location);
   const needs_1 = [
     typeof search?.state === "string",
@@ -69,7 +68,8 @@ const useSearch = () => {
   const { state } = search;
   if (needs_1.every(v => v)) {
     const { code } = search;
-    return { first: 1, state, code };
+    const first = local ? 2 : 1;
+    return { first, state, code };
   }
   clearSharedCache();
   return { first: 0, state, code: null };
@@ -124,13 +124,11 @@ const runReef = (dev, version, remote, env) => {
     app_name,
     pub_str: "",
     app_str: "",
-    local: dev !== null,
+    local: dev === true,
     version: version || null,
-    delay: toGitHubDelay(dev !== null),
-    dev_root: dev?.dev_root,
+    delay: toGitHubDelay(dev === true),
     dev_file: "msg.txt",
     user_id: "root",
-    dev_dir: null,
     unchecked: true,
     copied: false,
     reset: false,
@@ -157,22 +155,12 @@ const runReef = (dev, version, remote, env) => {
     const result = await fetch(pub, { headers });
     return await (result).text();
   }
-  const readDevDir = async () => {
-    const command = "dev__in";
-    const ok = DATA.dev_dir !== null;
-    const ct = { command, tree: { ok } }
-    const ctli = ok ? [ct] : [];
-    return fromCommandTreeList(ctli);
-  }
   const writeLocal = async (text) => {
-    const root = DATA.dev_dir;
     const fname = DATA.dev_file;
-    if (root) {
-      await writeFile({ root, fname, text });
-    }
+    await writeFile({ fname, text });
   }
   const readSearch = async () => {
-    const { first, state } = useSearch();
+    const { first, state } = useSearch(DATA.local);
     const manifest = JSON.stringify(MANIFEST);
     const app_root = `https://github.com/settings/apps/new?`;
     if (state) {
@@ -202,17 +190,12 @@ const runReef = (dev, version, remote, env) => {
       const { pepper } = toServerPepper(pepper_in);
       const out = toServerSecret({ pepper, client_auth_data });
       toSharedCache(out);
-      DATA.step = useSearch().first;
+      DATA.step = useSearch(DATA.local).first;
     }
-    const { code } = useSearch();
+    const { code } = useSearch(DATA.local);
     DATA.pub_str = await toAppPublic(code);
     if (DATA.local) {
-      const input = { read: readDevDir };
-      const d_in = { input, output: null, delay };
-      const d_sock = await toSockClient(d_in);
-      await d_sock.get("dev", "in");
       await writeLocal(DATA.pub_str);
-      d_sock.quit();
     }
     const appo = await sock.get("app", "out");
     const shared = await verifyServer(appo);
@@ -304,7 +287,7 @@ const runReef = (dev, version, remote, env) => {
       const passwords = usePasswords(event);
       encryptWithPassword(passwords).then((encrypted) => {
         const query = toB64urlQuery(encrypted);
-        DATA.login = `${DATA.host}/login${query}`;
+        DATA.login = `${DATA.host}/login/${query}`;
         DATA.step = final_step;
       }).catch((e) => {
         console.error(e);
@@ -335,9 +318,9 @@ export default () => {
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
   toEnv().then((config) => {
-    const { version, remote, env, dev_root } = config;
-    const dev = [null, { dev_root }][+hasLocal];
-    runReef(dev, version, remote, env);
+    const { version, remote, env } = config;
+    runReef(hasLocal, version, remote, env);
+    //runReef(null, null, remote, "INTEGRATION-TEST");
     //runReef(null, null, remote, "PRODUCTION-LOGIN");
   });
 };

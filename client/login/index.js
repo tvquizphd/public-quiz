@@ -75,10 +75,8 @@ const runReef = (dev, remote, env) => {
     session_key: null,
     last_session_string: null,
     delay: toGitHubDelay(dev !== null),
-    dev_root: dev?.dev_root,
     dev_file: "msg.txt",
     vars_file: "vars.txt",
-    dev_dir: null,
     user_id: "root",
     reset: false,
     modal: null,
@@ -123,18 +121,12 @@ const runReef = (dev, remote, env) => {
     return [];
   }
   const writeLocal = async (text) => {
-    const root = DATA.dev_dir;
     const fname = DATA.dev_file;
-    if (root) {
-      await writeFile({ root, fname, text });
-    }
+    await writeFile({ fname, text });
   }
   const writeLocalVars = async (text) => {
-    const root = DATA.dev_dir;
     const fname = DATA.vars_file;
-    if (root) {
-      await writeFile({ root, fname, text });
-    }
+    await writeFile({ fname, text });
   }
   const cleanRefresh = () => {
     DATA.loading = {...NO_LOADING};
@@ -327,9 +319,9 @@ export default () => {
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
   toEnv().then((config) => {
-    const { remote, env, dev_root } = config;
-    const dev = [null, { dev_root }][+hasLocal];
-    runReef(dev, remote, env);
+    const { remote, env } = config;
+    runReef(hasLocal, remote, env);
+    //runReef(null, remote, "INTEGRATION-TEST");
     //runReef(null, remote, "PRODUCTION-LOGIN");
   });
 };

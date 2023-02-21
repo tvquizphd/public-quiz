@@ -78,14 +78,15 @@ pnpm install -g node-gyp
 CXX=gcc pnpm install
 ```
 
-Run `pnpm dev`, then open `localhost:8000` in a browser.
+#### Automated Testing
 
-To re-install the environment:
-  - Delete [your old development app](https://github.com/settings/apps)
-  - Exit (`ctrl-C`) `pnpm dev` and run `pnpm dev clean`
+Run `pnpm test:config` to cache your GitHub username and password.
+Then run `pnpm test` to run all client-side tests.
+Run `pnpm test:ideas` to start making new tests.
 
-To update expired installation tokens:
-  - `bash develop.bash UPDATE`
+#### Manual Testing
+
+Run `pnpm dev clean`, then open `localhost:8000` in a browser. To clean up after manual tests, delete [your old development app](https://github.com/settings/apps) and remove `.env`. Ensure `pnpm dev clean` or `pnpm dev` is running to resume testing. To update expired local installation tokens, run `bash develop.bash UPDATE`.
 
 [HELP_COLLAB]: https://docs.github.com/en/account-and-profile/setting-up-and-managing-your-personal-account-on-github/managing-access-to-your-personal-repositories/inviting-collaborators-to-a-personal-repository
 [HELP_SECURE]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure

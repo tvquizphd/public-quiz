@@ -288,7 +288,7 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
   const delay = 0.2; // 200ms sec
   if (!prod) {
     logs.push(toDebug(Log.debug, 'DEVELOPMENT'));
-    dotenv.config();
+    dotenv.config({ override: true, path: '.env' });
   }
   else {
     logs.push(toDebug(Log.debug, 'PRODUCTION'));
