@@ -71,10 +71,10 @@ const runReef = (dev, remote, env) => {
   const DATA = store({
     user_key: null,
     master_key: null,
-    local: dev !== null,
+    local: dev === true,
     session_key: null,
     last_session_string: null,
-    delay: toGitHubDelay(dev !== null),
+    delay: toGitHubDelay(dev === true),
     dev_file: "msg.txt",
     vars_file: "vars.txt",
     user_id: "root",
