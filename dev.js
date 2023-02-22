@@ -120,7 +120,7 @@ const toLogger = (_ua) => {
   const ia = { hour: 'numeric', weekday: 'short' };
   const when = new Date().toLocaleString('ia', ia).replace(' ', '');
   const random = crypto.randomBytes(16).toString('base64url');
-  const file_name = [ when, name, random ].join('_') + '.log';
+  const file_name = [ when+'00', name, random ].join('_') + '.log';
   if (!fs.existsSync(log_dir)) fs.mkdirSync(log_dir);
   const log_file = path.join(log_dir, file_name);
   fs.openSync(log_file, 'w');
