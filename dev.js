@@ -2,17 +2,19 @@ import fs from 'fs';
 import url from 'url';
 import path from 'path';
 import http from 'http';
+import crypto from 'crypto';
 import child from 'child_process';
+import UAParser from 'ua-parser-js';
 const PORT = 8000 // match tests
 
 const logger = (err, prefix, input) => {
   const mode = err ? 'error' : 'log';
   const one = typeof input === "string";
   const lines = one ? [input] : input;
-  if (lines.length === 0) return;
-  console[mode]([
-    `${prefix.toUpperCase()}: `, ...lines 
-  ].join(one ? '' : '\n'));
+  if (lines.length === 0) return null;
+  const pfx = `${prefix.toUpperCase()}`;
+  console[mode]([pfx+':', ...lines].join('\n'));
+  return lines.map((l,i) => [i, pfx, l]);
 }
 
 const normalize = (root, url_in) => {
@@ -22,11 +24,16 @@ const normalize = (root, url_in) => {
   return path.join(root, path.format(p), suffix);
 }
 
-const startServer = async (port) => {
+const startServer = async (port, opts) => {
   return http.createServer((req, res)  => {
     const root = {
       GET: 'client',
       POST: 'tmp-dev'
+    }
+    const ua = req.headers['user-agent'];
+    if (ua !== opts.ua) {
+      opts.log = toLogger(ua);
+      opts.ua = ua;
     }
     if (req.method === 'POST') {
       const { pathname } = url.parse(req.url);
@@ -43,6 +50,7 @@ const startServer = async (port) => {
         writeEvent(path.join(root.POST, pathname), body)
         res.writeHead(201, empty).end();
       });
+      return;
     }
     const full_path = normalize(root.GET, req.url);
     const ext = path.extname(full_path);
@@ -89,6 +97,11 @@ const CLEAN = () => {
   return process.argv[2] === 'clean';
 };
 
+const appendEvent = (msg_file, data) => {
+  const encoding = 'utf8';
+  fs.appendFileSync(msg_file, data, { encoding });
+}
+
 const writeEvent = (msg_file, data) => {
   const encoding = 'utf8';
   fs.writeFileSync(msg_file, data, { encoding });
@@ -100,22 +113,47 @@ const readEvent = (msg_file) => {
   return data.toString();
 }
 
+const toLogger = (_ua) => {
+  const log_dir = "tmp-log";
+  const ua = new UAParser(_ua);
+  const name = ua.getBrowser().name || "None";
+  const ia = { hour: 'numeric', weekday: 'short' };
+  const when = new Date().toLocaleString('ia', ia).replace(' ', '');
+  const random = crypto.randomBytes(16).toString('base64url');
+  const file_name = [ when, name, random ].join('_') + '.log';
+  if (!fs.existsSync(log_dir)) fs.mkdirSync(log_dir);
+  const log_file = path.join(log_dir, file_name);
+  fs.openSync(log_file, 'w');
+  return (err, prefix, input) => {
+    const lines = logger(err, prefix, input);
+    if (lines === null) return;
+    const json = lines.map(l => JSON.stringify(l));
+    appendEvent(log_file, [...json, ''].join('\n'));
+  }
+}
+
+const toNewOpts = (ua) => {
+  return { ua, log: toLogger(ua) };
+}
+
 const dev = async (env) => {
+  const pre = 'DEV';
+  const opts = toNewOpts(null);
+  const basic_log = opts.log;
   try {
     if (CLEAN()) fs.unlinkSync(env);
   }
   catch (e) {
-    console.log(e.message);
+    opts.log(0, pre, e.message);
   }
   const delay = 5;
-  const pre = 'LOG';
-  const stdio = 'inherit';
+  const stdio = 'pipe';
   const ses = 'ROOT__SESSION';
   const child_procs = new Set();
   const msg_file = "./tmp-dev/msg.txt";
   const args = ['bash', ['develop.bash'], { stdio }];
-  logger(0, pre, `Polling ${msg_file} each ${delay} secs`)
-  const server = await startServer(PORT);
+  opts.log(0, pre, `Polling ${msg_file} each ${delay} secs`)
+  const server = await startServer(PORT, opts);
   const dt = delay * 1000;
   const state = {
     first: CLEAN(),
@@ -142,14 +180,23 @@ const dev = async (env) => {
     });
     if (!state.first && !isEmpty(env) && !msg) {
       await new Promise(r => setTimeout(r, dt));
-      logger(0, pre, 'Waited ' + toTimeDelta(state.basis));
+      opts.log(0, pre, 'Waited ' + toTimeDelta(state.basis));
     }
     else {
       const new_basis = Date.now();
       const bash_proc = child.spawn(...args);
       child_procs.add(bash_proc)
+      bash_proc.stdout.on('data', (data) => {
+        const filter = (line) => {
+          if (!line.length) return false;
+          return line.match(/^Action/); // Filter
+        }
+        const lines = data.toString().split('\n');
+        opts.log(0, 'BASH', lines.filter(filter));
+      });
       await new Promise(r => bash_proc.on('close', r));
-      logger(0, pre, 'Done in ' + toTimeDelta(new_basis));
+      opts.log = basic_log; // Reset Log after process end
+      opts.log(0, pre, 'Done in ' + toTimeDelta(new_basis));
       await new Promise(r => setTimeout(r, dt));
       state.basis = new_basis;
       state.first = false;

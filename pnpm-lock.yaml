@@ -26,6 +26,7 @@ specifiers:
   sock-secret: 6.4.2
   ts-node: ^10.9.1
   typescript: ^4.8.3
+  ua-parser-js: ^1.0.33
 
 dependencies:
   '@octokit/app': 13.0.11
@@ -51,6 +52,7 @@ devDependencies:
   eslint: 8.24.0
   pkg: 5.8.0
   typescript: 4.8.3
+  ua-parser-js: 1.0.33
 
 packages:
 
@@ -2561,6 +2563,10 @@ packages:
     resolution: {integrity: sha512-goMHfm00nWPa8UvR/CPSvykqf6dVV8x/dp0c5mFTMTIu0u0FlGWRioyy7Nn0PGAdHxpJZnuO/ut+PpQ8UiHAig==}
     engines: {node: '>=4.2.0'}
     hasBin: true
+
+  /ua-parser-js/1.0.33:
+    resolution: {integrity: sha512-RqshF7TPTE0XLYAqmjlu5cLLuGdKrNu9O1KLA/qp39QtbZwuzwv1dT46DZSopoUMsYgXpB3Cv8a03FI8b74oFQ==}
+    dev: true
 
   /universal-github-app-jwt/1.1.0:
     resolution: {integrity: sha512-3b+ocAjjz4JTyqaOT+NNBd5BtTuvJTxWElIoeHSVelUV9J3Jp7avmQTdLKCaoqi/5Ox2o/q+VK19TJ233rVXVQ==}

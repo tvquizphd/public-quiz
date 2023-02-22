@@ -110,6 +110,7 @@ dist
 *.pem
 index
 tmp-dev
+tmp-log
 secret.txt
 client/pub.txt
 .DS_Store
