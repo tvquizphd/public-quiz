@@ -9,17 +9,14 @@ RANDO=$(openssl rand -hex 3)
 DEPLOYMENT="INT-TEST-$RANDO"
 export DEPLOYMENT
 export REMOTE
-SERVER_URL="\"localhost:8000\""
-SERVER_CMD="\"npx http-server client\""
-WIKI_IN="./tmp-dev"
-CSV="./client/environment.csv"
 SECRET_TXT="./secret.txt"
 CLIENT_IN="./client/pub.txt"
-CLIENT_OUT=$WIKI_IN/msg.txt
-mkdir -p $WIKI_IN
+CLIENT_OUT="./tmp-dev/msg.txt"
+CSV="./client/environment.csv"
+mkdir -p "./tmp-dev"
+echo "" > $SECRET_TXT
 echo "REMOTE,$REMOTE" > $CSV
 echo "DEPLOYMENT,$DEPLOYMENT" >> $CSV
-echo "" > $SECRET_TXT
 
 if [ "$1" == "UPDATE" ]; then
   PUB_CTLI=$(head -n 1 $CLIENT_IN)
