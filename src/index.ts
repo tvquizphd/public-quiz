@@ -620,7 +620,10 @@ const toEnvCommands = (sl: string[]): CommandTreeList => {
     throw new AggregateError(errs, 'ACTION: FAILURE.');
   }
 }).catch((e: any) => {
-  if (e instanceof AggregateError) console.error(e);
+  if (e instanceof AggregateError) {
+    console.error(e.message);
+    e.errors.forEach(e => console.error(e));
+  }
   else if (e instanceof Error) console.error(e);
   else console.error("Unknown Error Occured");
   process.exitCode = 1;

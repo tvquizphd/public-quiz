@@ -1,6 +1,6 @@
 {
   "name": "public-quiz",
-  "version": "6.19.0",
+  "version": "6.19.1",
   "description": "Access TV Quiz PhD",
   "type": "module",
   "scripts": {
@@ -12,6 +12,7 @@
     "lint": "eslint src client",
     "lint:src": "eslint src",
     "lint:client": "eslint client",
+    "build:host": "tsc && pnpm p:host",
     "develop": "ts-node-esm src/index.ts",
     "serve": "npx http-server client -p 8000",
     "test": "DEBUG=pw:api playwright test",
@@ -19,6 +20,7 @@
     "test:debug": "playwright test --debug",
     "test:codegen": "npx playwright codegen localhost:8000",
     "test:ideas": "(trap 'kill 0' SIGINT; pnpm dev clean & pnpm test:codegen)",
+    "p:host": "pkg -t host --no-bytecode --public-packages \"*\" --public --out-dir . dist/index.js",
     "p": "pkg -t node18-linux-x64 --no-bytecode --public-packages \"*\" --public --out-dir . dist/index.js"
   },
   "repository": {
