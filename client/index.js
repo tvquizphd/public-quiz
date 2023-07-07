@@ -106,7 +106,7 @@ const runReef = (dev, version, remote, env) => {
     socket: false,
     finish: false
   }
-  const app_name = `QUIZ-${env}`;
+  const app_name = `${env}`;
   const MANIFEST = {
    "url": href,
    "name": app_name,
