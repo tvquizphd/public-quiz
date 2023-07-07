@@ -13,6 +13,9 @@ on:
         description: "True if set as pre-release"
         required: true
         type: boolean
+      deployment:
+        required: true
+        type: string
     outputs:
       url:
         description: "URL of GitHub Pages to link to"
