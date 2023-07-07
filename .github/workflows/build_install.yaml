@@ -11,7 +11,9 @@ jobs:
     steps:
       - id: tag
         run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | sed 's/\(.\{8\}\).*/\1/')
           echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
+          echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
   build:
     uses: ./.github/workflows/build.yaml
     needs: [tag]
@@ -22,14 +24,14 @@ jobs:
     with:
       prerelease: true
       tag: ${{ needs.tag.outputs.tag }}
-      deployment: "PROD-${{ github.sha }}"
+      deployment: "PROD-${{ needs.tag.outputs.sha }}"
   install:
     uses: ./.github/workflows/install.yaml
     needs: [tag, build]
     permissions:
       contents: write
     with:
-      deployment: "PROD-${{ github.sha }}"
+      deployment: "PROD-${{ needs.tag.outputs.sha }}"
       tag: ${{ needs.tag.outputs.tag }}
       url: ${{ needs.build.outputs.url }}
     concurrency:
