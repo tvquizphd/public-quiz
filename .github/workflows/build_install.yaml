@@ -11,9 +11,13 @@ jobs:
     steps:
       - id: tag
         run: |
-          SHORT_SHA=$(echo "${{ github.sha }}" | sed 's/\(.\{8\}\).*/\1/')
+          SHORT_SHA=$(echo "$SHA" | sed 's/\(.\{8\}\).*/\1/')
+          echo "$SHA"
+          echo "$SHORT_SHA"
           echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
           echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+        env:
+          SHA: ${{ github.sha }}
   build:
     uses: ./.github/workflows/build.yaml
     needs: [tag]
