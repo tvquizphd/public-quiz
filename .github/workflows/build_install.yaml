@@ -8,12 +8,12 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.tag }}
+      sha: ${{ steps.tag.outputs.sha }}
     steps:
       - id: tag
         run: |
           SHORT_SHA=$(echo "$SHA" | sed 's/\(.\{8\}\).*/\1/')
-          echo "$SHA"
-          echo "$SHORT_SHA"
+          echo "$SHORT_SHA ($SHA)"
           echo "tag=${GITHUB_REF##*/}" >> $GITHUB_OUTPUT
           echo "sha=$SHORT_SHA" >> $GITHUB_OUTPUT
         env:
