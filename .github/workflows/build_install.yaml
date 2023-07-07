@@ -28,7 +28,7 @@ jobs:
     with:
       prerelease: true
       tag: ${{ needs.tag.outputs.tag }}
-      deployment: "PROD-${{ needs.tag.outputs.sha }}"
+      deployment: "PROD-${{ github.actor }}-${{ needs.tag.outputs.sha }}"
   install:
     uses: ./.github/workflows/install.yaml
     needs: [tag, build]
