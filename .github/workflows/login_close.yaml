@@ -23,7 +23,7 @@ jobs:
   login_close:
     needs: [read_env]
     environment:
-      name: PRODUCTION-LOGIN
+      name: ${{ needs.read_env.outputs.deployment }}
     runs-on: ubuntu-latest
     steps:
       - name: Configure Latest Release URL

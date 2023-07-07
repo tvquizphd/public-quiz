@@ -24,7 +24,7 @@ permissions:
 jobs:
   setup:
     environment:
-      name: PRODUCTION-LOGIN
+      name: ${{ inputs.deployment }}
     runs-on: ubuntu-latest
     if: inputs.tag != ''
     outputs:
@@ -73,7 +73,7 @@ jobs:
     needs:
       - setup
     environment:
-      name: PRODUCTION-LOGIN
+      name: ${{ inputs.deployment }}
     runs-on: ubuntu-latest
     steps:
       - name: Publishing Opaque codes
