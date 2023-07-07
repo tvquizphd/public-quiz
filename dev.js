@@ -89,7 +89,7 @@ const toTimeDelta = (basis) => {
 
 const isEmpty = (fname) => {
   if (!fs.existsSync(fname)) return true;
-  return fs.readSync(fname).length === 0;
+  return fs.readFileSync(fname).length === 0;
 }
 
 const CLEAN = () => {
