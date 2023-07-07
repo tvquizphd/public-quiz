@@ -317,7 +317,7 @@ const runReef = (dev, version, remote, env) => {
 export default () => {
   const { hostname } = window.location;
   const hasLocal = hostname === "localhost";
-  toEnv().then((config) => {
+  toEnv('./').then((config) => {
     const { version, remote, env } = config;
     runReef(hasLocal, version, remote, env);
     //runReef(null, null, remote, "INTEGRATION-TEST");
