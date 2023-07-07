@@ -27,7 +27,7 @@ jobs:
     with:
       remote: ${{ github.repository }}
       version: ${{ inputs.tag }}
-      deployment: PRODUCTION-LOGIN
+      deployment: ${{ inputs.deployment }}
   build:
     runs-on: ubuntu-latest
     permissions:

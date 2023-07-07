@@ -1,0 +1,25 @@
+name: Access current deployment name
+on:
+  workflow_call:
+    outputs:
+      deployment:
+        description: "current deployment name"
+        value: ${{ jobs.deployment.outputs.deployment }}
+env:
+   GITHUB_TOKEN: ${{ github.token }}
+   REPO: ${{ github.repository }}
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    outputs:
+      deployment: ${{ steps.deployment.outputs.deployment }}
+    steps:
+      - id: deployment
+        run: |
+          URL=$(gh api "repos/$REPO/pages" --jq '.html_url')
+          echo "deployment=$DEP" >> $GITHUB_OUTPUT
+          curl -o "$CSV" "$URL/environment.csv"
+          DEP = awk -F "," '/DEPLOYMENT/{print $2}' "$CSV" | head -1
+          echo "deployment=$DEP" >> $GITHUB_OUTPUT
+        env:
+          CSV: temp_copy_environment.csv

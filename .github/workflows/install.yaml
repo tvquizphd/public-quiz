@@ -8,8 +8,11 @@ on:
       url:
         required: true
         type: string
+      deployment:
+        required: true
+        type: string
 env:
-  DEPLOYMENT: PRODUCTION-LOGIN
+  DEPLOYMENT: "${{ inputs.deployment }}"
   REMOTE: ${{ github.repository }}
   ROOT: "https://api.github.com"
   API: "X-GitHub-Api-Version: 2022-11-28"

@@ -3,7 +3,6 @@ on:
   repository_dispatch:
     types: [call-login-close]
 env:
-  DEPLOYMENT: PRODUCTION-LOGIN
   REMOTE: ${{ github.repository }}
   ROOT: "https://api.github.com"
   API: "X-GitHub-Api-Version: 2022-11-28"
@@ -15,8 +14,14 @@ concurrency:
   cancel-in-progress: true
 permissions:
   contents: write
+  pages: read
 jobs:
+  read_env:
+    uses: ./.github/workflows/read_env.yaml
+    permissions:
+      pages: read
   login_close:
+    needs: [read_env]
     environment:
       name: PRODUCTION-LOGIN
     runs-on: ubuntu-latest
@@ -41,6 +46,7 @@ jobs:
           MESSAGE="Use your private login link."
           ./index SHARE "$GITHUB_TOKEN" "$RELEASE" "$STEP" "$MESSAGE"
         env:
+          DEPLOYMENT: ${{ needs.read_env.outputs.deployment }}
           MAIL__TABLE: ${{ secrets.MAIL__TABLE }}
           LAST__STEP: ${{ secrets.LAST__STEP }}
           ROOT__SESSION : ${{ secrets.ROOT__SESSION }}

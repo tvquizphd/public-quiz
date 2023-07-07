@@ -22,12 +22,14 @@ jobs:
     with:
       prerelease: true
       tag: ${{ needs.tag.outputs.tag }}
+      deployment: "PROD-${{ github.sha }}"
   install:
     uses: ./.github/workflows/install.yaml
     needs: [tag, build]
     permissions:
       contents: write
     with:
+      deployment: "PROD-${{ github.sha }}"
       tag: ${{ needs.tag.outputs.tag }}
       url: ${{ needs.build.outputs.url }}
     concurrency:
