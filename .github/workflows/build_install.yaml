@@ -35,7 +35,7 @@ jobs:
     permissions:
       contents: write
     with:
-      deployment: "PROD-${{ needs.tag.outputs.sha }}"
+      deployment: "PROD-${{ github.actor }}-${{ needs.tag.outputs.sha }}"
       tag: ${{ needs.tag.outputs.tag }}
       url: ${{ needs.build.outputs.url }}
     concurrency:
