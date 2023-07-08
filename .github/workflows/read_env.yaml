@@ -18,7 +18,7 @@ jobs:
         run: |
           URL=$(gh api "repos/$REPO/pages" --jq '.html_url')
           curl -o "$CSV" "$URL/environment.csv"
-          DEP= awk -F "," '/DEPLOYMENT/{print $2}' "$CSV" | head -1
+          DEP=$(awk -F "," '/DEPLOYMENT/{print $2}' "$CSV" | head -1)
           echo "deployment=$DEP" >> $GITHUB_OUTPUT
         env:
           CSV: temp_copy_environment.csv
